@@ -12,6 +12,7 @@
     "axios": "^0.18.0",
     "bluebird": "^3.5.1",
     "cheerio": "^1.0.0-rc.2",
+    "cheerio-advanced-selectors": "^2.0.1",
     "es6-promise-pool": "^2.5.0",
     "express": "^4.16.3",
     "json-stringify-safe": "^5.0.1",

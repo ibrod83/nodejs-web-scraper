@@ -1,5 +1,8 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+var cheerio = require('cheerio');
+var cheerioAdv = require('cheerio-advanced-selectors')
+cheerio = cheerioAdv.wrap(cheerio)
+
 const Promise = require('bluebird');
 const URL = require('url').URL;
 const ConfigClass = require('./configClass');
@@ -14,7 +17,7 @@ const download = require('./image_downloader');
 // const _ = require('lodash');
 const fs = require('fs');
 let downloadedImages = 0;
-const fakeErrors = false;
+const fakeErrors = true;
 var notFoundErrors = 0;
 let overallErrors = 0;
 // const qyu = new Qyu({ concurrency: 100 });
@@ -28,7 +31,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         for (let i in objectConfig) {
             this[i] = objectConfig[i];
         }
-        this.data = [];
+        this.data = {};
         this.selectors = [];//References to child selector objects.
         // this.currentlyScrapedData = [];//Will hold the scraped data of a selector, in its current "context"(as a child of a specific selector);
         // this.overallCollectedData = [];//Will hold the scraped data of a selector, in all "contexts"(If a selector was used as a child,in more than one selector).
@@ -40,7 +43,11 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     }
 
-    getCurrentData(){
+    getData() {
+        return this.data;
+    }
+
+    getCurrentData() {
         return this.data;
     }
 
@@ -48,13 +55,14 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         return this.overallCollectedData;
     }
 
-    async repeatPromiseUntilResolved(promise, href) {//A utility function, that tries to repeat a promise, a given number of times.
+    async repeatPromiseUntilResolved(promise, href, bypassError) {//A utility function, that tries to repeat a promise, a given number of times.
         let numRetries = 2;
         while (true) {
 
             try {
-                const randomNumber = fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
-                if (randomNumber == 1) {
+                // console.log('fetching', href, 'numRetries left:', numRetries);
+                const randomNumber = fakeErrors ? Math.floor(Math.random() * (4 - 1 + 1)) + 1 : 4;
+                if (!bypassError && randomNumber == 1) {
                     throw 'randomly generated error,' + href;
                 }
 
@@ -84,9 +92,9 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         return this.errors;
     }
 
-    setData(dataObject) {//Passes data from the parent, to the given selector.
-        this.dataFromParent = dataObject;
-    }
+    // setData(dataObject) {//Passes data from the parent, to the given selector.
+    //     this.dataFromParent = dataObject;
+    // }
 
     getAbsoluteUrl(base, relative) {//Handles the absolute URL.
         const newUrl = new URL(relative, base).toString();
@@ -116,9 +124,9 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
     // }
 
 
-    async getPage(href) {//Fetches the html of a given page.
+    async getPage(href, bypassError) {//Fetches the html of a given page.
         console.log('fetching page', href)
-        return this.repeatPromiseUntilResolved(axios.get(href), href);
+        return this.repeatPromiseUntilResolved(axios.get(href), href, bypassError);
 
     }
 
@@ -161,18 +169,20 @@ class RootSelector extends CompositeSelector {
         return errors;
     }
 
-    
+
+
+
 
     async scrape() {
 
 
-        this.currentlyScrapedData = {
+        this.data = {
             address: `ROOT: ${this.globalConfig.baseSiteUrl}`,
-            collectedData: [],//Will hold the data collected from the child selectors.
+            data: [],//Will hold the data collected from the child selectors.
         }
 
         try {
-            var { data } = await this.getPage(this.globalConfig.startUrl);
+            var { data } = await this.getPage(this.globalConfig.startUrl, true);
 
         } catch (error) {
             console.log('error from root', error)
@@ -185,11 +195,13 @@ class RootSelector extends CompositeSelector {
         this.html = data;
         for (let i = 0; i < this.selectors.length; i++) {
             // console.log('setting html of the child link')
-            this.selectors[i].setData(dataToPass);
-            await this.selectors[i].scrape();
-            const dataFromChild = this.selectors[i].getCurrentData();
-            this.data.push(dataFromChild);
+            // this.selectors[i].setData(dataToPass);
+            const dataFromChild = await this.selectors[i].scrape(dataToPass);
+            // const dataFromChild = this.selectors[i].getCurrentData();
+            this.data.data.push(dataFromChild);
         }
+
+        // return this.data;
 
         // this.overallCollectedData = this.currentlyScrapedData;
 
@@ -201,20 +213,36 @@ class RootSelector extends CompositeSelector {
 
 class PageSelector extends CompositeSelector {
 
+    constructor(configObj) {
+        super(configObj);
+        this.data = {
+            type: 'Page Selector',
+            name: this.name,
+            data: []
+        }
+    }
+
     createScrapingObject(href) {
         const scrapingObject = {
-            attribs: {
-                address: href,
-                name: this.name,
-                type: 'Page Selector',
-            },
-            referenceToSelectorObject:()=>{return this} ,
+            // attribs: {
+            address: href,
+            // name: this.name,
+            // type: 'Page Selector',
+            // },
+            referenceToSelectorObject: () => { return this },
             successful: false,
             data: []
         }
         return scrapingObject;
     }
-    async scrape() {
+    async scrape(dataFromParent) {
+
+        const currentWrapper = {
+            address: dataFromParent.address,
+            data: []
+        }
+
+
         // this.currentlyScrapedData = {
         //     type: 'Page Selector',
         //     name: this.name,
@@ -223,10 +251,12 @@ class PageSelector extends CompositeSelector {
         //     errors: []
         // }
         // if (!this.pagination) {
-            await this.scrapeOnePaginationPage(this.dataFromParent);
+        const data = await this.scrapeOnePaginationPage(dataFromParent);
+        currentWrapper.data = [...currentWrapper.data, ...data];
+        return currentWrapper;
         // }
 
-        
+
 
 
         //  else {
@@ -275,15 +305,29 @@ class PageSelector extends CompositeSelector {
         })
 
         for (let scrapingObject of scrapingObjects) {
-            await this.processOneScrapingObject(scrapingObject);
-        }
+            try {
+                await this.processOneScrapingObject(scrapingObject);
+            } catch (error) {
 
-        this.data = scrapingObjects;
+                // this.currentlyScrapedData.errors.push(errorString);
+                this.errors.push(error)
+
+
+                console.log(error);
+                overallErrors++
+                continue;
+            }
+
+        }
+        return scrapingObjects;
+        // currentWrapper.data = scrapingObjects;
+        // this.data.push(currentWrapper)
+        // return this.currentWrapper;
     }
 
     async processOneScrapingObject(scrapingObject) {
 
-        const href = scrapingObject.attribs.address;
+        const href = scrapingObject.address;
 
         try {
             // if (href) {
@@ -291,6 +335,7 @@ class PageSelector extends CompositeSelector {
             const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
 
             var { data } = await this.getPage(absoluteUrl);
+            scrapingObject.successful = true
 
             // }
             //  else {
@@ -298,19 +343,14 @@ class PageSelector extends CompositeSelector {
             // }
 
         } catch (error) {
-
             const errorString = `There was an error opening page ${this.globalConfig.baseSiteUrl}${href},${error}`;
-            // this.currentlyScrapedData.errors.push(errorString);
-            this.errors.push(errorString)
-
-
-            console.log(errorString);
-            overallErrors++
+            scrapingObject.successful = false
+            throw errorString;
             // throw error;
             // continue;
         }
 
-        this.dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
+        const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
             html: data,
             address: `${this.globalConfig.baseSiteUrl}${href}`,
 
@@ -320,10 +360,10 @@ class PageSelector extends CompositeSelector {
 
 
             // if (!selector.type === 'Page Selector') {
-            selector.setData(this.dataToPass);
+            // selector.setData(this.dataToPass);
             // }
-            await selector.scrape();
-            const dataFromChild = selector.getCurrentData();
+            const dataFromChild = await selector.scrape(dataToPass);
+            // const dataFromChild = selector.getCurrentData();
             scrapingObject.data.push(dataFromChild);//Pushes the data from the child
 
         }
@@ -348,6 +388,11 @@ class ContentSelector extends Selector {
     constructor(configObj) {
         super(configObj);
         this.contentType = configObj.contentType;
+        this.data = {
+            type: 'Content Selector',
+            name: this.name,
+            data: []
+        }
 
     }
 
@@ -365,45 +410,33 @@ class ContentSelector extends Selector {
     }
 
     getCurrentData() {//Returns the scraped data of the selector.
-        return this.data[this.data.length-1];
+        return this.data[this.data.length - 1];
     }
 
 
 
-    async scrape() {
-        const scrapingObject = {
-            attribs: {
-                type: 'Content Selector',
-                name: this.name
-            },
-            data: [],
+    async scrape(dataFromParent) {
+
+        const currentWrapper = {
+            data: []
         }
 
-
-
-        const $ = cheerio.load(this.dataFromParent.html);
+        const $ = cheerio.load(dataFromParent.html);
 
         const nodeList = $(this.querySelector);
 
-
-
         nodeList.each((index, element) => {
 
-
-            // const wrappedElement = $(element)
-            // console.log('wrappedelelemnt before function',wrappedElement)
-            // var fn = wrappedElement[this.contentType];
             const content = this.getNodeContent($(element));
             console.log('content', content)
-            // console.log('fn',fn.__proto__)
-            // console.log('contentype', this.contentType)
-            scrapingObject.data.push({ name: this.name, text: content });
+         
+            currentWrapper.data.push({ name: this.name, text: content });
 
         })
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
-        this.data.push(scrapingObject);
-        // return this.data;
+        this.data.data.push(currentWrapper);
+        return currentWrapper;
 
     }
 
@@ -412,9 +445,19 @@ class ContentSelector extends Selector {
 
 class ImageSelector extends Selector {
 
+    constructor(configObj) {
+        super(configObj);
+        this.data = {
+            type: 'Image Selector',
+            name: this.name,
+            data: []
+        }
+
+    }
+
 
     async fetchImage(url) {
-        console.log('fetching image:',url);
+        console.log('fetching image:', url);
         const options = {
             url,
             dest: './images/'
@@ -444,42 +487,36 @@ class ImageSelector extends Selector {
     // }
 
     getCurrentData() {//Returns the scraped data of the selector.
-        return this.data[this.data.length-1];
+        return this.data[this.data.length - 1];
     }
 
     createScrapingObject(href) {
         const scrapingObject = {
-            attribs: {
-                address: href,//The image href
-                name: this.name,
-                type: 'Image Selector',
-            },
-            referenceToSelectorObject:()=>{return this} ,
+            address: href,//The image href            
+            referenceToSelectorObject: () => { return this },
             successful: false,
-            data: []
         }
         return scrapingObject;
     }
 
     async processOneScrapingObject(scrapingObject) {
-        // this.currentlyScrapedData = {
-        //     type: 'Image Selector',
-        //     imagesSaved: [],
-        //     errors: []
-        // }
-        const imageHref = scrapingObject.attribs.address;
+     
 
+        const imageHref = scrapingObject.address;
+        if(!imageHref){
+            throw 'Image href is invalid, skipping.';
+        }
         try {
-            var absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, imageHref);
-            await this.fetchImage(absoluteUrl);
-            scrapingObject.data.push(absoluteUrl);
+          
+            await this.fetchImage(imageHref);
+            // scrapingObject.data.push(imageHref);
 
             // console.log('pushed image ref', imageHref)
         } catch (error) {
-            const errorString = `there was an error fetching image:, ${absoluteUrl}, ${error}`
+            const errorString = `there was an error fetching image:, ${imageHref}, ${error}`
             console.log(errorString)
 
-            this.currentlyScrapedData.errors.push(errorString);
+            // this.currentlyScrapedData.errors.push(errorString);
             this.errors.push(errorString);
             overallErrors++
             throw error;
@@ -487,18 +524,24 @@ class ImageSelector extends Selector {
         }
 
 
-        if (this.currentlyScrapedData.errors.length == 0) {
-            // this.overallCollectedData.push(this.currentlyScrapedData);
-            delete this.currentlyScrapedData.errors;
-        }
+        // if (this.currentlyScrapedData.errors.length == 0) {
+        //     // this.overallCollectedData.push(this.currentlyScrapedData);
+        //     delete this.currentlyScrapedData.errors;
+        // }
 
-        this.overallCollectedData.push(this.currentlyScrapedData);
+        // this.overallCollectedData.push(this.currentlyScrapedData);
         // console.log('this.currently.errors',this.currentlyScrapedData.errors)
     }
 
-    async scrape() {
+    async scrape(dataFromParent) {
 
-        const $ = cheerio.load(this.dataFromParent.html);
+        const currentWrapper = {
+            data: [],
+            type: 'Image Selector',
+            name: this.name,
+        }
+
+        const $ = cheerio.load(dataFromParent.html);
         const nodeList = $(this.querySelector);
         const imageHrefs = [];
         nodeList.each((index, element) => {
@@ -513,7 +556,7 @@ class ImageSelector extends Selector {
 
         if (imageHrefs.length == 0) {
             // this.currentlyScrapedData.errors.push(`No images found by the query, in ${this.dataFromParent.address}`);
-            this.errors.push(`No images found by the query, in ${this.dataFromParent.address}`);
+            this.errors.push(`No images found by the query, in ${dataFromParent.address}`);
             overallErrors++
             return;
         }
@@ -521,25 +564,30 @@ class ImageSelector extends Selector {
         const scrapingObjects = [];
 
         imageHrefs.forEach((imageHref) => {
-            const scrapingObject = this.createScrapingObject(imageHref);
+            var absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, imageHref);
+            const scrapingObject = this.createScrapingObject(absoluteUrl);
             scrapingObjects.push(scrapingObject);
         })
 
-       
+
 
         for (let scrapingObject of scrapingObjects) {
             try {
-              await this.processOneScrapingObject(scrapingObject);  
+                
+                await this.processOneScrapingObject(scrapingObject);
+                scrapingObject.successful = true;
             } catch (error) {
                 continue;
             }
-            
+
         }
 
 
-        this.data.push(scrapingObjects);
+        currentWrapper.data.push(scrapingObjects);
 
-        // return this.data;
+        this.data.data.push(currentWrapper);
+
+        return currentWrapper;
 
 
 
@@ -718,15 +766,17 @@ class ImageSelector extends Selector {
         startUrl: `https://ibrod83.com/books`
     }
     const root = new RootSelector(config);
-
-    const productPage = new PageSelector({ querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 3 } });
-    const categoryPage = new PageSelector({ querySelector: '#content_65 ol a', name: 'category' });
+    // pagination: { queryString: 'page', numPages: 3 }
+    const productPage = new PageSelector({ querySelector: '.product_name_link', name: 'product'});
+    const categoryPage = new PageSelector({ querySelector: '#content_65 ol a:first', name: 'category' });
     root.addSelector(categoryPage);
     categoryPage.addSelector(productPage);
     const publisherData = new ContentSelector({ querySelector: '.product_publisher', name: 'publisher' });
     const productName = new ContentSelector({ querySelector: '.product_name', name: 'name' });
     const authorData = new ContentSelector({ querySelector: '.product_author', name: 'author' });
-    const productImage = new ImageSelector({ querySelector: '.book img', name: 'image' });
+    const productImage = new ImageSelector({ querySelector: 'img', name: 'image' });
+    root.addSelector(productImage)
+    root.addSelector(productPage)
     productPage.addSelector(publisherData);
     productPage.addSelector(authorData);
     productPage.addSelector(productImage);
@@ -734,8 +784,8 @@ class ImageSelector extends Selector {
     // root.addSelector(productImage)
     try {
         await root.scrape();
-        var entireTree = root.getCurrentData();
-    console.log(entireTree);
+        var entireTree = root.getData();
+        console.log(entireTree);
         // var productTree = productPage.getAllData();
         // var allErrors = root.getErrors();
         // var allImages = productImage.getAllData();
@@ -938,7 +988,7 @@ class ImageSelector extends Selector {
 
     // });
     // if(productTree) {
-      
+
     //     fs.writeFile('./products.json', JSON.stringify(productTree), (err) => {
     //         if (err) {
     //             console.log(err)

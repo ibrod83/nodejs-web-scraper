@@ -76,7 +76,7 @@ const downloader = (options = {}) => {
       else if(res.statusCode == 404 ){
         return onError({response:{status:404}},done);
       }
-      onError(new Error(`Image loading error - ${res.statusCode}. URL: ${options.url}`), done)
+      return onError(new Error(`Image loading error - ${res.statusCode}. URL: ${options.url}`), done)
     }
   })
 }
