@@ -4,6 +4,7 @@ const request = require('request')
 const path = require('path')
 const fs = require('fs')
 const sanitize = require('sanitize-filename');
+const FileProcessor = require('./file_processor');
 
 const onError = (err, done) => {
   if (done) {
@@ -17,7 +18,7 @@ const downloader = (options = {}) => {
     throw new Error('The option url is required')
   }
  
-  console.log('new url',options.url)
+  // console.log('new url',options.url)
 
   if (!options.dest) {
     throw new Error('The option dest is required')
@@ -46,6 +47,7 @@ const downloader = (options = {}) => {
        let imageName="";
        if (urlEndsWithValidImageExtension) {
             imageName = path.basename(options.url);
+            
         } else {
             var contentType = res.headers['content-type'];
             // console.log('contentType', contentType);
@@ -56,11 +58,18 @@ const downloader = (options = {}) => {
             imageName = `${sanitize(path.basename(options.url))}.${extension}`;
             // console.log('image name', imageName);
         }
+        const fileProcessor = new FileProcessor({fileName:imageName,path:options.dest});
+        if(options.clone){
+           imageName = fileProcessor.getAvailableFileName();
+        }
+        // console.log('image name from downloader',imageName)
       // if (!path.extname(options.dest)) {
       //   options.dest = path.join(options.dest, path.basename(options.url))
       // }
       // console.log('body',body)
+     
       fs.writeFile(options.dest+imageName, body, 'binary', (err) => {
+        
         if (err) {
           return onError(err, done)
         }
@@ -81,12 +90,17 @@ const downloader = (options = {}) => {
   })
 }
 
-downloader.image = (options = {}) => new Promise((resolve, reject) => {
+downloader.image = (options = {}) => new Promise((resolve, reject) => {//creates a new wrapper promise that takes options as an an argument.
   options.done = (err, dest, body) => {
     if (err) {
-      return reject(err)
+      console.log('promise rejected from options.done')
+      return reject(err);
+    }else{
+      // console.log('promise resolved from options.done')
+
+      resolve({ filename: dest, image: body })
     }
-    resolve({ filename: dest, image: body })
+    
   }
 
   downloader(options)
