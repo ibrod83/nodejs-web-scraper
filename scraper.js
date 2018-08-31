@@ -15,8 +15,9 @@ const ConfigClass = require('./configClass');
 const download = require('./image_downloader');
 // var sanitize = require("sanitize-filename");
 // const { Qyu } = require('qyu');
+// await qyu.whenFree();
 // const path = require('path')
-// const _ = require('lodash');
+// const _ = require('lodash');f
 const fs = require('fs');
 let downloadedImages = 0;
 
@@ -28,48 +29,70 @@ class Scraper {
     constructor() {
         this.failedScrapingObjects = [];
         this.fakeErrors = true;
-        this.cloneImages= true;
-        this.numRequests=0;
+        this.cloneImages = true;
+        this.numRequests = 0;
     }
+
     createSelector(type, config) {
         const currentClass = getClassMap()[type];
-        // console.log('this', this)
         return new currentClass(config, this);
+    }
+
+    filePromise(obj) {
+
+        return new Promise((resolve, reject) => {
+            console.log('saving file')
+            fs.writeFile(`./${obj.fileName}.json`, JSON.stringify(obj.object), resolve);
+        })
+
+    }
+    
+
+    async createLog(object) {
+
+        try {
+            await this.filePromise(object);
+
+        } catch (error) {
+            throw error;
+        }
+
+
     }
 
     async repeatErrors() {
         var input = new Input({
             name: 'first',
             message: 'continue?'
-          });
-           
-         
-          
+        });
+
+
+
         // debugger;
         this.fakeErrors = false;
-        let counter =0
-        const failedImages = this.failedScrapingObjects.filter((object)=>{return !object.data})
-        console.log('number of failed IMAGE objects:',failedImages.length)
-        console.log('number of faield objects:',this.failedScrapingObjects.length)
+        let counter = 0
+        const failedImages = this.failedScrapingObjects.filter((object) => { return !object.data })
+        console.log('number of failed IMAGE objects:', failedImages.length)
+        console.log('number of faield objects:', this.failedScrapingObjects.length)
         await input.run()
         for (let failedObject of this.failedScrapingObjects) {
-           
+
             // if(failedObject.data)
             //     continue;
             counter++
-            console.log('failed object counter:',counter)
+            console.log('failed object counter:', counter)
             console.log('failed object', failedObject)
             const selectorContext = failedObject.referenceToSelectorObject();
             try {
-                await selectorContext.processOneScrapingObject(failedObject); 
+                await selectorContext.processOneScrapingObject(failedObject);
             } catch (error) {
                 throw error;
             }
-           
+
         }
 
         console.log('done repeating objects!')
-      
+
     }
 
 
@@ -107,6 +130,10 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     }
 
+    referenceToSelectorObject() {
+        return this
+    }
+
     getData() {
         return this.data;
     }
@@ -122,17 +149,16 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {
 
         const randomNumber = this.context.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
-        if (this.context.numRequests>3 && randomNumber == 1) {
+        if (this.context.numRequests > 3 && randomNumber == 1) {
             throw 'randomly generated error,' + href;
         }
-        // console.log('fn', fn)
 
         const maxRetries = 3
         try {
             this.context.numRequests++
             return await promiseFactory();
         } catch (error) {
-            console.log('retrying failed promise...', href);
+            console.log('retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('retreis', newRetries)
             if (newRetries == maxRetries) {
@@ -141,52 +167,11 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
             return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);
         }
 
-
     }
-
-    // async repeatPromiseUntilResolved(promise, href, bypassError) {//A utility function, that tries to repeat a promise, a given number of times.
-    //     let numRetries = 2;
-    //     while (true) {
-
-    //         try {
-    //             console.log('fetching', href, 'numRetries left:', numRetries);
-    //             console.log('promise status:',promise)
-    //             const randomNumber = fakeErrors ? Math.floor(Math.random() * (4 - 1 + 1)) + 1 : 4;
-    //             if (!bypassError && randomNumber == 1) {
-    //                 throw 'randomly generated error,' + href;
-    //             }
-
-    //             return await promise;
-    //         } catch (err) {
-    //             console.log('promise status:',promise)
-
-    //             if (typeof err === 'string' && err.includes('random'))
-    //                 throw 'from the catch of repeatPromiseUntilResolved, ' + err;
-
-    //             if (err.response && err.response.status == 404) {
-    //                 notFoundErrors++;
-    //                 throw `${href} not found, skipping it`;
-
-    //             }
-    //             if (!(numRetries--)) {
-
-    //                 console.log(`no retries left`)
-    //                 throw err;
-    //             }
-    //             // console.log('repeating href', href);
-    //             await Promise.delay(1000);
-
-    //         }
-    //     }
-    // }
 
     getErrors() {//gets overall errors of the selector, in all "contexts".
         return this.errors;
     }
-
-    // setData(dataObject) {//Passes data from the parent, to the given selector.
-    //     this.dataFromParent = dataObject;
-    // }
 
     getAbsoluteUrl(base, relative) {//Handles the absolute URL.
         const newUrl = new URL(relative, base).toString();
@@ -216,6 +201,7 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
     // }
 
     createPromise(href) {
+
         return axios.get(href)
     }
     async getPage(href, bypassError) {//Fetches the html of a given page.
@@ -280,7 +266,7 @@ class RootSelector extends CompositeSelector {
             var { data } = await this.getPage(this.globalConfig.startUrl, true);
 
         } catch (error) {
-            console.log('error from root', error)
+            console.error('error from root', error)
             throw error;
         }
         var dataToPass = {
@@ -317,9 +303,10 @@ class PageSelector extends CompositeSelector {
         }
     }
 
-    createScrapingObject(href) {
+    createScrapingObject(href, type) {
         const scrapingObject = {
             // attribs: {
+
             address: href,
             // name: this.name,
             // type: 'Page Selector',
@@ -328,9 +315,16 @@ class PageSelector extends CompositeSelector {
             successful: false,
             data: []
         }
+        if (type) {
+            scrapingObject.type = type;
+        }
         return scrapingObject;
     }
     async scrape(dataFromParent) {
+
+
+
+        // console.log('this:', this)
 
         const currentWrapper = {
             type: 'Page Selector',
@@ -340,48 +334,57 @@ class PageSelector extends CompositeSelector {
         }
 
 
-        // this.currentlyScrapedData = {
-        //     type: 'Page Selector',
-        //     name: this.name,
-        //     address: this.dataFromParent.address,//The href of the current link item.
-        //     collectedData: [],//Will hold the data collected from the child selectors.
-        //     errors: []
-        // }
-        // if (!this.pagination) {
-        const data = await this.scrapeOnePaginationPage(dataFromParent);
-        currentWrapper.data = [...currentWrapper.data, ...data];
+        if (!this.pagination) {
+            const refs = this.createLinkList(dataFromParent)
+            const scrapingObjects = [];
+            refs.forEach((href) => {
+                if (href) {
+                    const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
+                    var scrapingObject = this.createScrapingObject(absoluteUrl);
+                    scrapingObjects.push(scrapingObject);
+                }
+
+            })
+
+            for (let scrapingObject of scrapingObjects) {
+                var data = await this.processOneScrapingObject(scrapingObject);
+            }
+            currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+
+
+
+
+
+        }
+
+
+        else {
+            console.log('yes pagination.', dataFromParent.address)
+            var scrapingObjects = [];
+            for (let i = 1; i <= this.pagination.numPages; i++) {
+                // const absoluteUrl = this.getAbsoluteUrl(`${dataFromParent.address}&${this.pagination.queryString}=${i}`);
+                const scrapingObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'paginationPage');
+                scrapingObjects.push(scrapingObject);
+                try {
+                    console.log('SCRAPING ONE PAGINATION OBJECT');
+                    // if(this.context.fakeErrors){throw 'faiiiiiiiiiil'};
+                    var data = await this.processOneScrapingObject(scrapingObject);
+                    scrapingObject.data = data;
+                } catch (error) {
+                    console.error('There was an error scraping a pagination page', error);
+                    this.context.failedScrapingObjects.push(scrapingObject);
+                }
+
+            }
+            console.log('problematic data', scrapingObjects);
+            console.log('problematic data typeof', typeof scrapingObjects);
+            currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+        }
+
         return currentWrapper;
-        // }
-
-
-
-
-        //  else {
-        //     for (let i = 1; i <= this.pagination.numPages; i++) {
-        //         const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, `${this.dataFromParent.address}&${this.pagination.queryString}=${i}`);
-        //         try {
-        //             var {data} =  await this.getPage(absoluteUrl);
-        //         } catch (error) {
-        //             const errorString = `There was an error opening page ${this.globalConfig.baseSiteUrl}${href},${error}`;
-        //             this.currentlyScrapedData.errors.push(errorString);
-        //             this.errors.push(errorString)
-        //             console.log(errorString);
-        //             overallErrors++
-        //             // throw error;
-        //             continue;  
-        //         }
-
-        //         var dataToPass = {
-        //             address: absoluteUrl,
-        //             html:data
-
-        //         };
-        //         await this.scrapeOnePaginationPage(dataToPass);
-        //     }
-        // }
     }
 
-    async scrapeOnePaginationPage(passedData) {
+    createLinkList(passedData) {
         const $ = cheerio.load(passedData.html);
         const scrapedLinks = $(this.querySelector);
         const refs = [];
@@ -394,53 +397,22 @@ class PageSelector extends CompositeSelector {
         console.log('refs length', refs.length)
 
 
-        //*********sequential strategy *******************/
-        const scrapingObjects = [];
-        refs.forEach((href) => {
-            if (href) {
-                const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
-                const scrapingObject = this.createScrapingObject(absoluteUrl);
-                scrapingObjects.push(scrapingObject);
-            }
+        return refs;
 
-        })
-
-        for (let scrapingObject of scrapingObjects) {
-            try {
-                await this.processOneScrapingObject(scrapingObject);
-            } catch (error) {
-
-                // this.currentlyScrapedData.errors.push(errorString);
-                this.errors.push(error)
-
-
-                console.log(error);
-                overallErrors++
-                continue;
-            }
-
-        }
-        return scrapingObjects;
-        // currentWrapper.data = scrapingObjects;
-        // this.data.push(currentWrapper)
-        // return this.currentWrapper;
     }
 
     async processOneScrapingObject(scrapingObject) {
 
+
         const href = scrapingObject.address;
 
         try {
-            // if (href) {
 
 
+            console.log('href from before get page', href)
             var { data } = await this.getPage(href);
             scrapingObject.successful = true
 
-            // }
-            //  else {
-            //     throw 'Invalid href';
-            // }
 
         } catch (error) {
             const errorString = `There was an error opening page ${this.globalConfig.baseSiteUrl}${href},${error}`;
@@ -453,21 +425,49 @@ class PageSelector extends CompositeSelector {
 
         const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
             html: data,
-            address: `${this.globalConfig.baseSiteUrl}${href}`,
+            address: href,
+        }
+        // console.log('address below datatopass',dataToPass.address);
+        if (scrapingObject.type !== 'paginationPage') {
 
+            try {
+                var dataFromChildren = await this.scrapeChildren(dataToPass)
+
+                scrapingObject.data.push(dataFromChildren);
+            } catch (error) {
+                console.error(error);
+                this.context.failedScrapingObjects.push(scrapingObject);
+            }
+        } else {
+            const refs = this.createLinkList(dataToPass)
+            const scrapingObjects = [];
+            refs.forEach((href) => {
+                if (href) {
+                    const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
+                    const scrapingObject = this.createScrapingObject(absoluteUrl);
+                    scrapingObjects.push(scrapingObject);
+                }
+
+            })
+            for (let scrapingObject of scrapingObjects) {
+                try {
+                    await this.processOneScrapingObject(scrapingObject);
+                    // scrapingObject.data = data;
+                } catch (error) {
+
+                    // this.currentlyScrapedData.errors.push(errorString);
+                    this.errors.push(error)
+
+
+                    console.error(error);
+                    overallErrors++
+                    continue;
+                }
+
+            }
+            return scrapingObjects;
         }
 
-        for (let selector of this.selectors) {
-
-
-            // if (!selector.type === 'Page Selector') {
-            // selector.setData(this.dataToPass);
-            // }
-            const dataFromChild = await selector.scrape(dataToPass);
-            // const dataFromChild = selector.getCurrentData();
-            scrapingObject.data.push(dataFromChild);//Pushes the data from the child
-
-        }
 
         // if(this.pagination){
         // this.overallCollectedData = [...this.overallCollectedData, currentLinkData]
@@ -478,6 +478,17 @@ class PageSelector extends CompositeSelector {
 
         // this.currentlyScrapedData.collectedData.push(currentLinkData)
 
+    }
+
+    async scrapeChildren(passedData) {
+        const scrapedData = []
+        for (let selector of this.selectors) {
+            const dataFromChild = await selector.scrape(passedData);
+            scrapedData.push(dataFromChild);//Pushes the data from the child
+
+        }
+
+        return scrapedData;
     }
 
 
@@ -599,11 +610,14 @@ class ImageSelector extends Selector {
     }
 
     createScrapingObject(href) {
+        console.log(this.referenceToSelectorObject)
         const scrapingObject = {
             address: href,//The image href            
-            referenceToSelectorObject: () => { return this },
+            referenceToSelectorObject: this.referenceToSelectorObject,
             successful: false,
         }
+
+            console.log('scraping object', scrapingObject);
         return scrapingObject;
     }
 
@@ -617,18 +631,26 @@ class ImageSelector extends Selector {
         try {
 
             await this.fetchImage(imageHref);
+            scrapingObject.successful = true;
+            // if(this.context.failedScrapingObjects.includes(scrapingObject)){
+            //     console.log('includes',scrapingObject)
+            //     this.context.failedScrapingObjects.splice(this.context.failedScrapingObjects.indexOf(scrapingObject),1)
+            // }
+
+
             // scrapingObject.data.push(imageHref);
 
             // console.log('pushed image ref', imageHref)
         } catch (error) {
             const errorString = `there was an error fetching image:, ${imageHref}, ${error}`
-            console.log(errorString)
+            // console.log(errorString)
+            console.error(errorString);
 
             // this.currentlyScrapedData.errors.push(errorString);
             this.errors.push(errorString);
             overallErrors++
             this.context.failedScrapingObjects.push(scrapingObject);
-            throw error;
+            // throw error;
 
         }
 
@@ -685,10 +707,10 @@ class ImageSelector extends Selector {
             try {
 
                 await this.processOneScrapingObject(scrapingObject);
-                scrapingObject.successful = true;
+
             } catch (error) {
                 console.log('caught an error within the scrapingobjects loop, continuing')
-                continue;
+                // continue;
             }
 
         }
@@ -879,16 +901,43 @@ class ImageSelector extends Selector {
         startUrl: `https://ibrod83.com/books`
     }
     const scraper = new Scraper();
+
     const root = scraper.createSelector('root', config);
     //pagination: { queryString: 'page', numPages: 3 }
-    const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product' });
+    // const productPage = scraper.createSelector('page', '.product_name_link');
+
+    // let productPage;
+
+    // root
+    //     .addSelector(
+    //         scraper.createSelector('page', { querySelector: '#content_65 ol a:first', name: 'category' })
+    //             .addSelector(
+    //                 productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product' })
+    //             )
+    //     )
+    //     .addSelector(
+    //         scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' })
+    //     )
+    //     .addSelector(
+    //         scraper.createSelector('content', { querySelector: '.product_author', name: 'author' })
+    //     )
+    //     .addSelector(
+    //         scraper.createSelector('image', { querySelector: '.book img', name: 'image' })
+    //     )
+    //     .addSelector(
+    //         scraper.createSelector('content', { querySelector: '.product_name', name: 'name' })
+    //     );
+
+
+    // ,pagination: { queryString: 'page', numPages: 2 }
+    const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 2 } });
     const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:first', name: 'category' });
     root.addSelector(categoryPage);
     categoryPage.addSelector(productPage);
     const publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' });
     const productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name' });
     const authorData = scraper.createSelector('content', { querySelector: '.product_author', name: 'author' });
-    const productImage = scraper.createSelector('image', { querySelector: 'img', name: 'image' });
+    const productImage = scraper.createSelector('image', { querySelector: '.book img', name: 'image' });
     // root.addSelector(productImage)
     // root.addSelector(productPage)
     productPage.addSelector(publisherData);
@@ -1044,10 +1093,19 @@ class ImageSelector extends Selector {
     try {
         await root.scrape();
         var entireTree = root.getData();
+        console.log('number of failed objects:', scraper.failedScrapingObjects.length)
+        await scraper.createLog({ fileName: 'log', object: entireTree })
+        await scraper.createLog({ fileName: 'failedObjects', object: scraper.failedScrapingObjects })
+
         if (scraper.failedScrapingObjects.length > 0) {
+
             // console.log('number of failed objects:', scraper.failedScrapingObjects.length, 'repeating')
-            
+
             await scraper.repeatErrors();
+            var entireTree = root.getData();
+            await scraper.createLog({ fileName: 'log', object: entireTree })
+            await scraper.createLog({ fileName: 'failedObjects', object: scraper.failedScrapingObjects })
+
         }
         console.log('no errors, all done, number of images:', downloadedImages)
     } catch (error) {
@@ -1056,33 +1114,33 @@ class ImageSelector extends Selector {
         // process.exit();
 
     }
-    fs.writeFile('./failedObjects.json', JSON.stringify(root.context.failedScrapingObjects), (err) => {
-        if (err) {
-            console.log(err)
-        } else {
-            console.log('The file has been saved!');
-        }
+    // fs.writeFile('./failedObjects.json', JSON.stringify(root.context.failedScrapingObjects), (err) => {
+    //     if (err) {
+    //         console.log(err)
+    //     } else {
+    //         console.log('The file has been saved!');
+    //     }
 
-    });
-    if (typeof entireTree !== 'undefined') {
-        fs.writeFile('./log.json', JSON.stringify(entireTree), (err) => {
-            if (err) {
-                console.log(err)
-            } else {
-                console.log('The file has been saved!');
-            }
+    // });
+    // if (typeof entireTree !== 'undefined') {
+    //     fs.writeFile('./log.json', JSON.stringify(entireTree), (err) => {
+    //         if (err) {
+    //             console.log(err)
+    //         } else {
+    //             console.log('The file has been saved!');
+    //         }
 
-        });
-    }
+    //     });
+    // }
 
-    if (scraper.failedScrapingObjects.length > 0) {
-        // console.log('number of failed objects:', scraper.failedScrapingObjects.length, 'repeating')
-        
-        await scraper.repeatErrors();
-    }
+    // if (scraper.failedScrapingObjects.length > 0) {
+    //     // console.log('number of failed objects:', scraper.failedScrapingObjects.length, 'repeating')
+
+    //     await scraper.repeatErrors();
+    // }
 
     console.log('notfounderrors', notFoundErrors)
-   
+
     // if (allErrors) {
     //     fs.writeFile('./errors.json', JSON.stringify(allErrors), (err) => {
     //         if (err) {
@@ -1149,27 +1207,27 @@ class ImageSelector extends Selector {
 
 
 
-// const init = {
-//     type: 'root',
-//     config: {
-//         baseSiteUrl: `https://www.profesia.sk`,
-//         startUrl: `https://www.profesia.sk/praca/`
-//     },
-//     children: [
-//         {
-//             type: 'page',
-//             config:{ querySelector: '.list-row a.title', name: 'link' },
-//             children: [                        
-//                 {
-//                     type: 'image',
-//                     config: { querySelector: 'img', name: 'image' }
-//                 }
-//             ]
+const init = {
+    type: 'root',
+    config: {
+        baseSiteUrl: `https://www.profesia.sk`,
+        startUrl: `https://www.profesia.sk/praca/`
+    },
+    children: [
+        {
+            type: 'page',
+            config: { querySelector: '.list-row a.title', name: 'link' },
+            children: [
+                {
+                    type: 'image',
+                    config: { querySelector: 'img', name: 'image' }
+                }
+            ]
 
-//         }
+        }
 
-//     ]
-// }
+    ]
+}
 
 
 
