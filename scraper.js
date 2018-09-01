@@ -8,12 +8,9 @@ var Input = require('prompt-input');
 const Promise = require('bluebird');
 const URL = require('url').URL;
 const ConfigClass = require('./configClass');
-// var stringify = require('json-stringify-safe');
 
 // const util = require('util')
-// var rp = require('request-promise');
 const download = require('./image_downloader');
-// var sanitize = require("sanitize-filename");
 // const { Qyu } = require('qyu');
 // await qyu.whenFree();
 // const path = require('path')
@@ -46,7 +43,7 @@ class Scraper {
         })
 
     }
-    
+
 
     async createLog(object) {
 
@@ -75,6 +72,7 @@ class Scraper {
         console.log('number of failed IMAGE objects:', failedImages.length)
         console.log('number of faield objects:', this.failedScrapingObjects.length)
         await input.run()
+
         for (let failedObject of this.failedScrapingObjects) {
 
             // if(failedObject.data)
@@ -131,7 +129,24 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
     }
 
     referenceToSelectorObject() {
+        console.log('this from reference from root',this);
         return this
+    }
+
+    createScrapingObject(href,type) {
+        // console.log(this.referenceToSelectorObject)
+        const scrapingObject = {
+            address: href,//The image href            
+            // referenceToSelectorObject: this.referenceToSelectorObject,
+            referenceToSelectorObject: () => { return this },
+            successful: false,
+            data:[]
+        }
+        if(type)
+            scrapingObject.type=type;
+
+        // console.log('scraping object', scrapingObject);
+        return scrapingObject;
     }
 
     getData() {
@@ -275,16 +290,12 @@ class RootSelector extends CompositeSelector {
         }
         this.html = data;
         for (let i = 0; i < this.selectors.length; i++) {
-            // console.log('setting html of the child link')
-            // this.selectors[i].setData(dataToPass);
+           
             const dataFromChild = await this.selectors[i].scrape(dataToPass);
-            // const dataFromChild = this.selectors[i].getCurrentData();
             this.data.data.push(dataFromChild);
         }
 
-        // return this.data;
-
-        // this.overallCollectedData = this.currentlyScrapedData;
+    
 
     }
 
@@ -303,28 +314,23 @@ class PageSelector extends CompositeSelector {
         }
     }
 
-    createScrapingObject(href, type) {
-        const scrapingObject = {
-            // attribs: {
+    // createScrapingObject(href, type) {
+    //     const scrapingObject = {
+    //         address: href,
+    //         successful: false,
+    //         data: [],
+            
+    //         referenceToSelectorObject: () => { return this },
+            
+    //     }
+    //     if (type) {
+    //         scrapingObject.type = type;
+    //     }
+    //     return scrapingObject;
+    // }
 
-            address: href,
-            // name: this.name,
-            // type: 'Page Selector',
-            // },
-            referenceToSelectorObject: () => { return this },
-            successful: false,
-            data: []
-        }
-        if (type) {
-            scrapingObject.type = type;
-        }
-        return scrapingObject;
-    }
     async scrape(dataFromParent) {
 
-
-
-        // console.log('this:', this)
 
         const currentWrapper = {
             type: 'Page Selector',
@@ -333,10 +339,10 @@ class PageSelector extends CompositeSelector {
             data: []
         }
 
-
+        var scrapingObjects = [];
         if (!this.pagination) {
             const refs = this.createLinkList(dataFromParent)
-            const scrapingObjects = [];
+
             refs.forEach((href) => {
                 if (href) {
                     const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
@@ -347,40 +353,31 @@ class PageSelector extends CompositeSelector {
             })
 
             for (let scrapingObject of scrapingObjects) {
-                var data = await this.processOneScrapingObject(scrapingObject);
+                await this.processOneScrapingObject(scrapingObject);
             }
-            currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
-
-
-
-
-
+            // currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
         }
-
-
         else {
-            console.log('yes pagination.', dataFromParent.address)
-            var scrapingObjects = [];
+            // console.log('yes pagination.', dataFromParent.address)
+
             for (let i = 1; i <= this.pagination.numPages; i++) {
                 // const absoluteUrl = this.getAbsoluteUrl(`${dataFromParent.address}&${this.pagination.queryString}=${i}`);
-                const scrapingObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'paginationPage');
-                scrapingObjects.push(scrapingObject);
+                const paginationObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'paginationPage');
+                scrapingObjects.push(paginationObject);
                 try {
                     console.log('SCRAPING ONE PAGINATION OBJECT');
-                    // if(this.context.fakeErrors){throw 'faiiiiiiiiiil'};
-                    var data = await this.processOneScrapingObject(scrapingObject);
-                    scrapingObject.data = data;
+
+                    await this.processOneScrapingObject(paginationObject);
+
                 } catch (error) {
                     console.error('There was an error scraping a pagination page', error);
-                    this.context.failedScrapingObjects.push(scrapingObject);
                 }
 
             }
-            console.log('problematic data', scrapingObjects);
-            console.log('problematic data typeof', typeof scrapingObjects);
-            currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
-        }
 
+           
+        }
+        currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
         return currentWrapper;
     }
 
@@ -388,27 +385,54 @@ class PageSelector extends CompositeSelector {
         const $ = cheerio.load(passedData.html);
         const scrapedLinks = $(this.querySelector);
         const refs = [];
-        console.log('scrapedlinks length', scrapedLinks.length)
+        // console.log('scrapedlinks length', scrapedLinks.length)
         scrapedLinks.each((index, link) => {
             refs.push(link.attribs.href)
 
         })
 
-        console.log('refs length', refs.length)
-
-
         return refs;
-
     }
 
-    async processOneScrapingObject(scrapingObject) {
+    async processOnePaginationObject(paginationObject, passedData) {
+        // delete paginationObject.type;
+        const refs = this.createLinkList(passedData)
+        var innerScrapingObjects = [];
+
+        refs.forEach((href) => {
+            if (href) {
+                const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
+                const innerScrapingObject = this.createScrapingObject(absoluteUrl);
+                innerScrapingObjects.push(innerScrapingObject);
+            }
+
+        })
+        for (let innerScrapingObject of innerScrapingObjects) {
+            try {
+                await this.processOneScrapingObject(innerScrapingObject);
+                
+
+            } catch (error) {
+
+                this.errors.push(error)
+                console.error(error);
+                overallErrors++
+            }
+
+        }
+        paginationObject.data = innerScrapingObjects;
+        // return paginationObject;
+    }
+
+    async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
 
 
         const href = scrapingObject.address;
 
         try {
 
-
+            // if (this.context.fakeErrors && scrapingObject.type === 'paginationPage') { throw 'faiiiiiiiiiil' };
+            if (this.context.fakeErrors && scrapingObject.type === 'paginationPage' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
             console.log('href from before get page', href)
             var { data } = await this.getPage(href);
             scrapingObject.successful = true
@@ -419,68 +443,29 @@ class PageSelector extends CompositeSelector {
             scrapingObject.successful = false
             this.context.failedScrapingObjects.push(scrapingObject);
             throw errorString;
-            // throw error;
-            // continue;
-        }
 
+        }
         const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
             html: data,
             address: href,
         }
-        // console.log('address below datatopass',dataToPass.address);
-        if (scrapingObject.type !== 'paginationPage') {
 
-            try {
-                var dataFromChildren = await this.scrapeChildren(dataToPass)
-
-                scrapingObject.data.push(dataFromChildren);
-            } catch (error) {
-                console.error(error);
-                this.context.failedScrapingObjects.push(scrapingObject);
-            }
-        } else {
-            const refs = this.createLinkList(dataToPass)
-            const scrapingObjects = [];
-            refs.forEach((href) => {
-                if (href) {
-                    const absoluteUrl = this.getAbsoluteUrl(this.globalConfig.baseSiteUrl, href)
-                    const scrapingObject = this.createScrapingObject(absoluteUrl);
-                    scrapingObjects.push(scrapingObject);
-                }
-
-            })
-            for (let scrapingObject of scrapingObjects) {
-                try {
-                    await this.processOneScrapingObject(scrapingObject);
-                    // scrapingObject.data = data;
-                } catch (error) {
-
-                    // this.currentlyScrapedData.errors.push(errorString);
-                    this.errors.push(error)
-
-
-                    console.error(error);
-                    overallErrors++
-                    continue;
-                }
-
-            }
-            return scrapingObjects;
+        if (scrapingObject.type === 'paginationPage') {//If the scraping object is actually a pagination one, a different function is called. 
+            return await this.processOnePaginationObject(scrapingObject, dataToPass);
         }
 
+        try {
+            var dataFromChildren = await this.scrapeChildren(dataToPass)
 
-        // if(this.pagination){
-        // this.overallCollectedData = [...this.overallCollectedData, currentLinkData]
-
-        // }
-
-
-
-        // this.currentlyScrapedData.collectedData.push(currentLinkData)
+            scrapingObject.data.push(dataFromChildren);
+        } catch (error) {
+            console.error(error);
+            this.context.failedScrapingObjects.push(scrapingObject);
+        }
 
     }
 
-    async scrapeChildren(passedData) {
+    async scrapeChildren(passedData) {//Scrapes the child selectors of this PageSelector object.
         const scrapedData = []
         for (let selector of this.selectors) {
             const dataFromChild = await selector.scrape(passedData);
@@ -609,17 +594,18 @@ class ImageSelector extends Selector {
         return this.data[this.data.length - 1];
     }
 
-    createScrapingObject(href) {
-        console.log(this.referenceToSelectorObject)
-        const scrapingObject = {
-            address: href,//The image href            
-            referenceToSelectorObject: this.referenceToSelectorObject,
-            successful: false,
-        }
+    // createScrapingObject(href) {
+    //     console.log(this.referenceToSelectorObject)
+    //     const scrapingObject = {
+    //         address: href,//The image href            
+    //         // referenceToSelectorObject: this.referenceToSelectorObject,
+    //         referenceToSelectorObject: () => { return this },
+    //         successful: false,
+    //     }
 
-            console.log('scraping object', scrapingObject);
-        return scrapingObject;
-    }
+    //     console.log('scraping object', scrapingObject);
+    //     return scrapingObject;
+    // }
 
     async processOneScrapingObject(scrapingObject) {
 
