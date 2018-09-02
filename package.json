@@ -17,8 +17,9 @@
     "express": "^4.16.3",
     "json-stringify-safe": "^5.0.1",
     "lodash": "^4.17.10",
+    "object-sizeof": "^1.2.0",
     "prompt-input": "^3.0.0",
-    "qyu": "^0.1.2",
+    "qyu": "^0.3.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "sanitize-filename": "^1.6.1",
@@ -28,7 +29,9 @@
     "babel-plugin-transform-class-properties": "^6.24.1"
   },
   "nodemonConfig": {
-    "ignore": ["*.json", "images/*"]
-    
+    "ignore": [
+      "*.json",
+      "images/*"
+    ]
   }
 }
