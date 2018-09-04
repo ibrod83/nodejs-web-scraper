@@ -23,7 +23,7 @@ let downloadedImages = 0;
 const repeatErrors = true;
 var notFoundErrors = 0;
 let overallErrors = 0;
-const qyu = new Qyu({ concurrency: 30,rampUpTime:50 })
+const qyu = new Qyu({ concurrency: 20,rampUpTime:50 })
 let currentlyRunning = 0;
 
 class Scraper {
@@ -49,7 +49,7 @@ class Scraper {
         //     console.log("done");
         // });
 
-        const qyu = new Qyu({ concurrency: 30 })
+        const qyu = new Qyu({ concurrency: 20 })
         for (let promise of promiseArray) {
             // console.log(promise)
             qyu.add(async()=>{return promise()});
@@ -840,32 +840,35 @@ class ImageSelector extends Selector {
 
     //*******************cnn site */
 
-    // const config = {
-    //     baseSiteUrl: `https://edition.cnn.com/`,
-    //     startUrl: `https://edition.cnn.com/sport`
-    // }
-    // const root = new RootSelector(config);
-    // // const category = new PageSelector({ querySelector: '.nav-menu-links__link', name: 'category' });
-    // const article = new PageSelector({ querySelector: 'article a', name: 'article' });
-    // const paragraph = new ContentSelector({ querySelector: 'h1', name: 'paragraphs' });
-    // const image = new ImageSelector({ querySelector: 'img.media__image.media__image--responsive', name: 'image', customSrc: 'data-src-medium' });
-    // const articleImage = new ImageSelector({ querySelector: 'img', name: 'article image' });
-    // // category.addSelector(paragraph);
-    // // category.addSelector(article);
-    // article.addSelector(articleImage);
-    // article.addSelector(paragraph);
-    // // const article = new PageSelector({ querySelector: '.top-story-text a', name: 'article' });
-    // // category.addSelector(article)
-    // // category.addSelector(image)
-    // // root.addSelector(category);
-    // root.addSelector(article);
-    // root.addSelector(paragraph);
-    // root.addSelector(image);
-    // root.addSelector(image);
-    // root.addSelector(paragraph);
+    const config = {
+        baseSiteUrl: `https://edition.cnn.com/`,
+        startUrl: `https://edition.cnn.com/sport`,
+        concurrency: 5
+    }
+    const scraper = new Scraper();
+
+    const root = scraper.createSelector('root',config);
+    // const category = new PageSelector({ querySelector: '.nav-menu-links__link', name: 'category' });
+    const article = scraper.createSelector('page', { querySelector: 'article a', name: 'article' });
+    const paragraph = scraper.createSelector('content', { querySelector: 'h1', name: 'paragraphs' });
+    const image = scraper.createSelector('image', { querySelector: 'img.media__image.media__image--responsive', name: 'image', customSrc: 'data-src-medium' });
+    const articleImage = scraper.createSelector('image', { querySelector: 'img', name: 'article image' });
+    // category.addSelector(paragraph);
+    // category.addSelector(article);
+    article.addSelector(articleImage);
+    article.addSelector(paragraph);
+    // const article = new PageSelector({ querySelector: '.top-story-text a', name: 'article' });
+    // category.addSelector(article)
+    // category.addSelector(image)
+    // root.addSelector(category);
+    root.addSelector(article);
+    root.addSelector(paragraph);
+    root.addSelector(image);
+    root.addSelector(image);
+    root.addSelector(paragraph);
 
 
-    // article.addSelector(image);
+    article.addSelector(image);
 
     //***********************////////////////// */
 
@@ -918,56 +921,56 @@ class ImageSelector extends Selector {
 
     //**************************books site category ***********************/
 
-    const config = {
-        baseSiteUrl: `https://ibrod83.com`,
-        startUrl: `https://ibrod83.com/books`
-    }
-    const scraper = new Scraper();
+    // const config = {
+    //     baseSiteUrl: `https://ibrod83.com`,
+    //     startUrl: `https://ibrod83.com/books`
+    // }
+    // const scraper = new Scraper();
 
-    const root = scraper.createSelector('root', config);
-    //pagination: { queryString: 'page', numPages: 3 }
-    // const productPage = scraper.createSelector('page', '.product_name_link');
+    // const root = scraper.createSelector('root', config);
+    // //pagination: { queryString: 'page', numPages: 3 }
+    // // const productPage = scraper.createSelector('page', '.product_name_link');
 
-    // let productPage;
+    // // let productPage;
 
-    // root
-    //     .addSelector(
-    //         scraper.createSelector('page', { querySelector: '#content_65 ol a:first', name: 'category' })
-    //             .addSelector(
-    //                 productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product' })
-    //             )
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' })
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('content', { querySelector: '.product_author', name: 'author' })
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('image', { querySelector: '.book img', name: 'image' })
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('content', { querySelector: '.product_name', name: 'name' })
-    //     );
+    // // root
+    // //     .addSelector(
+    // //         scraper.createSelector('page', { querySelector: '#content_65 ol a:first', name: 'category' })
+    // //             .addSelector(
+    // //                 productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product' })
+    // //             )
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' })
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('content', { querySelector: '.product_author', name: 'author' })
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('image', { querySelector: '.book img', name: 'image' })
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('content', { querySelector: '.product_name', name: 'name' })
+    // //     );
 
 
-    // ,pagination: { queryString: 'page', numPages: 2 }
-    const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 100 } });
-    const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category' });
-    // const categoryPage = scraper.createSelector('page', { querySelector: '.category_selector a', name: 'category' });
-    root.addSelector(categoryPage);
-    categoryPage.addSelector(productPage);
-    const publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' });
-    const productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name' });
-    const authorData = scraper.createSelector('content', { querySelector: '.product_author', name: 'author' });
-    const productImage = scraper.createSelector('image', { querySelector: '.book img', name: 'image' });
-    // root.addSelector(productImage)
-    // root.addSelector(productPage)
-    productPage.addSelector(publisherData);
-    productPage.addSelector(authorData);
-    productPage.addSelector(productImage);
-    productPage.addSelector(productName);
-    // root.addSelector(productImage)
+    // // ,pagination: { queryString: 'page', numPages: 2 }
+    // const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 100 } });
+    // const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category' });
+    // // const categoryPage = scraper.createSelector('page', { querySelector: '.category_selector a', name: 'category' });
+    // root.addSelector(categoryPage);
+    // categoryPage.addSelector(productPage);
+    // const publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' });
+    // const productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name' });
+    // const authorData = scraper.createSelector('content', { querySelector: '.product_author', name: 'author' });
+    // const productImage = scraper.createSelector('image', { querySelector: '.book img', name: 'image' });
+    // // root.addSelector(productImage)
+    // // root.addSelector(productPage)
+    // productPage.addSelector(publisherData);
+    // productPage.addSelector(authorData);
+    // productPage.addSelector(productImage);
+    // productPage.addSelector(productName);
+    // // root.addSelector(productImage)
 
 
 
