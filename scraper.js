@@ -4,29 +4,18 @@ var cheerioAdv = require('cheerio-advanced-selectors')
 cheerio = cheerioAdv.wrap(cheerio)
 var Input = require('prompt-input');
 var sizeof = require('object-sizeof');
-
-// var queue = require('queue');
-
-
-
 const Promise = require('bluebird');
 const URL = require('url').URL;
-// const ConfigClass = require('./configClass');
-
 // const util = require('util')
 const download = require('./image_downloader');
 const { Qyu } = require('qyu');
-// await qyu.whenFree();
 // const path = require('path')
 // const _ = require('lodash');f
 const fs = require('fs');
 let downloadedImages = 0;
-
-const repeatErrors = true;
 var notFoundErrors = 0;
-let overallErrors = 0;
-
 let currentlyRunning = 0;
+
 
 class Scraper {
     constructor(globalConfig) {
@@ -37,8 +26,6 @@ class Scraper {
         this.scrapingObjects = []//for debugging
         this.globalConfig = globalConfig
         this.qyu = new Qyu({ concurrency: this.globalConfig.concurrency || 3 })
-        // console.log()
-
     }
     
     getClassMap() {
@@ -407,15 +394,11 @@ class PageSelector extends CompositeSelector {
         const $ = cheerio.load(responseObjectFromParent.data);
         const scrapedLinks = $(this.querySelector);
         const refs = [];
-        // console.log('scrapedlinks length', scrapedLinks.length)
         scrapedLinks.each((index, link) => {
             refs.push(link.attribs.href)
 
         })
-        // console.log('sizeof passeddata before',sizeof(passedData))
-        // delete passedData.html;
-        // console.log('sizeof passeddata AFTER',sizeof(passedData))
-        // console.log('refs length of', passedData.address, refs.length)
+
 
         return refs;
     }
@@ -690,10 +673,10 @@ class ImageSelector extends Selector {
         const imageHrefs = [];
         nodeList.each((index, element) => {
             const src = $(element).attr('src');
-            // if (!this.customSrc && src.startsWith("data:image")) {
-            //     console.error('Invalid image href:', $(element).attr('src'))
-            //     return;
-            // }
+            if (!this.customSrc && src.startsWith("data:image")) {
+                console.error('Invalid image href:', $(element).attr('src'))
+                return;
+            }
             imageHrefs.push(this.customSrc ? $(element).attr(this.customSrc) : src);
 
         })
@@ -744,91 +727,9 @@ class ImageSelector extends Selector {
 
         return currentWrapper;
 
-
-
-
-
-        //******************sequential strategy */
-
-
-
-
-
-
-
-
-
-        //*************qyu strategy ******/
-        // const promises = [];
-        // for (let href of imageHrefs) {
-        //     promises.push(qyu.add(() => this.fetchImage(href)));
-        //     // await qyu.add(()=>this.fetchImage(href));
-        // }
-        // await Promise.all(promises);
-        //********************************** */
-        // try {
-        // await Promise.map(imageHrefs, (href) => {
-        //     // console.log('href',href)
-        //     return this.fetchImage(href);
-        // }, { concurrency: 3 })
-
-        // let promises = [];
-        // console.log('GONNA DOWNLOAD IMAGES:', imageHrefs);
-        // imageHrefs.forEach(href => {
-        //     let promise = qyu.add(async () => {
-        //         try {
-        //             console.log('STARTED DOWNLOADING IMAGE:', href);
-        //             await this.fetchImage(href);
-        //             console.log('FINISHED DOWNLOADING IMAGE:', href);
-        //         }
-        //         catch (err) {
-        //             console.log('FAILED DOWNLOADING IMAGE:', href);
-        //         }
-        //     });
-        //     promises.push(promise);
-        // });
-        // console.log('HERE !@# !@# !@# !@#', qyu.activeCount);
-        // await Promise.all(promises);    
-        // } catch (error) {
-        //     console.log('image error');
-        //     throw error
-        // }
-
-        // this.saveData(imageHrefs);
-        // console.log('all images downloaded')
-
-
-
-        // console.log('response array',responseArray)
-
-        // responseArray.forEach(({ data }) => {
-        //     for (let i = 0; i < this.selectors.length; i++) {
-        //         // this.selectors[i].setHtml(data);
-        //         // this.selectors[i].scrape();
-        //         // this.saveImage(data);
-
-        //     }
-
-        // })
-
-        // console.log(imageHrefs);
-
     }
 }
 
-// const root = new Root();
-// createObjectsFromTree(configObj,newObject);
-// console.log(util.inspect(configObj, {showHidden: false, depth: null}))
-
-
-//   fs.writeFile('./generatedTree.json', JSON.stringify(root), (err) => {
-//         if (err) {
-//             console.log(err)
-//         } else {
-//             console.log('The file has been saved!');
-//         }
-
-//     });
 
 
 (async () => {
@@ -839,37 +740,32 @@ class ImageSelector extends Selector {
 
 
 
-    //*******************cnn site */
+    //********************cnn site */
 
-    // const config = {
-    //     baseSiteUrl: `https://edition.cnn.com/`,
-    //     startUrl: `https://edition.cnn.com/sport`,
-    //     concurrency: 1
-    // }
-    // const scraper = new Scraper(config);
+    const config = {
+        baseSiteUrl: `https://edition.cnn.com/`,
+        startUrl: `https://edition.cnn.com/sport`,
+        concurrency: 5
+    }
+    const scraper = new Scraper(config);
 
-    // const root = scraper.createSelector('root');
-    // // const category = new PageSelector({ querySelector: '.nav-menu-links__link', name: 'category' });
-    // const article = scraper.createSelector('page', { querySelector: 'article a', name: 'article' });
-    // const paragraph = scraper.createSelector('content', { querySelector: 'h1', name: 'paragraphs' });
-    // const image = scraper.createSelector('image', { querySelector: 'img.media__image.media__image--responsive', name: 'image', customSrc: 'data-src-medium' });
-    // const articleImage = scraper.createSelector('image', { querySelector: 'img', name: 'article image' });
-    // // category.addSelector(paragraph);
-    // // category.addSelector(article);
-    // article.addSelector(articleImage);
-    // article.addSelector(paragraph);
-    // // const article = new PageSelector({ querySelector: '.top-story-text a', name: 'article' });
-    // // category.addSelector(article)
-    // // category.addSelector(image)
-    // // root.addSelector(category);
-    // root.addSelector(article);
-    // root.addSelector(paragraph);
-    // root.addSelector(image);
-    // root.addSelector(image);
-    // root.addSelector(paragraph);
+    const root = scraper.createSelector('root');
+    const article = scraper.createSelector('page', { querySelector: 'article a', name: 'article' });
+    const paragraph = scraper.createSelector('content', { querySelector: 'h1', name: 'paragraphs' });
+    const image = scraper.createSelector('image', { querySelector: 'img.media__image.media__image--responsive', name: 'image', customSrc: 'data-src-medium' });
+    const articleImage = scraper.createSelector('image', { querySelector: 'img', name: 'article image' });
+
+    article.addSelector(articleImage);
+    article.addSelector(paragraph);
+
+    root.addSelector(article);
+    root.addSelector(paragraph);
+    root.addSelector(image);
+    root.addSelector(image);
+    root.addSelector(paragraph);
 
 
-    // article.addSelector(image);
+    article.addSelector(image);
 
     //***********************////////////////// */
 
@@ -922,57 +818,57 @@ class ImageSelector extends Selector {
 
     //**************************books site category ***********************/
 
-    const config = {
-        baseSiteUrl: `https://ibrod83.com`,
-        startUrl: `https://ibrod83.com/books`,
-        concurrency: 1
-    }
-    const scraper = new Scraper(config);
+    // const config = {
+    //     baseSiteUrl: `https://ibrod83.com`,
+    //     startUrl: `https://ibrod83.com/books`,
+    //     concurrency: 1
+    // }
+    // const scraper = new Scraper(config);
 
-    const root = scraper.createSelector('root');
-    //pagination: { queryString: 'page', numPages: 3 }
-    // const productPage = scraper.createSelector('page', '.product_name_link');
+    // const root = scraper.createSelector('root');
+    // //pagination: { queryString: 'page', numPages: 3 }
+    // // const productPage = scraper.createSelector('page', '.product_name_link');
 
-    // let productPage;
+    // // let productPage;
 
-    // root
-    //     .addSelector(
-    //         scraper.createSelector('page', { querySelector: '#content_65 ol a:first', name: 'category' })
-    //             .addSelector(
-    //                 productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product' })
-    //             )
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' })
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('content', { querySelector: '.product_author', name: 'author' })
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('image', { querySelector: '.book img', name: 'image' })
-    //     )
-    //     .addSelector(
-    //         scraper.createSelector('content', { querySelector: '.product_name', name: 'name' })
-    //     );
+    // // root
+    // //     .addSelector(
+    // //         scraper.createSelector('page', { querySelector: '#content_65 ol a:first', name: 'category' })
+    // //             .addSelector(
+    // //                 productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product' })
+    // //             )
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' })
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('content', { querySelector: '.product_author', name: 'author' })
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('image', { querySelector: '.book img', name: 'image' })
+    // //     )
+    // //     .addSelector(
+    // //         scraper.createSelector('content', { querySelector: '.product_name', name: 'name' })
+    // //     );
 
 
-    // ,pagination: { queryString: 'page', numPages: 2 }
-    const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 100 } });
-    const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category' });
-    // const categoryPage = scraper.createSelector('page', { querySelector: '.category_selector a', name: 'category' });
-    root.addSelector(categoryPage);
-    categoryPage.addSelector(productPage);
-    const publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' });
-    const productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name' });
-    const authorData = scraper.createSelector('content', { querySelector: '.product_author', name: 'author' });
-    const productImage = scraper.createSelector('image', { querySelector: '.book img', name: 'image' });
-    // root.addSelector(productImage)
-    // root.addSelector(productPage)
-    productPage.addSelector(publisherData);
-    productPage.addSelector(authorData);
-    productPage.addSelector(productImage);
-    productPage.addSelector(productName);
-    // root.addSelector(productImage)
+    // // ,pagination: { queryString: 'page', numPages: 2 }
+    // const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 100 } });
+    // const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category' });
+    // // const categoryPage = scraper.createSelector('page', { querySelector: '.category_selector a', name: 'category' });
+    // root.addSelector(categoryPage);
+    // categoryPage.addSelector(productPage);
+    // const publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' });
+    // const productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name' });
+    // const authorData = scraper.createSelector('content', { querySelector: '.product_author', name: 'author' });
+    // const productImage = scraper.createSelector('image', { querySelector: '.book img', name: 'image' });
+    // // root.addSelector(productImage)
+    // // root.addSelector(productPage)
+    // productPage.addSelector(publisherData);
+    // productPage.addSelector(authorData);
+    // productPage.addSelector(productImage);
+    // productPage.addSelector(productName);
+    // // root.addSelector(productImage)
 
 
 
@@ -1235,46 +1131,46 @@ class ImageSelector extends Selector {
 
 
 
-const init = {
-    type: 'root',
-    config: {
-        baseSiteUrl: `https://www.profesia.sk`,
-        startUrl: `https://www.profesia.sk/praca/`
-    },
-    children: [
-        {
-            type: 'page',
-            config: { querySelector: '.list-row a.title', name: 'link' },
-            children: [
-                {
-                    type: 'image',
-                    config: { querySelector: 'img', name: 'image' }
-                }
-            ]
+// const init = {
+//     type: 'root',
+//     config: {
+//         baseSiteUrl: `https://www.profesia.sk`,
+//         startUrl: `https://www.profesia.sk/praca/`
+//     },
+//     children: [
+//         {
+//             type: 'page',
+//             config: { querySelector: '.list-row a.title', name: 'link' },
+//             children: [
+//                 {
+//                     type: 'image',
+//                     config: { querySelector: 'img', name: 'image' }
+//                 }
+//             ]
 
-        }
+//         }
 
-    ]
-}
-
-
+//     ]
+// }
 
 
 
-function createObjectsFromTree(object) {
-    let Class = getClassMap()[object.type];
-    const instance = new Class(object.config || {});
 
-    if (object.children && object.children.length > 0) {
-        object.children.forEach((child) => {
-            console.log('child object');
-            instance.addSelector(createObjectsFromTree(child));
-        })
-    }
 
-    return instance
+// function createObjectsFromTree(object) {
+//     let Class = getClassMap()[object.type];
+//     const instance = new Class(object.config || {});
 
-}
+//     if (object.children && object.children.length > 0) {
+//         object.children.forEach((child) => {
+//             console.log('child object');
+//             instance.addSelector(createObjectsFromTree(child));
+//         })
+//     }
+
+//     return instance
+
+// }
 
 
 
