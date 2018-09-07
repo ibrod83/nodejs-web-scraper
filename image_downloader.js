@@ -67,10 +67,16 @@ const downloader = (options = {}) => {
       //   options.dest = path.join(options.dest, path.basename(options.url))
       // }
       // console.log('body',body)
-     
-      fs.writeFile(options.dest+imageName, body, 'binary', (err) => {
+      const encoding = 'binary';
+      const flag = options.flag || 'w';
+      // console.log('flag',flag)
+      fs.writeFile(options.dest+imageName, body, {encoding:encoding,flag}, (err) => {
         
         if (err) {
+          // console.error('err',err.name)
+          // for(let i in err){
+          //   console.log(i,err[i])
+          // }
           return onError(err, done)
         }
 
@@ -93,7 +99,7 @@ const downloader = (options = {}) => {
 downloader.image = (options = {}) => new Promise((resolve, reject) => {//creates a new wrapper promise that takes options as an an argument.
   options.done = (err, dest, body) => {
     if (err) {
-      console.log('promise rejected from options.done')
+      // console.log('promise rejected from options.done')
       return reject(err);
     }else{
       // console.log('promise resolved from options.done')
