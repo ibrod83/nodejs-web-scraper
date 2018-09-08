@@ -22,14 +22,30 @@ let currentlyRunning = 0;
 class Scraper {
     constructor(globalConfig) {
         this.failedScrapingObjects = [];
-        this.fakeErrors = false;
+        this.fakeErrors = true;
         this.useQyu = true;
+        this.mockImages = true;
         this.overwriteImages = false;
         this.cloneImages = false;
         this.numRequests = 0;
         this.scrapingObjects = []//for debugging
         this.globalConfig = globalConfig
         this.qyu = new Qyu({ concurrency: this.globalConfig.concurrency || 3 })
+    }
+
+    async scrape(rootObject){//This function will begin the entire scraping process. Expects a reference to the root selector.
+        if(!(rootObject instanceof RootSelector) || !rootObject)
+            throw 'Scraper.scrape() expects a root selector object as an argument!';
+
+        console.log(rootObject instanceof RootSelector);
+        await rootObject.scrape();
+
+        var entireTree = rootObject.getData();
+
+        await this.createLog({ fileName: 'log', object: entireTree })
+        await this.createLog({ fileName: 'failedObjects', object: this.failedScrapingObjects })
+
+        await this.repeatAllErrors(rootObject);
     }
 
     getClassMap() {
@@ -78,17 +94,33 @@ class Scraper {
 
     }
 
+    async repeatAllErrors(referenceToRootSelector) {
+        while (true) {
+            if (this.failedScrapingObjects.length > 0) {
+
+                await this.repeatErrors();
+                var entireTree = referenceToRootSelector.getData();
+                await this.createLog({ fileName: 'log', object: entireTree })
+                await this.createLog({ fileName: 'failedObjects', object: this.failedScrapingObjects })
+
+            }else{
+               return 
+            }
+            
+        }
+       
+    }
+
     async repeatErrors() {
         var input = new Input({
             name: 'first',
             message: 'continue?'
         });
 
-        this.fakeErrors = false;
+        // this.fakeErrors = false;
         let counter = 0
-        const failedImages = this.failedScrapingObjects.filter((object) => { return !object.data })
-        console.log('number of failed IMAGE objects:', failedImages.length)
-        console.log('number of faield objects:', this.failedScrapingObjects.length)
+        // const failedImages = this.failedScrapingObjects.filter((object) => { return !object.data })
+        console.log('number of failed objects:', this.failedScrapingObjects.length)
         await input.run()
         await Promise.all(
             this.failedScrapingObjects.map(async (failedObject) => {
@@ -96,13 +128,11 @@ class Scraper {
                 console.log('failed object counter:', counter)
                 console.log('failed object', failedObject)
                 const selectorContext = failedObject.referenceToSelectorObject();
-                try {
-                    await selectorContext.processOneScrapingObject(failedObject);
 
-                } catch (error) {
-                    console.error('There was an error repeating a failed object: ', error)
-                    // throw error;
-                }
+                await selectorContext.processOneScrapingObject(failedObject);
+                console.log('failed object after repetition', failedObject);
+                if (failedObject.successful == true)
+                    this.failedScrapingObjects.splice(this.failedScrapingObjects.indexOf(failedObject), 1);
             })
         )
 
@@ -345,9 +375,11 @@ class RootSelector extends CompositeSelector {
             this.data.data.push(dataFromChild);
         }
 
-
+       
 
     }
+
+
 
 }
 
@@ -462,19 +494,25 @@ class PageSelector extends CompositeSelector {
             var response = await this.getPage(href);
 
 
-            console.log('response after wait get page', response, href)
+            // console.log('response after wait get page', response, href)
 
             // ds
             // console.log('sizeof response', sizeof(response.data))
             scrapingObject.successful = true
 
 
+
+
         } catch (error) {
             const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
             console.error(errorString);
             scrapingObject.successful = false
-            this.context.failedScrapingObjects.push(scrapingObject);
-            console.error('Scraping object failed, returning');
+            if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
+                console.log('scrapingobject not included,pushing it!')
+                this.context.failedScrapingObjects.push(scrapingObject);
+            }
+
+            // console.error('Scraping object failed, returning');
             return;
             // throw errorString;
 
@@ -606,7 +644,8 @@ class ImageSelector extends Selector {
             url,
             dest: './images/',
             clone: this.context.cloneImages,
-            flag: this.context.globalConfig.imageFlag
+            flag: this.context.globalConfig.imageFlag,
+            mockImages: this.context.mockImages
         }
 
         const asyncFunction = async () => {
@@ -676,7 +715,10 @@ class ImageSelector extends Selector {
 
             // this.errors.push(errorString);
             // overallErrors++
-            this.context.failedScrapingObjects.push(scrapingObject);
+            if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
+                console.log('scrapingobject not included,pushing it!')
+                this.context.failedScrapingObjects.push(scrapingObject);
+            }
             return;
 
 
@@ -743,7 +785,7 @@ class ImageSelector extends Selector {
     // 'bookSiteCategory'
     // 'cnn'
     // 'slovakSite'
-    const currentMockClientCode = 'slovakSite';
+    const currentMockClientCode = 'bookSiteCategory';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
@@ -828,22 +870,15 @@ class ImageSelector extends Selector {
         async function execute() {
             console.log('root', root);
             try {
-                await root.scrape();
-                var entireTree = root.getData();
-                console.log('number of failed objects:', scraper.failedScrapingObjects.length)
-                console.log('average page request in seconds:', overallSeconds / overallPageRequests)
-                console.log('no errors, all done, number of images:', downloadedImages)
-                await scraper.createLog({ fileName: 'log', object: entireTree })
-                await scraper.createLog({ fileName: 'failedObjects', object: scraper.failedScrapingObjects })
+                await scraper.scrape(root);                
+                // console.log('number of failed objects:', scraper.failedScrapingObjects.length)
+                // console.log('average page request in seconds:', overallSeconds / overallPageRequests)
+                console.log('no errors, all done, number of images:')
 
-                if (scraper.failedScrapingObjects.length > 0) {
 
-                    await scraper.repeatErrors();
-                    var entireTree = root.getData();
-                    await scraper.createLog({ fileName: 'log', object: entireTree })
-                    await scraper.createLog({ fileName: 'failedObjects', object: scraper.failedScrapingObjects })
+               
 
-                }
+
 
             } catch (error) {
                 console.error('there was an error in the root selector', error);

@@ -17,7 +17,7 @@ const downloader = (options = {}) => {
   if (!options.url) {
     throw new Error('The option url is required')
   }
- 
+
   // console.log('new url',options.url)
 
   if (!options.dest) {
@@ -44,39 +44,32 @@ const downloader = (options = {}) => {
     }
 
     if (body && (res.statusCode === 200 || res.statusCode === 201)) {
-       let imageName="";
-       if (urlEndsWithValidImageExtension) {
-            imageName = path.basename(options.url);
-            
-        } else {
-            var contentType = res.headers['content-type'];
-            // console.log('contentType', contentType);
-            const extension = contentType.split("/")[1];
-            // console.log('extension', extension)
-            // var filename = sanitize(UNSAFE_USER_INPUT);
 
-            imageName = `${sanitize(path.basename(options.url))}.${extension}`;
-            // console.log('image name', imageName);
-        }
-        const fileProcessor = new FileProcessor({fileName:imageName,path:options.dest});
-        if(options.clone){
-           imageName = fileProcessor.getAvailableFileName();
-        }
-        // console.log('image name from downloader',imageName)
-      // if (!path.extname(options.dest)) {
-      //   options.dest = path.join(options.dest, path.basename(options.url))
-      // }
-      // console.log('body',body)
+      if (options.mockImages)
+        return done(false, options.dest, body)
+
+      let imageName = "";
+      if (urlEndsWithValidImageExtension) {
+        imageName = path.basename(options.url);
+
+      } else {
+        var contentType = res.headers['content-type'];
+        const extension = contentType.split("/")[1];
+
+
+        imageName = `${sanitize(path.basename(options.url))}.${extension}`;
+      }
+      const fileProcessor = new FileProcessor({ fileName: imageName, path: options.dest });
+      if (options.clone) {
+        imageName = fileProcessor.getAvailableFileName();
+      }
+
       const encoding = 'binary';
       const flag = options.flag || 'w';
-      // console.log('flag',flag)
-      fs.writeFile(options.dest+imageName, body, {encoding:encoding,flag}, (err) => {
-        
+      fs.writeFile(options.dest + imageName, body, { encoding: encoding, flag }, (err) => {
+
         if (err) {
-          // console.error('err',err.name)
-          // for(let i in err){
-          //   console.log(i,err[i])
-          // }
+
           return onError(err, done)
         }
 
@@ -88,8 +81,8 @@ const downloader = (options = {}) => {
       if (!body) {
         return onError(new Error(`Image loading error - empty body. URL: ${options.url}`), done)
       }
-      else if(res.statusCode == 404 ){
-        return onError({response:{status:404}},done);
+      else if (res.statusCode == 404) {
+        return onError({ response: { status: 404 } }, done);
       }
       return onError(new Error(`Image loading error - ${res.statusCode}. URL: ${options.url}`), done)
     }
@@ -99,14 +92,12 @@ const downloader = (options = {}) => {
 downloader.image = (options = {}) => new Promise((resolve, reject) => {//creates a new wrapper promise that takes options as an an argument.
   options.done = (err, dest, body) => {
     if (err) {
-      // console.log('promise rejected from options.done')
       return reject(err);
-    }else{
-      // console.log('promise resolved from options.done')
+    } else {
 
       resolve({ filename: dest, image: body })
     }
-    
+
   }
 
   downloader(options)
