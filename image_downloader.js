@@ -44,7 +44,7 @@ const downloader = (options = {}) => {
     }
 
     if (body && (res.statusCode === 200 || res.statusCode === 201)) {
-
+      console.log(body)
       if (options.mockImages)
         return done(false, options.dest, body)
 
