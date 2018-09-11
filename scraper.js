@@ -26,9 +26,10 @@ class Scraper {
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
         this.useQyu = true;
-        this.mockImages = false;
+        this.mockImages = true;
         this.overwriteImages = false;
         this.cloneImages = false;
+        this.registeredSelectors=[]//Holds a reference to each created selector.
         this.numRequests = 0;
         this.scrapingObjects = []//for debugging
         this.globalConfig = globalConfig
@@ -42,10 +43,13 @@ class Scraper {
         console.log(rootObject instanceof RootSelector);
         await rootObject.scrape();
 
-        var entireTree = rootObject.getData();
 
-        await this.createLog({ fileName: 'log', object: entireTree })
-        await this.createLog({ fileName: 'failedObjects', object: this.failedScrapingObjects })
+        try {
+          await this.createLogs();  
+        } catch (error) {
+           console.error('Error creating logs',error) 
+        }
+
 
         await this.repeatAllErrors(rootObject);
     }
@@ -59,12 +63,19 @@ class Scraper {
         }
     }
 
-    createSelector(type, config) {
+    createSelector(type, querySelector, config) {
         const currentClass = this.getClassMap()[type];
-        if (currentClass === 'RootSelector')
-            return new currentClass(this);
+        let selectorObj=null;
+        if (currentClass === 'RootSelector'){
+            selectorObj = new currentClass(this);
+        }else{
+           selectorObj = new currentClass(this, querySelector, config); 
+        }
 
-        return new currentClass(this, config);
+        this.registeredSelectors.push(selectorObj)
+        return selectorObj;    
+
+        
     }
 
 
@@ -72,7 +83,7 @@ class Scraper {
 
         return new Promise((resolve, reject) => {
             console.log('saving file')
-            fs.writeFile(`./${obj.fileName}.json`, JSON.stringify(obj.object), (error) => {
+            fs.writeFile(`./${obj.fileName}.json`, JSON.stringify(obj.data), (error) => {
                 // reject('chuj ci w dupe')
                 if (error) {
                     reject(error)
@@ -85,6 +96,15 @@ class Scraper {
 
         })
 
+    }
+
+    async createLogs(){
+        for(let selector of this.registeredSelectors){
+            const fileName = selector.constructor.name === 'RootSelector' ? 'log' : selector.name;
+            const data = selector.getData(); 
+            await this.createLog({fileName,data})
+        }
+        await this.createLog({ fileName: 'failedObjects', data: this.failedScrapingObjects })
     }
 
 
@@ -102,6 +122,7 @@ class Scraper {
 
                 await this.repeatErrors();
                 var entireTree = referenceToRootSelector.getData();
+
                 await this.createLog({ fileName: 'log', object: entireTree })
                 await this.createLog({ fileName: 'failedObjects', object: this.failedScrapingObjects })
 
@@ -150,16 +171,20 @@ class Scraper {
 
 class Selector {//Base abstract class for selectors. "leaf" selectors will inherit directly from it.
 
-    constructor(context, objectConfig) {
+    constructor(context, querySelector, objectConfig) {
         // this.context.globalConfig = ConfigClass.getInstance();
         if (objectConfig) {
             for (let i in objectConfig) {
                 this[i] = objectConfig[i];
             }
         }
+        if (!this.name)
+            this.name = `Default ${this.constructor.name} name`;
 
-        this.data = {};
+
+        this.data = [];
         this.context = context;
+        this.querySelector = querySelector;
         this.selectors = [];//References to child selector objects.
         this.errors = [];//Holds the overall communication errors, encountered by the selector.
     }
@@ -212,7 +237,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     }
 
-    
+
 
     referenceToSelectorObject() {//Gives a scraping object reference to the selector object, in which it was created. Used only in "repeatErrors()", after the initial scraping procedure is done.
         return this
@@ -338,15 +363,15 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
 class RootSelector extends CompositeSelector {
 
-    constructor(context) {
+    // constructor(context) {
 
-        super(context);
+    //     super(context);
 
-        // this.context.globalConfig.setConfigurationData(configObj);
-
-        this.selectors = [];
-        this.html = "";
-    }
+    //     // this.context.globalConfig.setConfigurationData(configObj);
+    //     this.name = "Root Selector"
+    //     this.selectors = [];
+    //     this.html = "";
+    // }
 
 
 
@@ -381,11 +406,11 @@ class RootSelector extends CompositeSelector {
     async scrape() {
 
 
-        this.data = {
-            siteRoot: this.context.globalConfig.baseSiteUrl,
-            startUrl: this.context.globalConfig.startUrl,
-            data: [],//Will hold the data collected from the child selectors.
-        }
+        // this.data = {
+        //     siteRoot: this.context.globalConfig.baseSiteUrl,
+        //     startUrl: this.context.globalConfig.startUrl,
+        //     data: [],//Will hold the data collected from the child selectors.
+        // }
 
 
 
@@ -402,7 +427,7 @@ class RootSelector extends CompositeSelector {
         }
 
         var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
-        this.data.data = [...dataFromChildren];
+        this.data = [...dataFromChildren];
 
     }
 
@@ -414,14 +439,15 @@ class RootSelector extends CompositeSelector {
 
 class PageSelector extends CompositeSelector {
 
-    constructor(context, configObj) {
-        super(context, configObj);
-        this.data = {
-            type: 'Page Selector',
-            name: this.name,
-            data: []
-        }
-    }
+    // constructor(context, querySelector, configObj) {
+    //     super(context, querySelector, configObj);
+    //     // this.data = {
+    //     //     type: 'Page Selector',
+    //     //     name: this.name,
+    //     //     data: []
+    //     // }
+    //     this.data=[]
+    // }
 
     async scrape(dataFromParent, responseObjectFromParent) {
 
@@ -455,6 +481,7 @@ class PageSelector extends CompositeSelector {
         await this.executeScrapingObjects(scrapingObjects);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+        this.data = [...this.data, ...currentWrapper.data]
         return currentWrapper;
     }
 
@@ -571,16 +598,17 @@ class PageSelector extends CompositeSelector {
 
 
 class ContentSelector extends Selector {
-    constructor(context, configObj) {
-        super(context, configObj);
-        this.contentType = configObj.contentType;
-        this.data = {
-            type: 'Content Selector',
-            name: this.name,
-            data: []
-        }
+    // constructor(context, querySelector, configObj) {
+    //     super(context, querySelector, configObj);
+        
+    //     // this.data = {
+    //     //     type: 'Content Selector',
+    //     //     name: this.name,
+    //     //     data: []
+    //     // }
+    //     this.data=[]
 
-    }
+    // }
 
     getNodeContent(elem) {
         switch (this.contentType) {
@@ -596,10 +624,12 @@ class ContentSelector extends Selector {
 
 
     async scrape(dataFromParent, responseObjectFromParent) {
+        this.contentType = this.contentType || 'text';
         !responseObjectFromParent && console.log('empty reponse from content selector', responseObjectFromParent)
         const currentWrapper = {
             type: 'Content Selector',
             name: this.name,
+            address: dataFromParent.address,
             data: []
         }
 
@@ -633,7 +663,7 @@ class ContentSelector extends Selector {
         }
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
-        this.data.data.push(currentWrapper);
+        this.data= [...this.data,currentWrapper];
 
         return currentWrapper;
 
@@ -644,15 +674,16 @@ class ContentSelector extends Selector {
 
 class ImageSelector extends Selector {
 
-    constructor(context, configObj) {
-        super(context, configObj);
-        this.data = {
-            type: 'Image Selector',
-            name: this.name,
-            data: []
-        }
+    // constructor(context, querySelector, configObj) {
+    //     super(context, querySelector, configObj);
+    //     // this.data = {
+    //     //     type: 'Image Selector',
+    //     //     name: this.name,
+    //     //     data: []
+    //     // }
+    //     this.data=[]
 
-    }
+    // }
 
 
     async fetchImage(url) {
@@ -743,7 +774,9 @@ class ImageSelector extends Selector {
 
             type: 'Image Selector',
             name: this.name,
+            address:dataFromParent.address,
             data: [],
+            
         }
 
         const $ = cheerio.load(responseObjectFromParent.data);
@@ -771,7 +804,7 @@ class ImageSelector extends Selector {
 
         currentWrapper.data.push(scrapingObjects);
 
-        this.data.data.push(currentWrapper);
+        this.data.push(currentWrapper);
 
         if (this.after) {
             await this.after(this.createPresentableData(currentWrapper));

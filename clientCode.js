@@ -21,10 +21,10 @@ const Promise = require('bluebird');
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
-                var article = scraper.createSelector('page', { querySelector: 'article a', name: 'article' });
-                var paragraph = scraper.createSelector('content', { querySelector: 'h1', name: 'paragraphs' });
-                var image = scraper.createSelector('image', { querySelector: 'img.media__image.media__image--responsive', name: 'image', customSrc: 'data-src-medium' });
-                var articleImage = scraper.createSelector('image', { querySelector: 'img', name: 'article image' });
+                var article = scraper.createSelector('page', 'article a', { name: 'article' });
+                var paragraph = scraper.createSelector('content', 'h1', { name: 'paragraphs' });
+                var image = scraper.createSelector('image', 'img.media__image.media__image--responsive', { name: 'image', customSrc: 'data-src-medium' });
+                var articleImage = scraper.createSelector('image', 'img', { name: 'article image' });
 
                 article.addSelector(articleImage);
                 article.addSelector(paragraph);
@@ -48,7 +48,7 @@ const Promise = require('bluebird');
 
                 // const before = {}
 
-                const before =async (response) => {
+                const before = async (response) => {
                     console.log('response from before', response)
                     // response.data = ''
                     // return Promise.delay(5000).then(()=>{
@@ -62,7 +62,7 @@ const Promise = require('bluebird');
 
                 }
                 const after = async (obj) => {
-                    console.log('data from after',obj)
+                    console.log('data from after', obj)
                     // console.log('obj',  obj[0],obj[1],obj[3])
 
                     // const publisher = obj[0].data[0].text
@@ -76,7 +76,7 @@ const Promise = require('bluebird');
                     // }
 
                     // console.log('obj',obj)
-                   
+
                     // return Promise.delay(5000).then(()=>{               
                     // try {
                     //     await axios({
@@ -95,18 +95,18 @@ const Promise = require('bluebird');
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
-                const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', after ,before });
-                const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category',pagination: { queryString: 'page', numPages: 3 },after });
+                const productPage = scraper.createSelector('page', '.product_name_link', { name: 'product', after, before });
+                const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', numPages: 2 }, after });
                 root.addSelector(categoryPage);
                 categoryPage.addSelector(productPage);
-                var publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher',after });
-                var productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name',before });
-                var authorData = scraper.createSelector('content', { querySelector: 'p', name: 'author', });
-                var productImage = scraper.createSelector('image', { querySelector: ' img', name: 'image' });
-
+                var publisherData = scraper.createSelector('content', '.product_publisher', { name: 'publisher', after });
+                var productName = scraper.createSelector('content', '.product_name', { name: 'name', before });
+                var authorData = scraper.createSelector('content', 'p',{name:'author'});
+                var productImage = scraper.createSelector('image', ' img', { name: 'image' });
+                root.addSelector(authorData);
                 productPage.addSelector(publisherData);
                 productPage.addSelector(authorData);
-                // productPage.addSelector(productImage);
+                productPage.addSelector(productImage);
                 productPage.addSelector(productName);
 
                 await execute();
@@ -121,12 +121,12 @@ const Promise = require('bluebird');
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
-                var productLink = scraper.createSelector('page', { querySelector: '.list-row a.title', name: 'link', pagination: { queryString: 'page_num', numPages: 100 } });
+                var productLink = scraper.createSelector('page', '.list-row a.title', { name: 'link', pagination: { queryString: 'page_num', numPages: 100 } });
                 root.addSelector(productLink);
-                var paragraph = scraper.createSelector('content', { querySelector: 'h4', name: 'h4' });
+                var paragraph = scraper.createSelector('content', 'h4', { name: 'h4' });
 
 
-                var productImage = scraper.createSelector('image', { querySelector: 'img:first', name: 'image' });
+                var productImage = scraper.createSelector('image', 'img:first', { name: 'image' });
 
                 productLink.addSelector(paragraph);
                 productLink.addSelector(productImage);
@@ -137,10 +137,15 @@ const Promise = require('bluebird');
                 break;
         }
 
-        async function execute() {
+        async function execute(productPage) {
             console.log('root', root);
             try {
                 await scraper.scrape(root);
+                // const productTree = productPage.getData();
+                // if (typeof productTree !== 'undefined') {
+                //     await scraper.createLog({fileName:'productTree',object:productTree})
+                // }
+
                 // console.log('number of failed objects:', scraper.failedScrapingObjects.length)
                 // console.log('average page request in seconds:', overallSeconds / overallPageRequests)
                 console.log('no errors, all done')
