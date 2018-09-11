@@ -46,8 +46,11 @@ const Promise = require('bluebird');
                     imageFlag: 'wx'
                 }
 
-                const before = (response, kill) => {
-                    console.log('response from userfunc!!!', response, 'delaying now')
+                // const before = {}
+
+                const before =async (response) => {
+                    console.log('response from before', response)
+                    // response.data = ''
                     // return Promise.delay(5000).then(()=>{
                     //   console.log('done delaying!');  
                     // })
@@ -59,50 +62,51 @@ const Promise = require('bluebird');
 
                 }
                 const after = async (obj) => {
-                    console.log('obj',  obj[0],obj[1],obj[3])
+                    console.log('data from after',obj)
+                    // console.log('obj',  obj[0],obj[1],obj[3])
 
-                    const publisher = obj[0].data[0].text
-                    const author = obj[1].data[0].text
-                    const name = obj[3].data[0].text
+                    // const publisher = obj[0].data[0].text
+                    // const author = obj[1].data[0].text
+                    // const name = obj[3].data[0].text
 
-                     obj= {
-                        publisher,
-                        author,
-                        name
-                    }
+                    //  obj= {
+                    //     publisher,
+                    //     author,
+                    //     name
+                    // }
 
-                    console.log('obj',obj)
+                    // console.log('obj',obj)
                    
                     // return Promise.delay(5000).then(()=>{               
-                    try {
-                        await axios({
-                            url: 'http://playground.localhost',
-                            method: 'POST',
-                            data: obj
-                        })
-                        console.log('Done inserting to remote api!')
-                    } catch (error) {
-                        console.error(error)
-                        // throw error
-                    }
+                    // try {
+                    //     await axios({
+                    //         url: 'http://playground.localhost',
+                    //         method: 'POST',
+                    //         data: obj
+                    //     })
+                    //     console.log('Done inserting to remote api!')
+                    // } catch (error) {
+                    //     console.error(error)
+                    //     // throw error
+                    // }
 
 
 
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
-                const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', pagination: { queryString: 'page', numPages: 10 },  });
-                const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category' });
+                const productPage = scraper.createSelector('page', { querySelector: '.product_name_link', name: 'product', after ,before });
+                const categoryPage = scraper.createSelector('page', { querySelector: '#content_65 ol a:eq(0)', name: 'category',pagination: { queryString: 'page', numPages: 3 },after });
                 root.addSelector(categoryPage);
                 categoryPage.addSelector(productPage);
-                var publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher' });
-                var productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name' });
-                var authorData = scraper.createSelector('content', { querySelector: '.product_author', name: 'author' });
-                var productImage = scraper.createSelector('image', { querySelector: '.book img', name: 'image' });
+                var publisherData = scraper.createSelector('content', { querySelector: '.product_publisher', name: 'publisher',after });
+                var productName = scraper.createSelector('content', { querySelector: '.product_name', name: 'name',before });
+                var authorData = scraper.createSelector('content', { querySelector: 'p', name: 'author', });
+                var productImage = scraper.createSelector('image', { querySelector: ' img', name: 'image' });
 
                 productPage.addSelector(publisherData);
                 productPage.addSelector(authorData);
-                productPage.addSelector(productImage);
+                // productPage.addSelector(productImage);
                 productPage.addSelector(productName);
 
                 await execute();

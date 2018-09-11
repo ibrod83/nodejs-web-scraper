@@ -142,8 +142,6 @@ class Scraper {
     }
 
 
-
-
 }
 
 
@@ -168,27 +166,14 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         await this.processOneScrapingObject(scrapingObject);
     }
 
-    createPresentableData(originalForm) {//Is used for passing cleaner data to user callbacks.
-        switch (originalForm.type) {
-            case 'Image Selector':
-                return originalForm.data[0].map((image) => { return { name: originalForm.name, content: image.address } });
-
-            case 'Content Selector':
-                return originalForm.data;
-            default:
-                return originalForm.data;
-
-        }
-    }
-
-    createScrapingObjectsFromRefs(refs, type) {
+    createScrapingObjectsFromRefs(refs) {
 
         const scrapingObjects = [];
 
         refs.forEach((href) => {
             if (href) {
                 const absoluteUrl = this.getAbsoluteUrl(this.context.globalConfig.baseSiteUrl, href)
-                var scrapingObject = this.createScrapingObject(absoluteUrl, type);
+                var scrapingObject = this.createScrapingObject(absoluteUrl);
                 scrapingObjects.push(scrapingObject);
             }
 
@@ -196,8 +181,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         return scrapingObjects;
     }
 
-    async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Wraps every scraping object in a promise, while limiting their concurrency.
-        console.log('scraping objects', scrapingObjects)
+    async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {
         await Promise.map(scrapingObjects, (scrapingObject) => {
             return this.createScrapingObjectPromise(scrapingObject);
         }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.context.globalConfig.concurrency || 3 })
@@ -212,23 +196,27 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     }
 
-    
-
-    referenceToSelectorObject() {//Gives a scraping object reference to the selector object, in which it was created. Used only in "repeatErrors()", after the initial scraping procedure is done.
+    referenceToSelectorObject() {
+        // console.log('this from reference from root', this);
         return this
     }
 
-    createScrapingObject(href, type) {//Creates a scraping object, for all selectors.
+    createScrapingObject(href, type) {
+        // console.log(this.referenceToSelectorObject)
         const scrapingObject = {
             address: href,//The image href            
             referenceToSelectorObject: this.referenceToSelectorObject.bind(this),
+            // referenceToSelectorObject: () => { return this },
             successful: false,
             data: []
         }
         if (type)
             scrapingObject.type = type;
 
+        // console.log('scraping object', scrapingObject);
         this.context.scrapingObjects.push(scrapingObject)
+        // console.log(this.context.scrapingObjects)
+        // console.log('size of all scraping objects ', sizeof( this.context.scrapingObjects))
 
         return scrapingObject;
     }
@@ -238,7 +226,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
     }
 
 
-    async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
+    async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {
 
         const randomNumber = this.context.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
         if (this.context.numRequests > 3 && randomNumber == 1) {
@@ -253,10 +241,10 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
             console.log('retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('retreis', newRetries)
-            if (newRetries == maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
+            if (newRetries == maxRetries) {
                 throw 'maximum retries exceeded';
             }
-            return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
+            return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);
         }
 
     }
@@ -433,26 +421,21 @@ class PageSelector extends CompositeSelector {
         }
 
         var scrapingObjects = [];
-        // let overridePromiseLimitation = null;
-        // if (!this.pagination) {
-        //     const refs = this.createLinkList(responseObjectFromParent)
-        //     responseObjectFromParent = {};
-        //     scrapingObjects = this.createScrapingObjectsFromRefs(refs);
-        // }
-        // else {
-        //     overridePromiseLimitation = 2
-        //     for (let i = 1; i <= this.pagination.numPages; i++) {
-        //         const paginationObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'paginationPage');
-        //         scrapingObjects.push(paginationObject);
+        let overridePromiseLimitation = null;
+        if (!this.pagination) {
+            const refs = this.createLinkList(responseObjectFromParent)
+            responseObjectFromParent = {};
+            scrapingObjects = this.createScrapingObjectsFromRefs(refs);
+        }
+        else {
+            overridePromiseLimitation = 2
+            for (let i = 1; i <= this.pagination.numPages; i++) {
+                const paginationObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'paginationPage');
+                scrapingObjects.push(paginationObject);
 
-        //     }
-        // }        
-
-        const refs = this.createLinkList(responseObjectFromParent)
-        responseObjectFromParent = {};
-        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'paginationPage');//If the selector is paginated, will pass a flag.
-
-        await this.executeScrapingObjects(scrapingObjects);
+            }
+        }
+        await this.executeScrapingObjects(scrapingObjects, overridePromiseLimitation);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
         return currentWrapper;
@@ -471,49 +454,31 @@ class PageSelector extends CompositeSelector {
         return refs;
     }
 
-    async paginate(scrapingObject) {//Creates pagination pages for a page selector.
-        const scrapingObjects = [];
-        for (let i = 1; i <= this.pagination.numPages; i++) {
-            const paginationObject = this.createScrapingObject(`${scrapingObject.address}&${this.pagination.queryString}=${i}`);
-            scrapingObjects.push(paginationObject);
 
-        }
+    async processOnePaginationObject(paginationObject, responseObjectFromParent) {
+        const refs = this.createLinkList(responseObjectFromParent)
+        responseObjectFromParent = {};
+        var innerScrapingObjects = this.createScrapingObjectsFromRefs(refs);
 
-        scrapingObject.data = [...scrapingObjects];
-        await this.executeScrapingObjects(scrapingObjects, 2);
+        await this.executeScrapingObjects(innerScrapingObjects);
+
+        paginationObject.data = innerScrapingObjects;
     }
 
+    kill() {
+        console.log('killing!')
+        // process.exit();
 
-    // async processOnePaginationObject(paginationObject, responseObjectFromParent) {
-    //     const refs = this.createLinkList(responseObjectFromParent)
-    //     responseObjectFromParent = {};
-    //     var innerScrapingObjects = this.createScrapingObjectsFromRefs(refs);
-
-    //     await this.executeScrapingObjects(innerScrapingObjects);
-
-    //     paginationObject.data = innerScrapingObjects;
-    // }
-
+    }
     async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
 
         const href = scrapingObject.address;
-
-        // const skip=()=>{
-        //     return
-        // }
 
         try {
 
             // if (this.context.fakeErrors && scrapingObject.type === 'paginationPage') { throw 'faiiiiiiiiiil' };
             if (this.context.fakeErrors && scrapingObject.type === 'paginationPage' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
             var response = await this.getPage(href);
-
-            if (this.before) {//If a "before" callback was provided, it will be called
-                if (typeof this.before !== 'function')
-                    throw "'Before' callback must be a function";
-                await this.before(response)
-            }
-            // console.log('response.data after callback',response.data)
             scrapingObject.successful = true
 
         } catch (error) {
@@ -533,12 +498,8 @@ class PageSelector extends CompositeSelector {
         }
 
 
-        // if (scrapingObject.type === 'paginationPage') {//If the scraping object is actually a pagination one, a different function is called. 
-        //     return await this.processOnePaginationObject(scrapingObject, response);
-        // }
-
         if (scrapingObject.type === 'paginationPage') {//If the scraping object is actually a pagination one, a different function is called. 
-            return this.paginate(scrapingObject);
+            return await this.processOnePaginationObject(scrapingObject, response);
         }
 
         // if (this.before) {
@@ -548,17 +509,9 @@ class PageSelector extends CompositeSelector {
 
         try {
             var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
-
+            // console.log('data from children', dataFromChildren)
             if (this.after) {
-                if (typeof this.after !== 'function')
-                    throw "'After' callback must be a function";
-                const cleanData = [];
-                dataFromChildren.forEach((dataFromChild) => {
-                    // console.log(dataFromChild)
-                    cleanData.push(this.createPresentableData(dataFromChild));
-                })
-                // console.log('clean data from children', cleanData)
-                await this.after(cleanData);
+                await this.after(dataFromChildren);
             }
             scrapingObject.data.push(dataFromChildren);
         } catch (error) {
@@ -611,26 +564,17 @@ class ContentSelector extends Selector {
         // for(let element of nodeList){
 
         // }
-
-        if (this.before) {//If a "before" callback was provided, it will be called
-            if (typeof this.before !== 'function')
-                throw "'Before' callback must be a function";
-            await this.before(nodeList)
-        }
         nodeList.each(async (index, element) => {
 
             const content = this.getNodeContent($(element));
             // console.log('content', content)
 
-            currentWrapper.data.push({ name: this.name, content: content });
+            currentWrapper.data.push({ name: this.name, text: content });
             // if(this.after){
             //     await this.after(currentWrapper.data[currentWrapper.data.length-1]);
             // }
 
         })
-        if (this.after) {
-            await this.after(this.createPresentableData(currentWrapper));
-        }
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
         this.data.data.push(currentWrapper);
@@ -693,6 +637,36 @@ class ImageSelector extends Selector {
 
 
         }
+
+        // const asyncFunction = async () => {
+
+        //     // return qyu(()=>download.image(options));
+        //     // return this.context.qyu(async () => {
+        //     currentlyRunning++;
+        //     console.log('fetching image:', url)
+        //     console.log('currentlyRunning:', currentlyRunning);
+        //     let resp;
+        //     try {
+        //         resp = await download.image(options);
+        //     } catch (err) {
+
+        //         if (err.code === 'EEXIST') {
+        //             console.log('File already exists in the directory, NOT overwriting it:', url);
+        //         } else {
+        //             throw err;
+        //         }
+        //     }
+
+        //     finally {
+        //         currentlyRunning--;
+        //         console.log('currentlyRunning:', currentlyRunning);
+        //     }
+        //     return resp;
+        //     // });
+
+
+
+        // }
 
         return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { downloadedImages++ })
 
@@ -773,15 +747,10 @@ class ImageSelector extends Selector {
 
         this.data.data.push(currentWrapper);
 
-        if (this.after) {
-            await this.after(this.createPresentableData(currentWrapper));
-        }
-
         return currentWrapper;
 
     }
 }
-
 
 // const init = {
 //     type: 'root',
