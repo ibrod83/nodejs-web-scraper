@@ -29,7 +29,7 @@ class Scraper {
         this.mockImages = true;
         this.overwriteImages = false;
         this.cloneImages = false;
-        this.registeredSelectors=[]//Holds a reference to each created selector.
+        this.registeredSelectors = []//Holds a reference to each created selector.
         this.numRequests = 0;
         this.scrapingObjects = []//for debugging
         this.globalConfig = globalConfig
@@ -45,9 +45,9 @@ class Scraper {
 
 
         try {
-          await this.createLogs();  
+            await this.createLogs();
         } catch (error) {
-           console.error('Error creating logs',error) 
+            console.error('Error creating logs', error)
         }
 
 
@@ -65,17 +65,18 @@ class Scraper {
 
     createSelector(type, querySelector, config) {
         const currentClass = this.getClassMap()[type];
-        let selectorObj=null;
-        if (currentClass === 'RootSelector'){
-            selectorObj = new currentClass(this);
-        }else{
-           selectorObj = new currentClass(this, querySelector, config); 
+        let selectorObj = null;
+        if (currentClass == RootSelector) {
+            console.log(arguments[1])
+            selectorObj = new currentClass(this, null, arguments[1]);
+        } else {
+            selectorObj = new currentClass(this, querySelector, config);
         }
 
         this.registeredSelectors.push(selectorObj)
-        return selectorObj;    
+        return selectorObj;
 
-        
+
     }
 
 
@@ -98,11 +99,11 @@ class Scraper {
 
     }
 
-    async createLogs(){
-        for(let selector of this.registeredSelectors){
+    async createLogs() {
+        for (let selector of this.registeredSelectors) {
             const fileName = selector.constructor.name === 'RootSelector' ? 'log' : selector.name;
-            const data = selector.getData(); 
-            await this.createLog({fileName,data})
+            const data = selector.getData();
+            await this.createLog({ fileName, data })
         }
         await this.createLog({ fileName: 'failedObjects', data: this.failedScrapingObjects })
     }
@@ -196,7 +197,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
     createPresentableData(originalForm) {//Is used for passing cleaner data to user callbacks.
         switch (originalForm.type) {
             case 'Image Selector':
-                return originalForm.data[0].map((image) => { return { name: originalForm.name, content: image.address } });
+                return originalForm.data.map((image) => { return { name: originalForm.name, content: image.address } });
 
             case 'Content Selector':
                 return originalForm.data;
@@ -310,6 +311,74 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
     }
 
+    async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
+
+        // const href = this.pagination && !this.paginationBegan ? `${scrapingObject.address}&${this.pagination.queryString}=1` : scrapingObject.address;
+
+        if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
+            return this.paginate(scrapingObject);
+        }
+        // const skip=()=>{
+        //     return
+        // }
+        const href = scrapingObject.address;
+        try {
+
+
+
+            // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
+            // if (this.context.fakeErrors && scrapingObject.type === 'pagination' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
+
+            var response = await this.getPage(href);
+
+            if (this.before) {//If a "before" callback was provided, it will be called
+                if (typeof this.before !== 'function')
+                    throw "'Before' callback must be a function";
+                await this.before(response)
+            }
+            // console.log('response.data after callback',response.data)
+            scrapingObject.successful = true
+
+        } catch (error) {
+            const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
+            console.error(errorString);
+            scrapingObject.successful = false
+            if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
+                console.log('scrapingobject not included,pushing it!')
+                this.context.failedScrapingObjects.push(scrapingObject);
+            }
+            return;
+
+        }
+
+        const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
+            address: href,
+        }
+
+
+        // if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
+        //     return await this.processOnePaginationObject(scrapingObject, response);
+        // }
+
+        try {
+            var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
+
+            if (this.after) {
+                if (typeof this.after !== 'function')
+                    throw "'After' callback must be a function";
+                const cleanData = [];
+                dataFromChildren.forEach((dataFromChild) => {
+                    cleanData.push(this.createPresentableData(dataFromChild));
+                })
+                await this.after(cleanData);
+            }
+            scrapingObject.data = [...dataFromChildren];
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+
     async scrapeChildren(childSelectors, passedData, responseObjectFromParent) {//Scrapes the child selectors of this PageSelector object.
 
         const scrapedData = []
@@ -319,6 +388,23 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
         }
         return scrapedData;
+    }
+
+    async paginate(scrapingObject) {//Creates pagination pages for a page selector.
+        // this.paginationBegan = true;
+        delete scrapingObject.successful;
+        const scrapingObjects = [];
+        for (let i = 1; i <= this.pagination.numPages; i++) {
+
+            const mark = scrapingObject.address.includes('?') ? '&' : '?';
+
+            const paginationObject = this.createScrapingObject(`${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`);
+            scrapingObjects.push(paginationObject);
+
+        }
+
+        scrapingObject.data = [...scrapingObjects];
+        await this.executeScrapingObjects(scrapingObjects, 2);
     }
 
 
@@ -363,18 +449,6 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
 class RootSelector extends CompositeSelector {
 
-    // constructor(context) {
-
-    //     super(context);
-
-    //     // this.context.globalConfig.setConfigurationData(configObj);
-    //     this.name = "Root Selector"
-    //     this.selectors = [];
-    //     this.html = "";
-    // }
-
-
-
     getErrors() {//Will loop through all child selectors, get their errors, and join them into the errors of the current composite selector.
         let errors = [...this.errors];
         const registeredSelectors = [];
@@ -393,43 +467,45 @@ class RootSelector extends CompositeSelector {
         return errors;
     }
 
-    // getTypesOfChildSelectors() {
-    //     return this.selectors.map(selector => selector.constructor.name);
-    // }
-
-    // shouldRootSelectorGetHtml(){
-    //     const typesOfAllChildSelectors = this.getTypesOfChildSelectors();
-    //     return true;
-    // }
-
-
     async scrape() {
 
-
-        // this.data = {
-        //     siteRoot: this.context.globalConfig.baseSiteUrl,
-        //     startUrl: this.context.globalConfig.startUrl,
-        //     data: [],//Will hold the data collected from the child selectors.
-        // }
-
-
-
-        try {
-            var response = await this.getPage(this.context.globalConfig.startUrl, true);
-            // console.log('response from root', response.data)
-
-        } catch (error) {
-            console.error('Error fetching root page: ', error)
-            throw error;
-        }
-        var dataToPass = {
-            address: this.context.globalConfig.startUrl
-        }
-
-        var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
-        this.data = [...dataFromChildren];
+        console.log(this)
+        const scrapingObject = this.createScrapingObject(this.context.globalConfig.startUrl, this.pagination && 'pagination')
+        this.data = scrapingObject;
+        await this.processOneScrapingObject(scrapingObject);
 
     }
+
+    // async processOneScrapingObject(scrapingObject) {
+    //     // console.log(this)
+    //     if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
+    //         return this.paginate(scrapingObject);
+    //     }
+    //     const href = scrapingObject.address;
+
+    //     try {
+    //         var response = await this.getPage(href);
+    //         // console.log('response from root', response.data)
+    //         if (this.before) {//If a "before" callback was provided, it will be called
+    //             if (typeof this.before !== 'function')
+    //                 throw "'Before' callback must be a function";
+    //             await this.before(response)
+    //         }
+    //         scrapingObject.successful = true
+
+    //     } catch (error) {
+    //         console.error('Error fetching root page: ', error)
+    //         throw error;
+    //     }
+    //     var dataToPass = {
+    //         address: href
+    //     }
+
+    //     var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
+    //     scrapingObject.data = dataFromChildren;
+
+    //     console.log('root data', this.data)
+    // }
 
 
 
@@ -438,16 +514,6 @@ class RootSelector extends CompositeSelector {
 
 
 class PageSelector extends CompositeSelector {
-
-    // constructor(context, querySelector, configObj) {
-    //     super(context, querySelector, configObj);
-    //     // this.data = {
-    //     //     type: 'Page Selector',
-    //     //     name: this.name,
-    //     //     data: []
-    //     // }
-    //     this.data=[]
-    // }
 
     async scrape(dataFromParent, responseObjectFromParent) {
 
@@ -468,7 +534,7 @@ class PageSelector extends CompositeSelector {
         // else {
         //     overridePromiseLimitation = 2
         //     for (let i = 1; i <= this.pagination.numPages; i++) {
-        //         const paginationObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'paginationPage');
+        //         const paginationObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'pagination');
         //         scrapingObjects.push(paginationObject);
 
         //     }
@@ -476,12 +542,13 @@ class PageSelector extends CompositeSelector {
 
         const refs = this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
-        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'paginationPage');//If the selector is paginated, will pass a flag.
+        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the selector is paginated, will pass a flag.
 
         await this.executeScrapingObjects(scrapingObjects);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
         this.data = [...this.data, ...currentWrapper.data]
+
         return currentWrapper;
     }
 
@@ -498,17 +565,7 @@ class PageSelector extends CompositeSelector {
         return refs;
     }
 
-    async paginate(scrapingObject) {//Creates pagination pages for a page selector.
-        const scrapingObjects = [];
-        for (let i = 1; i <= this.pagination.numPages; i++) {
-            const paginationObject = this.createScrapingObject(`${scrapingObject.address}&${this.pagination.queryString}=${i}`);
-            scrapingObjects.push(paginationObject);
 
-        }
-
-        scrapingObject.data = [...scrapingObjects];
-        await this.executeScrapingObjects(scrapingObjects, 2);
-    }
 
 
     // async processOnePaginationObject(paginationObject, responseObjectFromParent) {
@@ -521,94 +578,78 @@ class PageSelector extends CompositeSelector {
     //     paginationObject.data = innerScrapingObjects;
     // }
 
-    async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
+    // async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
 
-        const href = scrapingObject.address;
+    //     // const href = this.pagination && !this.paginationBegan ? `${scrapingObject.address}&${this.pagination.queryString}=1` : scrapingObject.address;
 
-        // const skip=()=>{
-        //     return
-        // }
-
-        try {
-
-            // if (this.context.fakeErrors && scrapingObject.type === 'paginationPage') { throw 'faiiiiiiiiiil' };
-            if (this.context.fakeErrors && scrapingObject.type === 'paginationPage' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
-            var response = await this.getPage(href);
-
-            if (this.before) {//If a "before" callback was provided, it will be called
-                if (typeof this.before !== 'function')
-                    throw "'Before' callback must be a function";
-                await this.before(response)
-            }
-            // console.log('response.data after callback',response.data)
-            scrapingObject.successful = true
-
-        } catch (error) {
-            const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
-            console.error(errorString);
-            scrapingObject.successful = false
-            if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
-                console.log('scrapingobject not included,pushing it!')
-                this.context.failedScrapingObjects.push(scrapingObject);
-            }
-            return;
-
-        }
-
-        const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
-            address: href,
-        }
+    //     if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
+    //         return this.paginate(scrapingObject);
+    //     }
+    //     // const skip=()=>{
+    //     //     return
+    //     // }
+    //     const href = scrapingObject.address;
+    //     try {
 
 
-        // if (scrapingObject.type === 'paginationPage') {//If the scraping object is actually a pagination one, a different function is called. 
-        //     return await this.processOnePaginationObject(scrapingObject, response);
-        // }
 
-        if (scrapingObject.type === 'paginationPage') {//If the scraping object is actually a pagination one, a different function is called. 
-            return this.paginate(scrapingObject);
-        }
+    //         // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
+    //         // if (this.context.fakeErrors && scrapingObject.type === 'pagination' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
 
-        // if (this.before) {
+    //         var response = await this.getPage(href);
 
-        //     await this.before(response,this.kill)
-        // }
+    //         if (this.before) {//If a "before" callback was provided, it will be called
+    //             if (typeof this.before !== 'function')
+    //                 throw "'Before' callback must be a function";
+    //             await this.before(response)
+    //         }
+    //         // console.log('response.data after callback',response.data)
+    //         scrapingObject.successful = true
 
-        try {
-            var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
+    //     } catch (error) {
+    //         const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
+    //         console.error(errorString);
+    //         scrapingObject.successful = false
+    //         if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
+    //             console.log('scrapingobject not included,pushing it!')
+    //             this.context.failedScrapingObjects.push(scrapingObject);
+    //         }
+    //         return;
 
-            if (this.after) {
-                if (typeof this.after !== 'function')
-                    throw "'After' callback must be a function";
-                const cleanData = [];
-                dataFromChildren.forEach((dataFromChild) => {
-                    // console.log(dataFromChild)
-                    cleanData.push(this.createPresentableData(dataFromChild));
-                })
-                // console.log('clean data from children', cleanData)
-                await this.after(cleanData);
-            }
-            scrapingObject.data.push(dataFromChildren);
-        } catch (error) {
-            console.error(error);
-        }
+    //     }
 
-    }
+    //     const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
+    //         address: href,
+    //     }
+
+
+    //     // if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
+    //     //     return await this.processOnePaginationObject(scrapingObject, response);
+    //     // }
+
+    //     try {
+    //         var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
+
+    //         if (this.after) {
+    //             if (typeof this.after !== 'function')
+    //                 throw "'After' callback must be a function";
+    //             const cleanData = [];
+    //             dataFromChildren.forEach((dataFromChild) => {
+    //                 cleanData.push(this.createPresentableData(dataFromChild));
+    //             })
+    //             await this.after(cleanData);
+    //         }
+    //         scrapingObject.data = [...dataFromChildren];
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+
+    // }
 
 }
 
 
 class ContentSelector extends Selector {
-    // constructor(context, querySelector, configObj) {
-    //     super(context, querySelector, configObj);
-        
-    //     // this.data = {
-    //     //     type: 'Content Selector',
-    //     //     name: this.name,
-    //     //     data: []
-    //     // }
-    //     this.data=[]
-
-    // }
 
     getNodeContent(elem) {
         switch (this.contentType) {
@@ -635,12 +676,7 @@ class ContentSelector extends Selector {
 
         const $ = cheerio.load(responseObjectFromParent.data);
 
-        // delete dataFromParent.html;
-
         const nodeList = $(this.querySelector);
-        // for(let element of nodeList){
-
-        // }
 
         if (this.before) {//If a "before" callback was provided, it will be called
             if (typeof this.before !== 'function')
@@ -648,22 +684,18 @@ class ContentSelector extends Selector {
             await this.before(nodeList)
         }
         nodeList.each(async (index, element) => {
-
             const content = this.getNodeContent($(element));
-            // console.log('content', content)
-
             currentWrapper.data.push({ name: this.name, content: content });
-            // if(this.after){
-            //     await this.after(currentWrapper.data[currentWrapper.data.length-1]);
-            // }
-
         })
+
         if (this.after) {
             await this.after(this.createPresentableData(currentWrapper));
         }
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
-        this.data= [...this.data,currentWrapper];
+        this.data = [...this.data, currentWrapper];
+
+
 
         return currentWrapper;
 
@@ -673,17 +705,6 @@ class ContentSelector extends Selector {
 }
 
 class ImageSelector extends Selector {
-
-    // constructor(context, querySelector, configObj) {
-    //     super(context, querySelector, configObj);
-    //     // this.data = {
-    //     //     type: 'Image Selector',
-    //     //     name: this.name,
-    //     //     data: []
-    //     // }
-    //     this.data=[]
-
-    // }
 
 
     async fetchImage(url) {
@@ -722,7 +743,6 @@ class ImageSelector extends Selector {
             }
             return resp;
 
-
         }
 
         return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { downloadedImages++ })
@@ -734,7 +754,7 @@ class ImageSelector extends Selector {
 
     async processOneScrapingObject(scrapingObject) {
 
-
+        delete scrapingObject.data;
         const imageHref = scrapingObject.address;
         if (!imageHref) {
             throw 'Image href is invalid, skipping.';
@@ -743,20 +763,11 @@ class ImageSelector extends Selector {
 
             await this.fetchImage(imageHref);
             scrapingObject.successful = true;
-            // if(this.context.failedScrapingObjects.includes(scrapingObject)){
-            //     console.log('includes',scrapingObject)
-            //     this.context.failedScrapingObjects.splice(this.context.failedScrapingObjects.indexOf(scrapingObject),1)
-            // }
-
-
-            // scrapingObject.data.push(imageHref);
 
         } catch (error) {
             const errorString = `there was an error fetching image:, ${imageHref}, ${error}`
             console.error(errorString);
 
-            // this.errors.push(errorString);
-            // overallErrors++
             if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
                 console.log('scrapingobject not included,pushing it!')
                 this.context.failedScrapingObjects.push(scrapingObject);
@@ -774,9 +785,9 @@ class ImageSelector extends Selector {
 
             type: 'Image Selector',
             name: this.name,
-            address:dataFromParent.address,
+            address: dataFromParent.address,
             data: [],
-            
+
         }
 
         const $ = cheerio.load(responseObjectFromParent.data);
@@ -802,7 +813,7 @@ class ImageSelector extends Selector {
 
         await this.executeScrapingObjects(scrapingObjects);
 
-        currentWrapper.data.push(scrapingObjects);
+        currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
 
         this.data.push(currentWrapper);
 

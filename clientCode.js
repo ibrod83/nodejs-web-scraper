@@ -7,7 +7,7 @@ const Promise = require('bluebird');
     // 'bookSiteCategory'
     // 'cnn'
     // 'slovakSite'
-    const currentMockClientCode = 'bookSiteCategory';
+    const currentMockClientCode = 'slovakSite';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
@@ -96,7 +96,7 @@ const Promise = require('bluebird');
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
                 const productPage = scraper.createSelector('page', '.product_name_link', { name: 'product', after, before });
-                const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', numPages: 2 }, after });
+                const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', numPages: 3 }, after });
                 root.addSelector(categoryPage);
                 categoryPage.addSelector(productPage);
                 var publisherData = scraper.createSelector('content', '.product_publisher', { name: 'publisher', after });
@@ -104,6 +104,7 @@ const Promise = require('bluebird');
                 var authorData = scraper.createSelector('content', 'p',{name:'author'});
                 var productImage = scraper.createSelector('image', ' img', { name: 'image' });
                 root.addSelector(authorData);
+                root.addSelector(productImage);
                 productPage.addSelector(publisherData);
                 productPage.addSelector(authorData);
                 productPage.addSelector(productImage);
@@ -116,12 +117,13 @@ const Promise = require('bluebird');
                 var config = {
                     baseSiteUrl: `https://www.profesia.sk`,
                     startUrl: `https://www.profesia.sk/praca/`,
-                    concurrency: 50,
+                    concurrency: 20,
                     imageFlag: 'wx'
                 }
                 var scraper = new Scraper(config);
-                var root = scraper.createSelector('root');
-                var productLink = scraper.createSelector('page', '.list-row a.title', { name: 'link', pagination: { queryString: 'page_num', numPages: 100 } });
+                // ,{ pagination: { queryString: 'page_num', numPages: 5 }}
+                var root = scraper.createSelector('root',{ pagination: { queryString: 'page_num', numPages: 3 }});
+                var productLink = scraper.createSelector('page', '.list-row a.title', { name: 'link' });
                 root.addSelector(productLink);
                 var paragraph = scraper.createSelector('content', 'h4', { name: 'h4' });
 
