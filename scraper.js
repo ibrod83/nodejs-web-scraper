@@ -6,23 +6,27 @@ var Input = require('prompt-input');
 var sizeof = require('object-sizeof');
 const Promise = require('bluebird');
 const URL = require('url').URL;
-// const util = require('util')
-const download = require('./image_downloader');
+const EventEmitter = require('events');
+const util = require('util')
+
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const ImageDownloader = require('./imageDownloader');
-const fetch = require('node-fetch');
+
 
 //***for debugging *******/
 let downloadedImages = 0;
 // var notFoundErrors = 0;
 var overallSeconds = 0;
 var overallPageRequests = 0;
+var overallRequests = 0;
 let currentlyRunning = 0;
 
 
-class Scraper {
+class Scraper{
     constructor(globalConfig) {
+       
+        this.validateConfig(globalConfig)
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
         this.useQyu = true;
@@ -34,22 +38,29 @@ class Scraper {
         this.scrapingObjects = []//for debugging
         this.globalConfig = globalConfig
         this.qyu = new Qyu({ concurrency: this.globalConfig.concurrency || 3 })
+        // this.on('create',()=>{
+        //     console.log()
+        // })
+    }
+
+    validateConfig(conf) {
+        if (!conf || typeof conf !== 'object')
+            throw 'Scraper constructor expects a configuration object';
+        if (!conf.baseSiteUrl || !conf.startUrl)
+            throw 'Please provide both baseSiteUrl and startUrl';
     }
 
     async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root selector.
         if (!(rootObject instanceof RootSelector) || !rootObject)
             throw 'Scraper.scrape() expects a root selector object as an argument!';
 
-        console.log(rootObject instanceof RootSelector);
         await rootObject.scrape();
-
 
         try {
             await this.createLogs();
         } catch (error) {
             console.error('Error creating logs', error)
         }
-
 
         await this.repeatAllErrors(rootObject);
     }
@@ -74,13 +85,15 @@ class Scraper {
         }
 
         this.registeredSelectors.push(selectorObj)
+        // selectorObj.emit('create')
+
         return selectorObj;
 
 
     }
 
 
-    filePromise(obj) {
+    saveFile(obj) {
 
         return new Promise((resolve, reject) => {
             console.log('saving file')
@@ -110,12 +123,9 @@ class Scraper {
 
 
     async createLog(obj) {
-
-        await this.filePromise(obj)
-        // await fs.writeFile(`./${obj.fileName}.json`, JSON.stringify(obj.object));
-
-
+        await this.saveFile(obj);
     }
+
 
     async repeatAllErrors(referenceToRootSelector) {
         while (true) {
@@ -170,9 +180,11 @@ class Scraper {
 
 
 
-class Selector {//Base abstract class for selectors. "leaf" selectors will inherit directly from it.
+class Selector extends EventEmitter{//Base abstract class for selectors. "leaf" selectors will inherit directly from it.
 
     constructor(context, querySelector, objectConfig) {
+        super();
+        console.log(this)
         // this.context.globalConfig = ConfigClass.getInstance();
         if (objectConfig) {
             for (let i in objectConfig) {
@@ -184,15 +196,19 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
 
         this.data = [];
-        this.context = context;
+        this.context = context;//Reference to the scraper main object.
         this.querySelector = querySelector;
         this.selectors = [];//References to child selector objects.
         this.errors = [];//Holds the overall communication errors, encountered by the selector.
+        // this.on('create',()=>{
+        //     console.log(this.name+' created!');
+        // })
+        this.on('scrape',()=>{
+            console.log(`${this.name} scraping!`)
+        })
     }
 
-    async createScrapingObjectPromise(scrapingObject) {
-        await this.processOneScrapingObject(scrapingObject);
-    }
+
 
     createPresentableData(originalForm) {//Is used for passing cleaner data to user callbacks.
         switch (originalForm.type) {
@@ -222,10 +238,10 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         return scrapingObjects;
     }
 
-    async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Wraps every scraping object in a promise, while limiting their concurrency.
-        console.log('scraping objects', scrapingObjects)
+    async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
+        console.log('overwriteConcurrency', overwriteConcurrency)
         await Promise.map(scrapingObjects, (scrapingObject) => {
-            return this.createScrapingObjectPromise(scrapingObject);
+            return this.processOneScrapingObject(scrapingObject);
         }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.context.globalConfig.concurrency || 3 })
     }
 
@@ -241,7 +257,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
 
     referenceToSelectorObject() {//Gives a scraping object reference to the selector object, in which it was created. Used only in "repeatErrors()", after the initial scraping procedure is done.
-        return this
+        return this;
     }
 
     createScrapingObject(href, type) {//Creates a scraping object, for all selectors.
@@ -266,30 +282,38 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
+        const errorCodesToSkip = ['404']
         const randomNumber = this.context.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
         if (this.context.numRequests > 3 && randomNumber == 1) {
             throw 'randomly generated error,' + href;
         }
 
-        const maxRetries = 5
+        const maxRetries = this.context.globalConfig.maxRetries || 5;
         try {
+            overallRequests++
+            console.log('overallRequests',overallRequests)
             this.context.numRequests++
             return await promiseFactory();
         } catch (error) {
-            console.log('retrying failed promise...error:', error, 'href:', href);
+            
+            const errorCode = error.code;
+            console.log(errorCode);
+            if(errorCodesToSkip.includes(errorCode))
+                throw `Skipping error ${errorCode}`;
+            console.log('Retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
-            console.log('retreis', newRetries)
-            if (newRetries == maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
-                throw 'maximum retries exceeded';
+            console.log('Retreis', newRetries)
+            if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
+                throw 'Maximum retries exceeded';
             }
             return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
         }
 
     }
 
-    getErrors() {//gets overall errors of the selector, in all "contexts".
-        return this.errors;
-    }
+    // getErrors() {//gets overall errors of the selector, in all "contexts".
+    //     return this.errors;
+    // }
 
     getAbsoluteUrl(base, relative) {//Handles the absolute URL.
         const newUrl = new URL(relative, base).toString();
@@ -302,6 +326,11 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
 class CompositeSelector extends Selector {//Abstract class, that deals with "composite" selectors, like a link(a link can hold other links, or "leaves", like data or image selectors).
 
+    // constructor(){
+    //     this.on('scrape',()=>{
+    //         console.log(`${this.name} scraping!`)
+    //     })
+    // }
     addSelector(selectorObject) {//Ads a reference to a selector object
         this.selectors.push(selectorObject)
     }
@@ -313,21 +342,13 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
     async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
 
-        // const href = this.pagination && !this.paginationBegan ? `${scrapingObject.address}&${this.pagination.queryString}=1` : scrapingObject.address;
-
         if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
             return this.paginate(scrapingObject);
         }
-        // const skip=()=>{
-        //     return
-        // }
+
         const href = scrapingObject.address;
         try {
-
-
-
             // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
-            // if (this.context.fakeErrors && scrapingObject.type === 'pagination' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
 
             var response = await this.getPage(href);
 
@@ -338,6 +359,7 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
             }
             // console.log('response.data after callback',response.data)
             scrapingObject.successful = true
+           
 
         } catch (error) {
             const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
@@ -355,13 +377,9 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
             address: href,
         }
 
-
-        // if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-        //     return await this.processOnePaginationObject(scrapingObject, response);
-        // }
-
         try {
             var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
+            response={};
 
             if (this.after) {
                 if (typeof this.after !== 'function')
@@ -384,13 +402,15 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
         const scrapedData = []
         for (let selector of childSelectors) {
             const dataFromChild = await selector.scrape(passedData, responseObjectFromParent);
+            
             scrapedData.push(dataFromChild);//Pushes the data from the child
 
         }
+        responseObjectFromParent={};
         return scrapedData;
     }
 
-    async paginate(scrapingObject) {//Creates pagination pages for a page selector.
+    async paginate(scrapingObject) {//Divides a given page to multiple pages.
         // this.paginationBegan = true;
         delete scrapingObject.successful;
         const scrapingObjects = [];
@@ -404,7 +424,7 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
         }
 
         scrapingObject.data = [...scrapingObjects];
-        await this.executeScrapingObjects(scrapingObjects, 2);
+        await this.executeScrapingObjects(scrapingObjects, 3);//The argument 3 forces lower promise limitation on pagination.
     }
 
 
@@ -418,7 +438,7 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
             let resp;
             try {
                 var begin = Date.now()
-                resp = await axios({ method: 'get', url: href })
+                resp = await axios({ method: 'get', url: href,timeout: 10000 })
                 // console.log('before strip',sizeof(resp.data))                           
                 this.stripTags(resp);
                 // console.log('after strip',sizeof(resp.data))
@@ -449,26 +469,8 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
 class RootSelector extends CompositeSelector {
 
-    getErrors() {//Will loop through all child selectors, get their errors, and join them into the errors of the current composite selector.
-        let errors = [...this.errors];
-        const registeredSelectors = [];
-
-        this.selectors.forEach((childSelector, index) => {
-            if (index != 0 && !registeredSelectors.includes(childSelector)) {
-                const childErrors = childSelector.getErrors();
-                errors = [...errors, ...childErrors];
-                registeredSelectors.push(childSelector);
-            } else {
-                const childErrors = childSelector.getErrors();
-                errors = [...errors, ...childErrors];
-                registeredSelectors.push(childSelector);
-            }
-        })
-        return errors;
-    }
-
     async scrape() {
-
+        this.emit('scrape')
         console.log(this)
         const scrapingObject = this.createScrapingObject(this.context.globalConfig.startUrl, this.pagination && 'pagination')
         this.data = scrapingObject;
@@ -476,36 +478,24 @@ class RootSelector extends CompositeSelector {
 
     }
 
-    // async processOneScrapingObject(scrapingObject) {
-    //     // console.log(this)
-    //     if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-    //         return this.paginate(scrapingObject);
-    //     }
-    //     const href = scrapingObject.address;
+    // getErrors() {//Will loop through all child selectors, get their errors, and join them into the errors of the current composite selector.
+    //     let errors = [...this.errors];
+    //     const registeredSelectors = [];
 
-    //     try {
-    //         var response = await this.getPage(href);
-    //         // console.log('response from root', response.data)
-    //         if (this.before) {//If a "before" callback was provided, it will be called
-    //             if (typeof this.before !== 'function')
-    //                 throw "'Before' callback must be a function";
-    //             await this.before(response)
+    //     this.selectors.forEach((childSelector, index) => {
+    //         if (index != 0 && !registeredSelectors.includes(childSelector)) {
+    //             const childErrors = childSelector.getErrors();
+    //             errors = [...errors, ...childErrors];
+    //             registeredSelectors.push(childSelector);
+    //         } else {
+    //             const childErrors = childSelector.getErrors();
+    //             errors = [...errors, ...childErrors];
+    //             registeredSelectors.push(childSelector);
     //         }
-    //         scrapingObject.successful = true
-
-    //     } catch (error) {
-    //         console.error('Error fetching root page: ', error)
-    //         throw error;
-    //     }
-    //     var dataToPass = {
-    //         address: href
-    //     }
-
-    //     var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
-    //     scrapingObject.data = dataFromChildren;
-
-    //     console.log('root data', this.data)
+    //     })
+    //     return errors;
     // }
+
 
 
 
@@ -516,8 +506,8 @@ class RootSelector extends CompositeSelector {
 class PageSelector extends CompositeSelector {
 
     async scrape(dataFromParent, responseObjectFromParent) {
-
-        const currentWrapper = {
+        this.emit('scrape')
+        const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
             type: 'Page Selector',
             name: this.name,
             address: dataFromParent.address,
@@ -525,26 +515,15 @@ class PageSelector extends CompositeSelector {
         }
 
         var scrapingObjects = [];
-        // let overridePromiseLimitation = null;
-        // if (!this.pagination) {
-        //     const refs = this.createLinkList(responseObjectFromParent)
-        //     responseObjectFromParent = {};
-        //     scrapingObjects = this.createScrapingObjectsFromRefs(refs);
-        // }
-        // else {
-        //     overridePromiseLimitation = 2
-        //     for (let i = 1; i <= this.pagination.numPages; i++) {
-        //         const paginationObject = this.createScrapingObject(`${dataFromParent.address}&${this.pagination.queryString}=${i}`, 'pagination');
-        //         scrapingObjects.push(paginationObject);
-
-        //     }
-        // }        
 
         const refs = this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
         scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the selector is paginated, will pass a flag.
-
-        await this.executeScrapingObjects(scrapingObjects);
+        const hasPageSelectorChild = this.selectors.filter(child=>child.constructor.name === 'PageSelector').length > 0;
+        console.log('haspageseelctorchild',hasPageSelectorChild)
+        const forceConcurrencyLimit = hasPageSelectorChild && 3;
+        console.log('forceConcurrencyLimit',forceConcurrencyLimit)
+        await this.executeScrapingObjects(scrapingObjects,forceConcurrencyLimit);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
         this.data = [...this.data, ...currentWrapper.data]
@@ -566,108 +545,16 @@ class PageSelector extends CompositeSelector {
     }
 
 
-
-
-    // async processOnePaginationObject(paginationObject, responseObjectFromParent) {
-    //     const refs = this.createLinkList(responseObjectFromParent)
-    //     responseObjectFromParent = {};
-    //     var innerScrapingObjects = this.createScrapingObjectsFromRefs(refs);
-
-    //     await this.executeScrapingObjects(innerScrapingObjects);
-
-    //     paginationObject.data = innerScrapingObjects;
-    // }
-
-    // async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
-
-    //     // const href = this.pagination && !this.paginationBegan ? `${scrapingObject.address}&${this.pagination.queryString}=1` : scrapingObject.address;
-
-    //     if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-    //         return this.paginate(scrapingObject);
-    //     }
-    //     // const skip=()=>{
-    //     //     return
-    //     // }
-    //     const href = scrapingObject.address;
-    //     try {
-
-
-
-    //         // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
-    //         // if (this.context.fakeErrors && scrapingObject.type === 'pagination' && href.includes('page=2')) { throw 'faiiiiiiiiiil' };
-
-    //         var response = await this.getPage(href);
-
-    //         if (this.before) {//If a "before" callback was provided, it will be called
-    //             if (typeof this.before !== 'function')
-    //                 throw "'Before' callback must be a function";
-    //             await this.before(response)
-    //         }
-    //         // console.log('response.data after callback',response.data)
-    //         scrapingObject.successful = true
-
-    //     } catch (error) {
-    //         const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
-    //         console.error(errorString);
-    //         scrapingObject.successful = false
-    //         if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
-    //             console.log('scrapingobject not included,pushing it!')
-    //             this.context.failedScrapingObjects.push(scrapingObject);
-    //         }
-    //         return;
-
-    //     }
-
-    //     const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
-    //         address: href,
-    //     }
-
-
-    //     // if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-    //     //     return await this.processOnePaginationObject(scrapingObject, response);
-    //     // }
-
-    //     try {
-    //         var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
-
-    //         if (this.after) {
-    //             if (typeof this.after !== 'function')
-    //                 throw "'After' callback must be a function";
-    //             const cleanData = [];
-    //             dataFromChildren.forEach((dataFromChild) => {
-    //                 cleanData.push(this.createPresentableData(dataFromChild));
-    //             })
-    //             await this.after(cleanData);
-    //         }
-    //         scrapingObject.data = [...dataFromChildren];
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-
-    // }
-
 }
 
 
 class ContentSelector extends Selector {
 
-    getNodeContent(elem) {
-        switch (this.contentType) {
-            case 'text':
-                return elem.text();
-            case 'html':
-                return elem.html();
-            default:
-                return elem.text();
-
-        }
-    }
-
-
     async scrape(dataFromParent, responseObjectFromParent) {
+        this.emit('scrape')
         this.contentType = this.contentType || 'text';
         !responseObjectFromParent && console.log('empty reponse from content selector', responseObjectFromParent)
-        const currentWrapper = {
+        const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
             type: 'Content Selector',
             name: this.name,
             address: dataFromParent.address,
@@ -684,8 +571,9 @@ class ContentSelector extends Selector {
             await this.before(nodeList)
         }
         nodeList.each(async (index, element) => {
+            // console.log('element',element)
             const content = this.getNodeContent($(element));
-            currentWrapper.data.push({ name: this.name, content: content });
+            currentWrapper.data.push({ element: element.name, [this.contentType]: content });
         })
 
         if (this.after) {
@@ -701,21 +589,82 @@ class ContentSelector extends Selector {
 
     }
 
+    getNodeContent(elem) {
+        switch (this.contentType) {
+            case 'text':
+                return elem.text();
+            case 'html':
+                return elem.html();
+            default:
+                return elem.text();
+
+        }
+    }
+
+
+
+
 
 }
 
 class ImageSelector extends Selector {
+
+    async scrape(dataFromParent, responseObjectFromParent) {
+        this.emit('scrape')
+        const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
+
+            type: 'Image Selector',
+            name: this.name,
+            address: dataFromParent.address,
+            data: [],
+
+        }
+
+        const $ = cheerio.load(responseObjectFromParent.data);
+        const nodeList = $(this.querySelector);
+        const imageHrefs = [];
+        nodeList.each((index, element) => {
+            const src = $(element).attr('src');
+            if (!src || !this.customSrc && src.startsWith("data:image")) {
+                console.error('Invalid image href:', $(element).attr('src'))
+                return;
+            }
+            imageHrefs.push(this.customSrc ? $(element).attr(this.customSrc) : src);
+
+        })
+
+        if (imageHrefs.length == 0) {
+            // this.errors.push(`No images found by the query, in ${dataFromParent.address}`);
+            // overallErrors++
+            return;
+        }
+
+        const scrapingObjects = this.createScrapingObjectsFromRefs(imageHrefs);
+       
+        await this.executeScrapingObjects(scrapingObjects);
+
+        currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+
+        this.data.push(currentWrapper);
+
+        if (this.after) {
+            await this.after(this.createPresentableData(currentWrapper));
+        }
+
+        return currentWrapper;
+
+    }
 
 
     async fetchImage(url) {
         // console.log('fetching image:', url);
         const options = {
             url,
-            dest: './images/',
+            dest: this.context.globalConfig.imagePath,
             clone: this.context.cloneImages,
             flag: this.context.globalConfig.imageFlag,
-            // mockImages: this.context.mockImages,
-            responseType: 'arraybuffer'
+            mockImages: this.context.mockImages,
+            responseType: this.context.globalConfig.imageResponseType || 'arraybuffer'
         }
 
         const asyncFunction = async () => {
@@ -754,7 +703,7 @@ class ImageSelector extends Selector {
 
     async processOneScrapingObject(scrapingObject) {
 
-        delete scrapingObject.data;
+        delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
         const imageHref = scrapingObject.address;
         if (!imageHref) {
             throw 'Image href is invalid, skipping.';
@@ -769,7 +718,7 @@ class ImageSelector extends Selector {
             console.error(errorString);
 
             if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
-                console.log('scrapingobject not included,pushing it!')
+                console.log('scrapingObject not included,pushing it!')
                 this.context.failedScrapingObjects.push(scrapingObject);
             }
             return;
@@ -779,51 +728,7 @@ class ImageSelector extends Selector {
 
     }
 
-    async scrape(dataFromParent, responseObjectFromParent) {
 
-        const currentWrapper = {
-
-            type: 'Image Selector',
-            name: this.name,
-            address: dataFromParent.address,
-            data: [],
-
-        }
-
-        const $ = cheerio.load(responseObjectFromParent.data);
-        const nodeList = $(this.querySelector);
-        const imageHrefs = [];
-        nodeList.each((index, element) => {
-            const src = $(element).attr('src');
-            if (!this.customSrc && src.startsWith("data:image")) {
-                console.error('Invalid image href:', $(element).attr('src'))
-                return;
-            }
-            imageHrefs.push(this.customSrc ? $(element).attr(this.customSrc) : src);
-
-        })
-
-        if (imageHrefs.length == 0) {
-            // this.errors.push(`No images found by the query, in ${dataFromParent.address}`);
-            // overallErrors++
-            return;
-        }
-
-        const scrapingObjects = this.createScrapingObjectsFromRefs(imageHrefs);
-
-        await this.executeScrapingObjects(scrapingObjects);
-
-        currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
-
-        this.data.push(currentWrapper);
-
-        if (this.after) {
-            await this.after(this.createPresentableData(currentWrapper));
-        }
-
-        return currentWrapper;
-
-    }
 }
 
 

@@ -1,13 +1,16 @@
 const Scraper = require('./scraper');
 const axios = require('axios');
 const Promise = require('bluebird');
+const fs = require('fs');
 
 (async () => {
     //***********all mocks*********** */
     // 'bookSiteCategory'
     // 'cnn'
     // 'slovakSite'
-    const currentMockClientCode = 'slovakSite';
+    // 'nytimes'
+    var goodPages = [];
+    const currentMockClientCode = 'nytimes';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
@@ -17,7 +20,10 @@ const Promise = require('bluebird');
                     baseSiteUrl: `https://edition.cnn.com/`,
                     startUrl: `https://edition.cnn.com/sport`,
                     concurrency: 20,
-                    imageFlag: 'wx'
+                    imageFlag: 'wx',
+                    maxRetries: 5,
+                    imageResponseType: 'arraybuffer',
+                    imagePath: './images/'
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
@@ -43,24 +49,29 @@ const Promise = require('bluebird');
                     baseSiteUrl: `https://ibrod83.com`,
                     startUrl: `https://ibrod83.com/books`,
                     concurrency: 10,
-                    imageFlag: 'wx'
+                    imageFlag: 'wx',
+                    maxRetries: 5,
+                    imageResponseType: 'arraybuffer',
+                    imagePath: './images/'
                 }
 
                 // const before = {}
+                // const before = async (response) => {
+                //     // console.log('response from before', response)
+                //     console.log('response from before',response)
+                //     // if(response.data.includes('Anglický jazyk - Pokročilý (C1)'))
 
-                const before = async (response) => {
-                    console.log('response from before', response)
-                    // response.data = ''
-                    // return Promise.delay(5000).then(()=>{
-                    //   console.log('done delaying!');  
-                    // })
-                    // const {data}  = await  axios.get('https://jsonplaceholder.typicode.com/todos/1')
-                    // console.log('data from jsonplaceholder',data);
-                    // kill()
-                    // return;
+                //     // response.data = ''
+                //     // return Promise.delay(5000).then(()=>{
+                //     //   console.log('done delaying!');  
+                //     // })
+                //     // const {data}  = await  axios.get('https://jsonplaceholder.typicode.com/todos/1')
+                //     // console.log('data from jsonplaceholder',data);
+                //     // kill()
+                //     // return;
 
 
-                }
+                // }
                 const after = async (obj) => {
                     console.log('data from after', obj)
                     // console.log('obj',  obj[0],obj[1],obj[3])
@@ -91,17 +102,19 @@ const Promise = require('bluebird');
                     // }
 
 
+                // {includes:'Anglický jazyk - Pokročilý (C1)' || 'yoyoyoy'}    
+
 
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
-                const productPage = scraper.createSelector('page', '.product_name_link', { name: 'product', after, before });
-                const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', numPages: 3 }, after });
+                const productPage = scraper.createSelector('page', '.product_name_link', { name: 'product', after,  });
+                const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', numPages: 1 }, after });
                 root.addSelector(categoryPage);
                 categoryPage.addSelector(productPage);
                 var publisherData = scraper.createSelector('content', '.product_publisher', { name: 'publisher', after });
-                var productName = scraper.createSelector('content', '.product_name', { name: 'name', before });
-                var authorData = scraper.createSelector('content', 'p',{name:'author'});
+                var productName = scraper.createSelector('content', '.product_name', { name: 'name',  });
+                var authorData = scraper.createSelector('content', 'h4,span', { name: 'author',contentType:'html' });
                 var productImage = scraper.createSelector('image', ' img', { name: 'image' });
                 root.addSelector(authorData);
                 root.addSelector(productImage);
@@ -114,26 +127,75 @@ const Promise = require('bluebird');
 
                 break;
             case 'slovakSite':
+
+                const before = async (response) => {
+
+                    if (response.data.includes('Anglický jazyk - Pokročilý (C1)')) {
+                        console.log('includes!', response.config.url)
+                        goodPages.push(response.config.url)
+                    }
+                }
+                
                 var config = {
                     baseSiteUrl: `https://www.profesia.sk`,
                     startUrl: `https://www.profesia.sk/praca/`,
                     concurrency: 20,
-                    imageFlag: 'wx'
+                    imageFlag: 'wx',
+                    maxRetries: 5,
+                    imageResponseType: 'arraybuffer',
+                    imagePath: './images/'
                 }
                 var scraper = new Scraper(config);
                 // ,{ pagination: { queryString: 'page_num', numPages: 5 }}
-                var root = scraper.createSelector('root',{ pagination: { queryString: 'page_num', numPages: 3 }});
-                var productLink = scraper.createSelector('page', '.list-row a.title', { name: 'link' });
-                root.addSelector(productLink);
-                var paragraph = scraper.createSelector('content', 'h4', { name: 'h4' });
 
+                var root = scraper.createSelector('root', { pagination: { queryString: 'page_num', numPages: 850 } });
+                var productLink = scraper.createSelector('page', '.list-row a.title', { name: 'link', before });
+                var span = scraper.createSelector('content', 'span', { name: 'span' });
+                root.addSelector(productLink);
+                root.addSelector(span);
+                var paragraph = scraper.createSelector('content', 'h4,h2', { name: 'h4&h2' });
+                root.addSelector(paragraph);
 
                 var productImage = scraper.createSelector('image', 'img:first', { name: 'image' });
 
                 productLink.addSelector(paragraph);
-                productLink.addSelector(productImage);
+                // productLink.addSelector(productImage);
+                await execute();
+                console.log(goodPages.length)
+                fs.writeFile('./links.json', JSON.stringify(goodPages), (err) => {
+                    if (err) {
+                        console.log(err)
+                    } else {
+                        console.log('The file has been saved!');
+                    }
+
+                });
+                case 'nytimes':
+                var config = {
+                    baseSiteUrl: `https://www.nytimes.com/`,
+                    startUrl: `https://www.nytimes.com/`,
+                    concurrency: 80,
+                    imageFlag: 'wx',
+                    maxRetries: 5,
+                    imageResponseType: 'arraybuffer',
+                    imagePath: './images/'
+                }
+                var scraper = new Scraper(config);
+                var root = scraper.createSelector('root');
+                var category = scraper.createSelector('page', '.css-1wjnrbv', { name: 'category' });
+                var article = scraper.createSelector('page', 'article a', { name: 'article' });
+                var h1 = scraper.createSelector('content', 'h1', { name: 'h1' });
+                var image = scraper.createSelector('image', 'img', { name: 'image' });
+
+                root.addSelector(category);
+                article.addSelector(image);
+                category.addSelector(article);
+                article.addSelector(h1);
+          
+
                 await execute();
 
+                break;    
 
             default:
                 break;

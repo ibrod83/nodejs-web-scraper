@@ -25,6 +25,7 @@ class ImageDownloader {
             const response = await axios({
                 method: 'GET',
                 url: this.url,
+                timeout: 10000,
                 responseType: this.responseType
 
             })
@@ -33,6 +34,8 @@ class ImageDownloader {
             // console.log(response.data)
             this.response = response;
         } catch (error) {
+           
+
             throw error;
         }
 
@@ -66,6 +69,7 @@ class ImageDownloader {
 
         const imageName = this.getImageName();
         return new Promise((resolve, reject) => {
+
             fs.writeFile(this.dest + imageName, this.response.data, { encoding: 'binary', flag: this.flag }, (err) => {
 
                 if (err) {
@@ -80,7 +84,7 @@ class ImageDownloader {
         })
     }
 
-   async save() {
+    async save() {
         try {
             if (this.responseType === 'arraybuffer') {
 
@@ -89,6 +93,7 @@ class ImageDownloader {
                 await this.saveFromStream()
             }
         } catch (error) {
+          
             throw error
         }
 
@@ -97,16 +102,26 @@ class ImageDownloader {
     saveFromStream() {
 
         const imageName = this.getImageName();
+        console.log('flag of stream:', this.flag);
+       
 
-        this.response.data.pipe(fs.createWriteStream(this.dest + imageName), { encoding: 'binary' })
         return new Promise((resolve, reject) => {
-            this.response.data.on('end', () => {
-                resolve()
+            const writeStream = fs.createWriteStream(this.dest + imageName, { encoding: 'binary', flags: this.flag })
+            writeStream.on('open', () => {
+                this.response.data.pipe(writeStream)
+
+                this.response.data.on('end', () => {
+                    resolve()
+                })
+
+                this.response.data.on('error', (error) => {
+                    reject(error)
+                })
+            })
+            writeStream.on('error', (error) => {
+                reject(error);
             })
 
-            this.response.data.on('error', () => {
-                reject()
-            })
         })
     }
 }
