@@ -4,9 +4,7 @@ const path = require('path');
 const FileProcessor = require('./file_processor');
 
 const Promise = require('bluebird');
-// const fs = Promise.promisifyAll(require('fs'));
 const fs = require('fs');
-// import fetch from 'node-fetch';
 
 
 
@@ -25,7 +23,7 @@ class ImageDownloader {
             const response = await axios({
                 method: 'GET',
                 url: this.url,
-                timeout: 10000,
+                timeout: 5000,
                 responseType: this.responseType
 
             })
@@ -45,18 +43,20 @@ class ImageDownloader {
     getImageName() {
         const possiblePathNames = ['.jpg', '.jpeg', '.bmp', '.png', '.svg', '.gif'];
         const urlEndsWithValidImageExtension = possiblePathNames.includes(path.extname(this.url));
-
-
+        const baseName = path.basename(this.url);
+       
         let imageName = "";
         if (urlEndsWithValidImageExtension) {
-            imageName = path.basename(this.url);
+            imageName = sanitize(baseName);
 
         } else {
-            var contentType = res.headers['content-type'];
+            var contentType = this.response.headers['content-type'];
             const extension = contentType.split("/")[1];
+            imageName = `${sanitize(baseName)}.${extension}`;
+        }
 
-
-            imageName = `${sanitize(path.basename(this.url))}.${extension}`;
+        if(baseName !== imageName){
+            console.log('image name sanitized! ', baseName , imageName);
         }
         const fileProcessor = new FileProcessor({ fileName: imageName, path: this.dest });
         if (this.clone) {

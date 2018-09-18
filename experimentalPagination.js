@@ -11,7 +11,7 @@ const util = require('util')
 
 const { Qyu } = require('qyu');
 const fs = require('fs');
-const ImageDownloader = require('./image_downloader');
+const ImageDownloader = require('./imageDownloader');
 
 
 //***for debugging *******/
@@ -30,7 +30,7 @@ class Scraper {
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
         this.useQyu = true;
-        this.mockImages = false;
+        this.mockImages = true;
         this.overwriteImages = false;
         this.cloneImages = false;
         this.registeredSelectors = []//Holds a reference to each created selector.
@@ -294,7 +294,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
-        const errorCodesToSkip = [404];
+        const errorCodesToSkip = ['404']
         const randomNumber = this.context.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
         if (this.context.numRequests > 3 && randomNumber == 1) {
             throw 'randomly generated error,' + href;
@@ -308,16 +308,15 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
             return await promiseFactory();
         } catch (error) {
 
-            
-            const errorCode =error.response ? error.response.status : error
-            console.log('error code',errorCode);
+            const errorCode = error.code;
+            console.log(errorCode);
             if (errorCodesToSkip.includes(errorCode))
                 throw `Skipping error ${errorCode}`;
             console.log('Retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('Retreis', newRetries)
             if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
-                throw error;
+                throw 'Maximum retries exceeded';
             }
             return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
         }
@@ -360,20 +359,10 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
             return this.paginate(scrapingObject);
         }
 
-        let href = scrapingObject.address;
+        const href = scrapingObject.address;
         try {
             // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
-            if (this.processUrl) {
-                try {
-                   href= await this.processUrl(href)
-                   console.log('new href',href)
-                } catch (error) {
-                    console.error('Error processing URL, continuing with original one: ', href);
-                }
-              
-            }
-           
-           
+
             var response = await this.getPage(href);
 
             if (this.before) {//If a "before" callback was provided, it will be called
@@ -386,7 +375,7 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
 
         } catch (error) {
-            const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href}, ${error}`;
+            const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href},${error}`;
             this.handleFailedScrapingObject(scrapingObject, errorString);
             return;
 
@@ -430,20 +419,31 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
     }
 
     async paginate(scrapingObject) {//Divides a given page to multiple pages.
-
+        // this.paginationBegan = true;
         delete scrapingObject.successful;
         const scrapingObjects = [];
         const numPages = this.pagination.numPages;
-        const firstPage = typeof this.pagination.begin !== 'undefined' ? this.pagination.begin : 1;
-        const lastPage = this.pagination.end || numPages;
-        const offset = this.pagination.offset || 1;
+        var firstPage;
+        var lastPage;
+        if (typeof numPages === 'string') {
+            if (!numPages.includes('-'))
+                throw 'Pagination range must include a dash separator!';
+            const pageRange = numPages.split('-');
+            firstPage = parseInt(pageRange[0])
+            lastPage = parseInt(pageRange[1])
+        } else {
+            firstPage = numPages - (numPages - 1);
+            lastPage = numPages;
+        }
 
-        for (let i = firstPage; i <= lastPage; i = i + offset) {
+        // console.log(pageRange)
+        // const firstPage=
+
+        for (let i = firstPage; i <= lastPage; i++) {
 
             const mark = scrapingObject.address.includes('?') ? '&' : '?';
 
-            var paginationObject = this.createScrapingObject(`${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`);
-
+            const paginationObject = this.createScrapingObject(`${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`);
             scrapingObjects.push(paginationObject);
 
         }
@@ -482,7 +482,7 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
                 // console.log('after strip',sizeof(resp.data))
                 // console.log(resp.data)
             } catch (error) {
-                // console.error('error code from axios',error.response.status);
+                // console.error(error);
                 throw error;
             }
             finally {
@@ -510,21 +510,19 @@ class RootSelector extends CompositeSelector {
     async scrape() {
         // this.emit('scrape')
         console.log(this)
-        // if (this.pagination && this.pagination.nextButton) {
-        //     var paginationSelectors = [];
-        //     for (let i = 0; i < this.pagination.numPages; i++) {
-        //         const paginationSelector = this.context.createSelector('page', this.pagination.nextButton);
-        //         paginationSelector.selectors = this.selectors;
-        //         paginationSelectors.push(paginationSelector);
-        //     }
-        //     // for(let paginationSelector of paginationSelectors){
-        //     //    this.addSelector(paginationSelector);  
-        //     // }
-        //     paginationSelectors.map(paginationSelector => this.selectors = [...this.selectors, paginationSelector])
-
-        // }
-
-        const scrapingObject = this.createScrapingObject(this.context.globalConfig.startUrl, this.pagination && 'pagination')
+        if (this.pagination && this.pagination.nextButton) {
+            const paginationSelectors= [];
+            for (let i = 0; i < this.pagination.numPages; i++) {
+                const paginationSelector = this.context.createSelector('page', this.pagination.nextButton);
+                paginationSelector.selectors = this.selectors;
+                paginationSelectors.push(paginationSelector);
+            }
+            for(let paginationSelector of paginationSelectors){
+               this.addSelector(paginationSelector);  
+            }
+           
+        }
+        const scrapingObject = this.createScrapingObject(this.context.globalConfig.startUrl, (this.pagination && this.pagination.queryString) && 'pagination')
         this.data = scrapingObject;
         await this.processOneScrapingObject(scrapingObject);
 
@@ -559,7 +557,6 @@ class PageSelector extends CompositeSelector {
 
     async scrape(dataFromParent, responseObjectFromParent) {
         // this.emit('scrape')
-        console.log(this)
         const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
             type: 'Page Selector',
             name: this.name,
@@ -571,15 +568,22 @@ class PageSelector extends CompositeSelector {
 
 
 
-
+        if (this.pagination && this.pagination.nextButton) {
+            for (let i = 0; i < this.pagination.numPages; i++) {
+                const paginationSelector = this.context.createSelector('page', this.pagination.nextButton);
+                paginationSelector.selectors = this.selectors;
+                this.context.createSelector('page', this.pagination.nextButton);
+                this.addSelector(paginationSelector);
+            }
+        }
         const refs = this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
-
-        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the selector is paginated, will pass a flag.
+       
+        scrapingObjects = this.createScrapingObjectsFromRefs(refs,(this.pagination && this.pagination.queryString) && 'pagination');//If the selector is paginated, will pass a flag.
         const hasPageSelectorChild = this.selectors.filter(child => child.constructor.name === 'PageSelector').length > 0;//Checks if the current page selector has any other page selectors in it. If so, will force concurrency limitation.
-        // console.log('haspageseelctorchild', hasPageSelectorChild)
+        console.log('haspageseelctorchild', hasPageSelectorChild)
         const forceConcurrencyLimit = hasPageSelectorChild && 3;
-        // console.log('forceConcurrencyLimit', forceConcurrencyLimit)
+        console.log('forceConcurrencyLimit', forceConcurrencyLimit)
         await this.executeScrapingObjects(scrapingObjects, forceConcurrencyLimit);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
@@ -714,18 +718,7 @@ class ImageSelector extends Selector {
 
 
     async fetchImage(url) {
-       
-
-        if (this.processUrl) {
-            try {
-               url= await this.processUrl(url)
-               console.log('new href',url)
-            } catch (error) {
-                console.error('Error processing URL, continuing with original one: ', url);
-            }
-          
-        }
-
+        // console.log('fetching image:', url);
         const options = {
             url,
             dest: this.context.globalConfig.imagePath,

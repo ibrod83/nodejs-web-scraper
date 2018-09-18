@@ -9,21 +9,58 @@ const fs = require('fs');
     // 'cnn'
     // 'slovakSite'
     // 'nytimes'
+    // 'books_america'
+    // 'google'
+
+    var config = {
+        concurrency: 10,
+        imageFlag: 'wx',
+        maxRetries: 5,
+        imageResponseType: 'arraybuffer',
+        imagePath: './images/'
+    }
     var goodPages = [];
-    const currentMockClientCode = 'nytimes';
+    const currentMockClientCode = 'google';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
         switch (siteName) {
+
+            case 'google':
+            const processUrl = async(originalUrl)=>{
+                console.log('ogirinal url',originalUrl)
+                const newUrl = originalUrl.replace('https://www.google.com/url?q=','')
+                console.log('originalUrl:',originalUrl,'new url', newUrl)
+                // return newUrl;
+                return originalUrl;
+            }
+            config = {
+                ...config,
+                baseSiteUrl: `https://www.google.com/`,
+                startUrl: `https://www.google.com/search?ei=HiSgW8GsLsaXsAfPpI_ABg&q=america&oq=america&gs_l=psy-ab.3..35i39k1j0i67k1l8j0i203k1.92389.93155.0.93233.7.6.0.0.0.0.181.466.0j3.3.0....0...1c.1.64.psy-ab..4.3.466...0i131k1.0.gYwRap2SNDY`,
+            }
+            // {pagination:{nextButton:'a#pnnext',numPages:10}}
+            var scraper = new Scraper(config);
+            var root = scraper.createSelector('root',{pagination:{queryString:'start',begin:0,end:10,offset:10}});
+            var dogPage = scraper.createSelector('page', 'h3.r a', { name: 'dogPage',processUrl });
+            var h1 = scraper.createSelector('content', 'h1', { name: 'h1' });
+            var image = scraper.createSelector('image', 'img', { name: 'image',processUrl });
+            // var articleImage = scraper.createSelector('image', 'img', { name: 'article image' });
+
+            root.addSelector(dogPage);
+            dogPage.addSelector(h1);
+            dogPage.addSelector(image);
+            
+
+            await execute();
+
+            break;
             case 'cnn':
-                var config = {
+
+                config = {
+                    ...config,
                     baseSiteUrl: `https://edition.cnn.com/`,
                     startUrl: `https://edition.cnn.com/sport`,
-                    concurrency: 20,
-                    imageFlag: 'wx',
-                    maxRetries: 5,
-                    imageResponseType: 'arraybuffer',
-                    imagePath: './images/'
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
@@ -45,83 +82,63 @@ const fs = require('fs');
                 break;
 
             case 'bookSiteCategory':
-                var config = {
+
+                config = {
+                    ...config,
                     baseSiteUrl: `https://ibrod83.com`,
-                    startUrl: `https://ibrod83.com/books`,
-                    concurrency: 10,
-                    imageFlag: 'wx',
-                    maxRetries: 5,
-                    imageResponseType: 'arraybuffer',
-                    imagePath: './images/'
+                    // startUrl: `https://ibrod83.com/books`,
+                    startUrl: `https://ibrod83.com/books/product/2/search?filter=Category`,
                 }
-
-                // const before = {}
-                // const before = async (response) => {
-                //     // console.log('response from before', response)
-                //     console.log('response from before',response)
-                //     // if(response.data.includes('Anglický jazyk - Pokročilý (C1)'))
-
-                //     // response.data = ''
-                //     // return Promise.delay(5000).then(()=>{
-                //     //   console.log('done delaying!');  
-                //     // })
-                //     // const {data}  = await  axios.get('https://jsonplaceholder.typicode.com/todos/1')
-                //     // console.log('data from jsonplaceholder',data);
-                //     // kill()
-                //     // return;
+                // const before = async (response) => {           
 
 
                 // }
                 const after = async (obj) => {
                     console.log('data from after', obj)
-                    // console.log('obj',  obj[0],obj[1],obj[3])
-
-                    // const publisher = obj[0].data[0].text
-                    // const author = obj[1].data[0].text
-                    // const name = obj[3].data[0].text
-
-                    //  obj= {
-                    //     publisher,
-                    //     author,
-                    //     name
-                    // }
-
-                    // console.log('obj',obj)
-
-                    // return Promise.delay(5000).then(()=>{               
-                    // try {
-                    //     await axios({
-                    //         url: 'http://playground.localhost',
-                    //         method: 'POST',
-                    //         data: obj
-                    //     })
-                    //     console.log('Done inserting to remote api!')
-                    // } catch (error) {
-                    //     console.error(error)
-                    //     // throw error
-                    // }
-
-
-                // {includes:'Anglický jazyk - Pokročilý (C1)' || 'yoyoyoy'}    
-
 
                 }
                 var scraper = new Scraper(config);
-                var root = scraper.createSelector('root');
-                const productPage = scraper.createSelector('page', '.product_name_link', { name: 'product', after,  });
-                const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', numPages: 1 }, after });
-                root.addSelector(categoryPage);
-                categoryPage.addSelector(productPage);
-                var publisherData = scraper.createSelector('content', '.product_publisher', { name: 'publisher', after });
-                var productName = scraper.createSelector('content', '.product_name', { name: 'name',  });
-                var authorData = scraper.createSelector('content', 'h4,span', { name: 'author',contentType:'html' });
+                var root = scraper.createSelector('root', {pagination: { queryString:'page', begin:1,end:3 },  });
+                const productPage = scraper.createSelector('page', '.product_name_link', { name: 'product',  });
+                // const categoryPage = scraper.createSelector('page', '#content_65 ol a:eq(0)', { name: 'category', pagination: { nextButton: 'next', numPages: 3 }, after });
+                // root.addSelector(categoryPage);
+                root.addSelector(productPage);
+                // categoryPage.addSelector(productPage);
+                var publisherData = scraper.createSelector('content', '.product_publisher', { name: 'publisher' });
+                var productName = scraper.createSelector('content', '.product_name', { name: 'name', });
+                // var authorData = scraper.createSelector('content', 'h4,span', { name: 'author', contentType: 'html' });
                 var productImage = scraper.createSelector('image', ' img', { name: 'image' });
-                root.addSelector(authorData);
-                root.addSelector(productImage);
+                // root.addSelector(authorData);
+                // root.addSelector(productImage);
                 productPage.addSelector(publisherData);
-                productPage.addSelector(authorData);
+                // productPage.addSelector(authorData);
                 productPage.addSelector(productImage);
                 productPage.addSelector(productName);
+
+                await execute();
+
+                break;
+            case 'books_america':
+              
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://ibrod83.com`,
+                    startUrl: `https://ibrod83.com/books/Product/america/search?items_per_page=144&filter=NameOrAuthor&location=all`,
+                }
+
+                var scraper = new Scraper(config);
+                var root = scraper.createSelector('root', { pagination: { queryString: 'page', begin:1, end: 5 } });
+                const product = scraper.createSelector('page', '.product_name_link', { name: 'product', });
+                root.addSelector(product);
+                var publisherData = scraper.createSelector('content', '.product_publisher', { name: 'publisher', });
+                var productName = scraper.createSelector('content', '.product_name', { name: 'name', });
+                var authorData = scraper.createSelector('content', '.product_author', { name: 'author', contentType: 'html' });
+                var productImage = scraper.createSelector('image', ' img', { name: 'image' });
+
+                product.addSelector(publisherData);
+                product.addSelector(authorData);
+                product.addSelector(productImage);
+                product.addSelector(productName);
 
                 await execute();
 
@@ -135,20 +152,16 @@ const fs = require('fs');
                         goodPages.push(response.config.url)
                     }
                 }
-                
-                var config = {
+
+               
+                config = {
+                    ...config,
                     baseSiteUrl: `https://www.profesia.sk`,
                     startUrl: `https://www.profesia.sk/praca/`,
-                    concurrency: 20,
-                    imageFlag: 'wx',
-                    maxRetries: 5,
-                    imageResponseType: 'arraybuffer',
-                    imagePath: './images/'
                 }
                 var scraper = new Scraper(config);
-                // ,{ pagination: { queryString: 'page_num', numPages: 5 }}
 
-                var root = scraper.createSelector('root', { pagination: { queryString: 'page_num', numPages: 850 } });
+                var root = scraper.createSelector('root', { pagination: { queryString: 'page_num',begin:1, end: 10 } });
                 var productLink = scraper.createSelector('page', '.list-row a.title', { name: 'link', before });
                 var span = scraper.createSelector('content', 'span', { name: 'span' });
                 root.addSelector(productLink);
@@ -170,15 +183,16 @@ const fs = require('fs');
                     }
 
                 });
-                case 'nytimes':
-                var config = {
+
+
+                break;
+
+            case 'nytimes':
+               
+                config = {
+                    ...config,
                     baseSiteUrl: `https://www.nytimes.com/`,
                     startUrl: `https://www.nytimes.com/`,
-                    concurrency: 80,
-                    imageFlag: 'wx',
-                    maxRetries: 5,
-                    imageResponseType: 'arraybuffer',
-                    imagePath: './images/'
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createSelector('root');
@@ -191,11 +205,11 @@ const fs = require('fs');
                 article.addSelector(image);
                 category.addSelector(article);
                 article.addSelector(h1);
-          
+
 
                 await execute();
 
-                break;    
+                break;
 
             default:
                 break;

@@ -1,2 +1,5 @@
 node_modules/
 images/
+*.json
+!package.json
+!package-lock.json
