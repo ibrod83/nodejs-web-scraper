@@ -7,11 +7,10 @@ var sizeof = require('object-sizeof');
 const Promise = require('bluebird');
 const URL = require('url').URL;
 // const EventEmitter = require('events');
-const util = require('util')
 
 const { Qyu } = require('qyu');
 const fs = require('fs');
-const ImageDownloader = require('./image_downloader');
+const image_downloader = require('./image_downloader');
 
 
 //***for debugging *******/
@@ -25,22 +24,33 @@ let currentlyRunning = 0;
 
 class Scraper {
     constructor(globalConfig) {
+        this.defaultConfig = {
+            cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
+            imageFlag: 'w',//The flag provided to the file saving function. 
+            concurrency: 3,//Maximum concurrent requests.
+            maxRetries: 5,//Maximum number of retries of a failed request.
+            imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
+            startUrl: '',
+            baseSiteUrl: '',
+            imagePath: null//Needs to be provided only if an image operation is created.
 
-        this.validateConfig(globalConfig)
+        }
+
+        this.validateConfig(globalConfig);
+
+        for (let prop in globalConfig) {
+            if (this.defaultConfig.hasOwnProperty(prop))
+                this[prop] = globalConfig[prop];
+        }
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
         this.useQyu = true;
         this.mockImages = false;
-        this.overwriteImages = false;
-        this.cloneImages = false;
-        this.registeredSelectors = []//Holds a reference to each created selector.
+        this.registeredOperations = []//Holds a reference to each created operation.
         this.numRequests = 0;
-        this.scrapingObjects = []//for debugging
-        this.globalConfig = globalConfig
-        this.qyu = new Qyu({ concurrency: this.globalConfig.concurrency || 3 })
-        // this.on('create',()=>{
-        //     console.log()
-        // })
+        this.scrapingObjects = []//for debugging       
+        this.qyu = new Qyu({ concurrency: this.concurrency })//Creates an instance of the task-qyu for the requests.
+
     }
 
     validateConfig(conf) {
@@ -50,9 +60,9 @@ class Scraper {
             throw 'Please provide both baseSiteUrl and startUrl';
     }
 
-    async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root selector.
-        if (!(rootObject instanceof RootSelector) || !rootObject)
-            throw 'Scraper.scrape() expects a root selector object as an argument!';
+    async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root operation.
+        if (!(rootObject instanceof Root) || !rootObject)
+            throw 'Scraper.scrape() expects a root object as an argument!';
 
         await rootObject.scrape();
 
@@ -67,27 +77,29 @@ class Scraper {
 
     getClassMap() {
         return {
-            page: PageSelector,
-            root: RootSelector,
-            content: ContentSelector,
-            image: ImageSelector
+            linkClicker: LinkClicker,
+            root: Root,
+            contentCollector: ContentCollector,
+            imageDownloader: ImageDownloader
         }
     }
 
-    createSelector(type, querySelector, config) {
+    createOperation(type, querySelector, config) {
+        if (type === 'imageDownloader' && !this.imagePath)//If no image path was not originally provided to the Scraper object, an error is thrown.
+            throw 'Must provide image path'
         const currentClass = this.getClassMap()[type];
-        let selectorObj = null;
-        if (currentClass == RootSelector) {
-            console.log(arguments[1])
-            selectorObj = new currentClass(this, null, arguments[1]);
+        let operationObj = null;
+        if (currentClass == Root) {
+            // console.log(arguments[1])
+            operationObj = new currentClass(this, null, arguments[1]);
         } else {
-            selectorObj = new currentClass(this, querySelector, config);
+            operationObj = new currentClass(this, querySelector, config);
         }
 
-        this.registeredSelectors.push(selectorObj)
-        // selectorObj.emit('create')
+        this.registeredOperations.push(operationObj)
+        // operationObj.emit('create')
 
-        return selectorObj;
+        return operationObj;
 
 
     }
@@ -113,9 +125,9 @@ class Scraper {
     }
 
     async createLogs() {
-        for (let selector of this.registeredSelectors) {
-            const fileName = selector.constructor.name === 'RootSelector' ? 'log' : selector.name;
-            const data = selector.getData();
+        for (let operation of this.registeredOperations) {
+            const fileName = operation.constructor.name === 'Root' ? 'log' : operation.name;
+            const data = operation.getData();
             await this.createLog({ fileName, data })
         }
         await this.createLog({ fileName: 'failedObjects', data: this.failedScrapingObjects })
@@ -127,12 +139,14 @@ class Scraper {
     }
 
 
-    async repeatAllErrors(referenceToRootSelector) {
+    async repeatAllErrors(referenceToRootOperation) {
         while (true) {
             if (this.failedScrapingObjects.length > 0) {
 
-                await this.repeatErrors();
-                var entireTree = referenceToRootSelector.getData();
+                const repeat = await this.repeatErrors();
+                if (repeat === 'done')
+                    return;
+                var entireTree = referenceToRootOperation.getData();
 
                 await this.createLog({ fileName: 'log', data: entireTree })
                 await this.createLog({ fileName: 'failedObjects', data: this.failedScrapingObjects })
@@ -147,23 +161,26 @@ class Scraper {
 
     async repeatErrors() {
         var input = new Input({
-            name: 'first',
-            message: 'continue?'
+            name: 'shouldScraperRepeat',
+            message: 'Would you like to retry the failed operations? Type "y" for yes, any other key for no.'
         });
 
         // this.fakeErrors = false;
         let counter = 0
         // const failedImages = this.failedScrapingObjects.filter((object) => { return !object.data })
         console.log('number of failed objects:', this.failedScrapingObjects.length)
-        await input.run()
+        const shouldScraperRepeat = await input.run();
+        console.log(shouldScraperRepeat);
+        if (shouldScraperRepeat !== 'y' && shouldScraperRepeat !== 'Y')
+            return 'done';
         await Promise.all(
             this.failedScrapingObjects.map(async (failedObject) => {
                 counter++
                 console.log('failed object counter:', counter)
                 console.log('failed object', failedObject)
-                const selectorContext = failedObject.referenceToSelectorObject();
+                const operationContext = failedObject.referenceToOperationObject();
 
-                await selectorContext.processOneScrapingObject(failedObject);
+                await operationContext.processOneScrapingObject(failedObject);
                 console.log('failed object after repetition', failedObject);
                 if (failedObject.successful == true) {
                     delete failedObject.error;
@@ -183,12 +200,10 @@ class Scraper {
 
 
 
-class Selector {//Base abstract class for selectors. "leaf" selectors will inherit directly from it.
+class Operation {//Base abstract class for operations. "leaf" operations will inherit directly from it.
 
     constructor(context, querySelector, objectConfig) {
-        // super();
-        console.log(this)
-        // this.context.globalConfig = ConfigClass.getInstance();
+        // console.log(this)
         if (objectConfig) {
             for (let i in objectConfig) {
                 this[i] = objectConfig[i];
@@ -201,24 +216,19 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
         this.data = [];
         this.context = context;//Reference to the scraper main object.
         this.querySelector = querySelector;
-        this.selectors = [];//References to child selector objects.
-        this.errors = [];//Holds the overall communication errors, encountered by the selector.
-        // this.on('create',()=>{
-        //     console.log(this.name+' created!');
-        // })
-        // this.on('scrape', () => {
-        //     console.log(`${this.name} scraping!`)
-        // })
+        this.operations = [];//References to child operation objects.
+        this.errors = [];//Holds the overall communication errors, encountered by the operation.
+
     }
 
 
 
     createPresentableData(originalForm) {//Is used for passing cleaner data to user callbacks.
         switch (originalForm.type) {
-            case 'Image Selector':
+            case 'Image Downloader':
                 return originalForm.data.map((image) => { return { name: originalForm.name, content: image.address } });
 
-            case 'Content Selector':
+            case 'Content Collector':
                 return originalForm.data;
             default:
                 return originalForm.data;
@@ -232,7 +242,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
         refs.forEach((href) => {
             if (href) {
-                const absoluteUrl = this.getAbsoluteUrl(this.context.globalConfig.baseSiteUrl, href)
+                const absoluteUrl = this.getAbsoluteUrl(this.context.baseSiteUrl, href)
                 var scrapingObject = this.createScrapingObject(absoluteUrl, type);
                 scrapingObjects.push(scrapingObject);
             }
@@ -242,17 +252,17 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
     }
 
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-        console.log('overwriteConcurrency', overwriteConcurrency)
+        // console.log('overwriteConcurrency', overwriteConcurrency)
         await Promise.map(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject);
-        }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.context.globalConfig.concurrency || 3 })
+        }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.context.concurrency })
     }
 
     handleFailedScrapingObject(scrapingObject, errorString) {
         console.error(errorString);
         scrapingObject.error = errorString;
         if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
-            console.log('scrapingObject not included,pushing it!')
+            // console.log('scrapingObject not included,pushing it!')
             this.context.failedScrapingObjects.push(scrapingObject);
         }
     }
@@ -268,14 +278,14 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
 
 
-    referenceToSelectorObject() {//Gives a scraping object reference to the selector object, in which it was created. Used only in "repeatErrors()", after the initial scraping procedure is done.
+    referenceToOperationObject() {//Gives a scraping object reference to the operation object, in which it was created. Used only in "repeatErrors()", after the initial scraping procedure is done.
         return this;
     }
 
-    createScrapingObject(href, type) {//Creates a scraping object, for all selectors.
+    createScrapingObject(href, type) {//Creates a scraping object, for all operations.
         const scrapingObject = {
             address: href,//The image href            
-            referenceToSelectorObject: this.referenceToSelectorObject.bind(this),
+            referenceToOperationObject: this.referenceToOperationObject.bind(this),
             successful: false,
             data: []
         }
@@ -300,7 +310,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
             throw 'randomly generated error,' + href;
         }
 
-        const maxRetries = this.context.globalConfig.maxRetries || 5;
+        const maxRetries = this.context.maxRetries;
         try {
             overallRequests++
             console.log('overallRequests', overallRequests)
@@ -308,9 +318,9 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
             return await promiseFactory();
         } catch (error) {
 
-            
-            const errorCode =error.response ? error.response.status : error
-            console.log('error code',errorCode);
+
+            const errorCode = error.response ? error.response.status : error
+            console.log('error code', errorCode);
             if (errorCodesToSkip.includes(errorCode))
                 throw `Skipping error ${errorCode}`;
             console.log('Retrying failed promise...error:', error, 'href:', href);
@@ -324,9 +334,9 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
     }
 
-    // getErrors() {//gets overall errors of the selector, in all "contexts".
-    //     return this.errors;
-    // }
+    getErrors() {//gets overall errors of the operation, in all "contexts".
+        return this.errors;
+    }
 
     getAbsoluteUrl(base, relative) {//Handles the absolute URL.
         const newUrl = new URL(relative, base).toString();
@@ -337,16 +347,11 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
 
 }
 
-class CompositeSelector extends Selector {//Abstract class, that deals with "composite" selectors, like a link(a link can hold other links, or "leaves", like data or image selectors).
+class CompositeOperation extends Operation {//Abstract class, that deals with "composite" operations, like a link(a link can hold other links, or "leaves", like data or image operations).
 
-    // constructor(){
-    //     this.on('scrape',()=>{
-    //         console.log(`${this.name} scraping!`)
-    //     })
-    // }
-    addSelector(selectorObject) {//Ads a reference to a selector object
+    addOperation(operationObject) {//Ads a reference to a operation object
 
-        this.selectors.push(selectorObject)
+        this.operations.push(operationObject)
     }
 
     stripTags(responseObject) {//Cleans the html string from script and style tags.
@@ -365,15 +370,15 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
             // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
             if (this.processUrl) {
                 try {
-                   href= await this.processUrl(href)
-                   console.log('new href',href)
+                    href = await this.processUrl(href)
+                    // console.log('new href', href)
                 } catch (error) {
                     console.error('Error processing URL, continuing with original one: ', href);
                 }
-              
+
             }
-           
-           
+
+
             var response = await this.getPage(href);
 
             if (this.before) {//If a "before" callback was provided, it will be called
@@ -386,19 +391,20 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
 
         } catch (error) {
-            const errorString = `There was an error opening page ${this.context.globalConfig.baseSiteUrl}${href}, ${error}`;
+            const errorString = `There was an error opening page ${this.context.baseSiteUrl}${href}, ${error}`;
+            this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString);
             return;
 
         }
 
-        const dataToPass = {//Temporary object, that will hold data that needs to be passed to child selectors.
+        const dataToPass = {//Temporary object, that will hold data that needs to be passed to child operations.
             address: href,
         }
 
         try {
-            var dataFromChildren = await this.scrapeChildren(this.selectors, dataToPass, response)
-            response = {};
+            var dataFromChildren = await this.scrapeChildren(this.operations, dataToPass, response)
+            response = null;
 
             if (this.after) {
                 if (typeof this.after !== 'function')
@@ -416,16 +422,16 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
     }
 
-    async scrapeChildren(childSelectors, passedData, responseObjectFromParent) {//Scrapes the child selectors of this PageSelector object.
+    async scrapeChildren(childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this LinkClicker object.
 
         const scrapedData = []
-        for (let selector of childSelectors) {
-            const dataFromChild = await selector.scrape(passedData, responseObjectFromParent);
+        for (let operation of childOperations) {
+            const dataFromChild = await operation.scrape(passedData, responseObjectFromParent);
 
             scrapedData.push(dataFromChild);//Pushes the data from the child
 
         }
-        responseObjectFromParent = {};
+        responseObjectFromParent = null;
         return scrapedData;
     }
 
@@ -454,6 +460,8 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 
 
 
+
+
     async getPage(href, bypassError) {//Fetches the html of a given page.
 
         const asyncFunction = async () => {
@@ -463,19 +471,10 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
             let resp;
             try {
                 var begin = Date.now()
+                await Promise.delay(100)
                 resp = await axios({
                     method: 'get', url: href,
                     timeout: 5000,
-
-
-                    //   proxy: {
-                    //     host: '37.187.99.146',
-                    //     port: 3128,
-                    //     // auth: {
-                    //     //     username: 'mikeymike',
-                    //     //     password: 'rapunz3l'
-                    //     // }
-                    // }
                 })
                 // console.log('before strip',sizeof(resp.data))                           
                 this.stripTags(resp);
@@ -505,48 +504,28 @@ class CompositeSelector extends Selector {//Abstract class, that deals with "com
 }
 
 
-class RootSelector extends CompositeSelector {
+class Root extends CompositeOperation {
 
     async scrape() {
         // this.emit('scrape')
         console.log(this)
-        // if (this.pagination && this.pagination.nextButton) {
-        //     var paginationSelectors = [];
-        //     for (let i = 0; i < this.pagination.numPages; i++) {
-        //         const paginationSelector = this.context.createSelector('page', this.pagination.nextButton);
-        //         paginationSelector.selectors = this.selectors;
-        //         paginationSelectors.push(paginationSelector);
-        //     }
-        //     // for(let paginationSelector of paginationSelectors){
-        //     //    this.addSelector(paginationSelector);  
-        //     // }
-        //     paginationSelectors.map(paginationSelector => this.selectors = [...this.selectors, paginationSelector])
 
-        // }
 
-        const scrapingObject = this.createScrapingObject(this.context.globalConfig.startUrl, this.pagination && 'pagination')
+        const scrapingObject = this.createScrapingObject(this.context.startUrl, this.pagination && 'pagination')
         this.data = scrapingObject;
         await this.processOneScrapingObject(scrapingObject);
 
     }
 
-    // getErrors() {//Will loop through all child selectors, get their errors, and join them into the errors of the current composite selector.
-    //     let errors = [...this.errors];
-    //     const registeredSelectors = [];
+    getErrors() {//Will get the errors from all registered operations.
+        let errors = [...this.errors];
 
-    //     this.selectors.forEach((childSelector, index) => {
-    //         if (index != 0 && !registeredSelectors.includes(childSelector)) {
-    //             const childErrors = childSelector.getErrors();
-    //             errors = [...errors, ...childErrors];
-    //             registeredSelectors.push(childSelector);
-    //         } else {
-    //             const childErrors = childSelector.getErrors();
-    //             errors = [...errors, ...childErrors];
-    //             registeredSelectors.push(childSelector);
-    //         }
-    //     })
-    //     return errors;
-    // }
+        this.context.registeredOperations.forEach((operation) => {
+            if (operation.constructor.name !== 'Root')
+                errors = [...operation.getErrors()]
+        })
+        return errors;
+    }
 
 
 
@@ -555,13 +534,13 @@ class RootSelector extends CompositeSelector {
 
 
 
-class PageSelector extends CompositeSelector {
+class LinkClicker extends CompositeOperation {
 
     async scrape(dataFromParent, responseObjectFromParent) {
         // this.emit('scrape')
         console.log(this)
-        const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
-            type: 'Page Selector',
+        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
+            type: 'Link Clicker',
             name: this.name,
             address: dataFromParent.address,
             data: []
@@ -575,10 +554,10 @@ class PageSelector extends CompositeSelector {
         const refs = this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
 
-        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the selector is paginated, will pass a flag.
-        const hasPageSelectorChild = this.selectors.filter(child => child.constructor.name === 'PageSelector').length > 0;//Checks if the current page selector has any other page selectors in it. If so, will force concurrency limitation.
-        // console.log('haspageseelctorchild', hasPageSelectorChild)
-        const forceConcurrencyLimit = hasPageSelectorChild && 3;
+        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
+        const hasLinkClickerOperation = this.operations.filter(child => child.constructor.name === 'LinkClicker').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
+        // console.log('hasLinkClickerOperation', hasLinkClickerOperation)
+        const forceConcurrencyLimit = hasLinkClickerOperation && 3;
         // console.log('forceConcurrencyLimit', forceConcurrencyLimit)
         await this.executeScrapingObjects(scrapingObjects, forceConcurrencyLimit);
 
@@ -590,13 +569,15 @@ class PageSelector extends CompositeSelector {
 
 
     createLinkList(responseObjectFromParent) {
-        const $ = cheerio.load(responseObjectFromParent.data);
+        var $ = cheerio.load(responseObjectFromParent.data);
         const scrapedLinks = $(this.querySelector);
         const refs = [];
         scrapedLinks.each((index, link) => {
             refs.push(link.attribs.href)
 
         })
+
+        $ = null;
 
         return refs;
     }
@@ -605,20 +586,20 @@ class PageSelector extends CompositeSelector {
 }
 
 
-class ContentSelector extends Selector {
+class ContentCollector extends Operation {
 
     async scrape(dataFromParent, responseObjectFromParent) {
         // this.emit('scrape')
         this.contentType = this.contentType || 'text';
-        !responseObjectFromParent && console.log('empty reponse from content selector', responseObjectFromParent)
-        const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
-            type: 'Content Selector',
+        !responseObjectFromParent && console.log('empty reponse from content operation', responseObjectFromParent)
+        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
+            type: 'Content Collector',
             name: this.name,
             address: dataFromParent.address,
             data: []
         }
 
-        const $ = cheerio.load(responseObjectFromParent.data);
+        var $ = cheerio.load(responseObjectFromParent.data);
 
         const nodeList = $(this.querySelector);
 
@@ -636,6 +617,8 @@ class ContentSelector extends Selector {
         if (this.after) {
             await this.after(this.createPresentableData(currentWrapper));
         }
+
+        $ = null;
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
         this.data = [...this.data, currentWrapper];
@@ -664,20 +647,20 @@ class ContentSelector extends Selector {
 
 }
 
-class ImageSelector extends Selector {
+class ImageDownloader extends Operation {
 
     async scrape(dataFromParent, responseObjectFromParent) {
         // this.emit('scrape')
-        const currentWrapper = {//The envelope of all scraping objects, created by this selector. Relevant when the selector is used as a child, in more than one place.
+        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
 
-            type: 'Image Selector',
+            type: 'Image Downloader',
             name: this.name,
             address: dataFromParent.address,
             data: [],
 
         }
 
-        const $ = cheerio.load(responseObjectFromParent.data);
+        var $ = cheerio.load(responseObjectFromParent.data);
         const nodeList = $(this.querySelector);
         const imageHrefs = [];
         nodeList.each((index, element) => {
@@ -708,40 +691,45 @@ class ImageSelector extends Selector {
             await this.after(this.createPresentableData(currentWrapper));
         }
 
+        $ = null;
+
         return currentWrapper;
 
     }
 
 
     async fetchImage(url) {
-       
+
 
         if (this.processUrl) {
             try {
-               url= await this.processUrl(url)
-               console.log('new href',url)
+                url = await this.processUrl(url)
+                // console.log('new href', url)
             } catch (error) {
                 console.error('Error processing URL, continuing with original one: ', url);
             }
-          
+
         }
 
         const options = {
             url,
-            dest: this.context.globalConfig.imagePath,
+            dest: this.context.imagePath,
             clone: this.context.cloneImages,
-            flag: this.context.globalConfig.imageFlag,
+            flag: this.context.imageFlag,
             mockImages: this.context.mockImages,
-            responseType: this.context.globalConfig.imageResponseType || 'arraybuffer'
+            responseType: this.context.imageResponseType
         }
 
+
+
         const asyncFunction = async () => {
-            const imageDownloader = new ImageDownloader(options);
+            const imageDownloader = new image_downloader(options);
             currentlyRunning++;
             console.log('fetching image:', url)
             console.log('currentlyRunning:', currentlyRunning);
             let resp;
             try {
+                await Promise.delay(100)
                 await imageDownloader.download();
                 if (!this.context.mockImages)
                     await imageDownloader.save();
@@ -784,6 +772,7 @@ class ImageSelector extends Selector {
         } catch (error) {
 
             const errorString = `there was an error fetching image:, ${imageHref}, ${error}`
+            this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString)
 
             return;
@@ -835,6 +824,20 @@ class ImageSelector extends Selector {
 //     }
 
 //     return instance
+
+// }
+
+// if (this.pagination && this.pagination.nextButton) {
+//     var paginationSelectors = [];
+//     for (let i = 0; i < this.pagination.numPages; i++) {
+//         const paginationSelector = this.context.createSelector('page', this.pagination.nextButton);
+//         paginationSelector.operations = this.operations;
+//         paginationSelectors.push(paginationSelector);
+//     }
+//     // for(let paginationSelector of paginationSelectors){
+//     //    this.addSelector(paginationSelector);  
+//     // }
+//     paginationSelectors.map(paginationSelector => this.operations = [...this.operations, paginationSelector])
 
 // }
 

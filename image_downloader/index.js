@@ -56,7 +56,7 @@ class ImageDownloader {
         }
 
         if(baseName !== imageName){
-            console.log('image name sanitized! ', baseName , imageName);
+            // console.log('image name sanitized! ', baseName , imageName);
         }
         const fileProcessor = new FileProcessor({ fileName: imageName, path: this.dest });
         if (this.clone) {
@@ -102,7 +102,7 @@ class ImageDownloader {
     saveFromStream() {
 
         const imageName = this.getImageName();
-        console.log('flag of stream:', this.flag);
+        // console.log('flag of stream:', this.flag);
        
 
         return new Promise((resolve, reject) => {
