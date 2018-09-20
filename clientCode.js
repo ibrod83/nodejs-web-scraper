@@ -23,7 +23,7 @@ const fs = require('fs');
         imagePath: './images/'
     }
     var goodPages = [];
-    const currentMockClientCode = 'nytimes';
+    const currentMockClientCode = 'foxnews';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
