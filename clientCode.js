@@ -12,20 +12,49 @@ const fs = require('fs');
     // 'books_america'
     // 'google'
     // 'foxnews'
+    // 'xhamster'
 
     var config = {
-        concurrency: 5,
+        concurrency: 7,
         imageFlag: 'wx',
         maxRetries: 3,
+        delay: 100,
         imageResponseType: 'arraybuffer',
         imagePath: './images/'
     }
     var goodPages = [];
-    const currentMockClientCode = 'foxnews';
+    const currentMockClientCode = 'nytimes';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
         switch (siteName) {
+
+            case 'xhamster':
+            
+            config = {
+                ...config,
+                baseSiteUrl: `https://xhamster.com/`,
+                startUrl: `https://xhamster.com/`,
+            }
+            // {pagination:{nextButton:'a#pnnext',numPages:10}}
+            var scraper = new Scraper(config);
+            var root = scraper.createOperation('root',{pagination:{routingString:'/',begin:1,end:100}});
+            // var category = scraper.createOperation('linkClicker', 'li a', { name: 'category' });
+            // var article = scraper.createOperation('linkClicker', 'article a', { name: 'article' });
+            var a = scraper.createOperation('contentCollector', '.video-thumb-info a', { name: 'a' });
+            // var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });    
+            var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });
+
+            root.addOperation(a);
+            root.addOperation(image);
+            // category.addOperation(article);
+            // article.addOperation(h1);
+            // article.addOperation(image);
+
+
+            await execute();
+
+            break;
 
             case 'foxnews':
             

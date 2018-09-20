@@ -32,6 +32,7 @@ class Scraper {
             imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
             startUrl: '',
             baseSiteUrl: '',
+            delay: 100,
             imagePath: null//Needs to be provided only if an image operation is created.
 
         }
@@ -48,8 +49,11 @@ class Scraper {
         this.mockImages = false;
         this.registeredOperations = []//Holds a reference to each created operation.
         this.numRequests = 0;
-        this.scrapingObjects = []//for debugging       
+        this.scrapingObjects = []//for debugging    
+
         this.qyu = new Qyu({ concurrency: this.concurrency })//Creates an instance of the task-qyu for the requests.
+        this.requestSpacer = Promise.resolve();
+
 
     }
 
@@ -138,6 +142,17 @@ class Scraper {
         await this.saveFile(obj);
     }
 
+    async createDelay() {
+        // let currentSpacer = this.requestSpacer;
+        // this.requestSpacer = (async () => {
+        //     await currentSpacer;
+        //     await Promise.delay(this.delay);
+        // })();
+        let currentSpacer = this.requestSpacer;
+        this.requestSpacer = currentSpacer.then(() => Promise.delay(this.delay));
+        await currentSpacer;
+    }
+
 
     async repeatAllErrors(referenceToRootOperation) {
         while (true) {
@@ -202,7 +217,7 @@ class Scraper {
 
 class Operation {//Base abstract class for operations. "leaf" operations will inherit directly from it.
 
-    constructor(context, querySelector, objectConfig) {
+    constructor(Scraper, querySelector, objectConfig) {
         // console.log(this)
         if (objectConfig) {
             for (let i in objectConfig) {
@@ -214,7 +229,7 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
 
         this.data = [];
-        this.context = context;//Reference to the scraper main object.
+        this.scraper = Scraper;//Reference to the scraper main object.
         this.querySelector = querySelector;
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
@@ -242,7 +257,7 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
         refs.forEach((href) => {
             if (href) {
-                const absoluteUrl = this.getAbsoluteUrl(this.context.baseSiteUrl, href)
+                const absoluteUrl = this.getAbsoluteUrl(this.scraper.baseSiteUrl, href)
                 var scrapingObject = this.createScrapingObject(absoluteUrl, type);
                 scrapingObjects.push(scrapingObject);
             }
@@ -255,26 +270,28 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         // console.log('overwriteConcurrency', overwriteConcurrency)
         await Promise.map(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject);
-        }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.context.concurrency })
+        }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.concurrency })
     }
 
     handleFailedScrapingObject(scrapingObject, errorString) {
         console.error(errorString);
         scrapingObject.error = errorString;
-        if (!this.context.failedScrapingObjects.includes(scrapingObject)) {
+        if (!this.scraper.failedScrapingObjects.includes(scrapingObject)) {
             // console.log('scrapingObject not included,pushing it!')
-            this.context.failedScrapingObjects.push(scrapingObject);
+            this.scraper.failedScrapingObjects.push(scrapingObject);
         }
     }
 
 
     qyuFactory(promiseFunction) {//This function pushes promise-returning functions into the qyu. 
-        if (!this.context.useQyu) {
+        if (!this.scraper.useQyu) {
             return promiseFunction();
         }
-        return this.context.qyu(promiseFunction);
+        return this.scraper.qyu(promiseFunction);
 
     }
+
+
 
 
 
@@ -292,7 +309,7 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         if (type)
             scrapingObject.type = type;
 
-        this.context.scrapingObjects.push(scrapingObject)
+        this.scraper.scrapingObjects.push(scrapingObject)
 
         return scrapingObject;
     }
@@ -305,16 +322,16 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
         const errorCodesToSkip = [404];
-        const randomNumber = this.context.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
-        if (this.context.numRequests > 3 && randomNumber == 1) {
+        const randomNumber = this.scraper.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
+        if (this.scraper.numRequests > 3 && randomNumber == 1) {
             throw 'randomly generated error,' + href;
         }
 
-        const maxRetries = this.context.maxRetries;
+        const maxRetries = this.scraper.maxRetries;
         try {
             overallRequests++
             console.log('overallRequests', overallRequests)
-            this.context.numRequests++
+            this.scraper.numRequests++
             return await promiseFactory();
         } catch (error) {
 
@@ -367,7 +384,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
 
         let href = scrapingObject.address;
         try {
-            // if (this.context.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
+            // if (this.scraper.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
             if (this.processUrl) {
                 try {
                     href = await this.processUrl(href)
@@ -391,7 +408,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
 
 
         } catch (error) {
-            const errorString = `There was an error opening page ${this.context.baseSiteUrl}${href}, ${error}`;
+            const errorString = `There was an error opening page ${this.scraper.baseSiteUrl}${href}, ${error}`;
             this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString);
             return;
@@ -447,8 +464,13 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
         for (let i = firstPage; i <= lastPage; i = i + offset) {
 
             const mark = scrapingObject.address.includes('?') ? '&' : '?';
+            var paginationObject;
+            if (this.pagination.queryString) {
+                paginationObject = this.createScrapingObject(`${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`);
+            } else {
+                paginationObject = this.createScrapingObject(`${scrapingObject.address}/${this.pagination.routingString}/${i}`);
+            }
 
-            var paginationObject = this.createScrapingObject(`${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`);
 
             scrapingObjects.push(paginationObject);
 
@@ -467,11 +489,14 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
         const asyncFunction = async () => {
             currentlyRunning++;
             console.log('opening page', href);
-            console.log('currentlyRunning:', currentlyRunning);
+            // console.log('currentlyRunning:', currentlyRunning);
+            // console.log('delay from page', this.scraper.delay)
+            await this.scraper.createDelay();
             let resp;
             try {
                 var begin = Date.now()
-                await Promise.delay(100)
+                
+
                 resp = await axios({
                     method: 'get', url: href,
                     timeout: 5000,
@@ -491,7 +516,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
                 overallSeconds += seconds;
                 overallPageRequests++
                 currentlyRunning--;
-                console.log('currentlyRunning:', currentlyRunning);
+                // console.log('currentlyRunning:', currentlyRunning);
             }
             return resp;
         }
@@ -511,7 +536,7 @@ class Root extends CompositeOperation {
         console.log(this)
 
 
-        const scrapingObject = this.createScrapingObject(this.context.startUrl, this.pagination && 'pagination')
+        const scrapingObject = this.createScrapingObject(this.scraper.startUrl, this.pagination && 'pagination')
         this.data = scrapingObject;
         await this.processOneScrapingObject(scrapingObject);
 
@@ -520,7 +545,7 @@ class Root extends CompositeOperation {
     getErrors() {//Will get the errors from all registered operations.
         let errors = [...this.errors];
 
-        this.context.registeredOperations.forEach((operation) => {
+        this.scraper.registeredOperations.forEach((operation) => {
             if (operation.constructor.name !== 'Root')
                 errors = [...operation.getErrors()]
         })
@@ -713,11 +738,11 @@ class ImageDownloader extends Operation {
 
         const options = {
             url,
-            dest: this.context.imagePath,
-            clone: this.context.cloneImages,
-            flag: this.context.imageFlag,
-            mockImages: this.context.mockImages,
-            responseType: this.context.imageResponseType
+            dest: this.scraper.imagePath,
+            clone: this.scraper.cloneImages,
+            flag: this.scraper.imageFlag,
+            mockImages: this.scraper.mockImages,
+            responseType: this.scraper.imageResponseType
         }
 
 
@@ -726,17 +751,20 @@ class ImageDownloader extends Operation {
             const imageDownloader = new image_downloader(options);
             currentlyRunning++;
             console.log('fetching image:', url)
-            console.log('currentlyRunning:', currentlyRunning);
+            // console.log('currentlyRunning:', currentlyRunning);
+            // console.log('delay from image', this.scraper.delay)
+            await this.scraper.createDelay()
             let resp;
             try {
-                await Promise.delay(100)
+
+                
                 await imageDownloader.download();
-                if (!this.context.mockImages)
+                if (!this.scraper.mockImages)
                     await imageDownloader.save();
             } catch (err) {
 
                 if (err.code === 'EEXIST') {
-                    console.log('File already exists in the directory, NOT overwriting it:', url);
+                    // console.log('File already exists in the directory, NOT overwriting it:', url);
                 } else {
                     throw err;
                 }
@@ -744,7 +772,7 @@ class ImageDownloader extends Operation {
 
             finally {
                 currentlyRunning--;
-                console.log('currentlyRunning:', currentlyRunning);
+                // console.log('currentlyRunning:', currentlyRunning);
             }
             return resp;
 
@@ -830,7 +858,7 @@ class ImageDownloader extends Operation {
 // if (this.pagination && this.pagination.nextButton) {
 //     var paginationSelectors = [];
 //     for (let i = 0; i < this.pagination.numPages; i++) {
-//         const paginationSelector = this.context.createSelector('page', this.pagination.nextButton);
+//         const paginationSelector = this.scraper.createSelector('page', this.pagination.nextButton);
 //         paginationSelector.operations = this.operations;
 //         paginationSelectors.push(paginationSelector);
 //     }
