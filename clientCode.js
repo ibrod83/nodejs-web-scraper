@@ -13,9 +13,10 @@ const fs = require('fs');
     // 'google'
     // 'foxnews'
     // 'xhamster'
+    // 'walla'
 
     var config = {
-        concurrency: 7,
+        concurrency:10,
         imageFlag: 'wx',
         maxRetries: 3,
         delay: 100,
@@ -23,64 +24,88 @@ const fs = require('fs');
         imagePath: './images/'
     }
     var goodPages = [];
-    const currentMockClientCode = 'foxnews';
+    const currentMockClientCode = 'nytimes';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
         switch (siteName) {
 
-            case 'xhamster':
-            
+            case 'walla':
+
             config = {
                 ...config,
-                baseSiteUrl: `https://xhamster.com/`,
-                startUrl: `https://xhamster.com/`,
-            }
-            // {pagination:{nextButton:'a#pnnext',numPages:10}}
-            var scraper = new Scraper(config);
-            var root = scraper.createOperation('root',{pagination:{routingString:'/',begin:1,end:100}});
-            // var category = scraper.createOperation('linkClicker', 'li a', { name: 'category' });
-            // var article = scraper.createOperation('linkClicker', 'article a', { name: 'article' });
-            var a = scraper.createOperation('contentCollector', '.video-thumb-info a', { name: 'a' });
-            // var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });    
-            var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });
-
-            root.addOperation(a);
-            root.addOperation(image);
-            // category.addOperation(article);
-            // article.addOperation(h1);
-            // article.addOperation(image);
-
-
-            await execute();
-
-            break;
-
-            case 'foxnews':
-            
-            config = {
-                ...config,
-                baseSiteUrl: `http://www.foxnews.com`,
-                startUrl: `http://www.foxnews.com/`,
+                baseSiteUrl: `https://www.walla.co.il/`,
+                startUrl: `https://www.walla.co.il/`,
             }
             // {pagination:{nextButton:'a#pnnext',numPages:10}}
             var scraper = new Scraper(config);
             var root = scraper.createOperation('root');
-            var category = scraper.createOperation('linkClicker', 'li a', { name: 'category' });
-            var article = scraper.createOperation('linkClicker', 'article a', { name: 'article' });
-            var h1 = scraper.createOperation('contentCollector', 'h1', { name: 'h1' });
+            var category = scraper.createOperation('linkClicker', "li[role='menuitem'] a", { name: 'category',slice:[0,2] });
+            var article = scraper.createOperation('linkClicker', 'article a', { name: 'article',  });
+            var p = scraper.createOperation('contentCollector', 'p', { name: 'p' });
+            // var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });    
             var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });
-            // var articleImage = scraper.createOperation('image', 'img', { name: 'article image' });
-
-            root.addOperation(category);
             category.addOperation(article);
-            article.addOperation(h1);
-            article.addOperation(image);
+            root.addOperation(category);
+            article.addOperation(image)
+            article.addOperation(p)
+            // root.addOperation(image);
+           
 
 
             await execute();
 
             break;
+
+            case 'xhamster':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://xhamster.com/`,
+                    startUrl: `https://xhamster.com/`,
+                }
+              
+                var scraper = new Scraper(config);
+                var root = scraper.createOperation('root', { pagination: { routingString: '/', begin: 1, end: 100 } });
+               
+                var a = scraper.createOperation('contentCollector', '.video-thumb-info a', { name: 'a' });
+                
+                var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });
+
+                root.addOperation(a);
+                root.addOperation(image);
+              
+
+
+                await execute();
+
+                break;
+
+            case 'foxnews':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `http://www.foxnews.com`,
+                    startUrl: `http://www.foxnews.com/`,
+                }
+                // {pagination:{nextButton:'a#pnnext',numPages:10}}
+                var scraper = new Scraper(config);
+                var root = scraper.createOperation('root');
+                var category = scraper.createOperation('linkClicker', 'li a', { name: 'category' });
+                var article = scraper.createOperation('linkClicker', 'article a', { name: 'article' });
+                var h1 = scraper.createOperation('contentCollector', 'h1', { name: 'h1' });
+                var image = scraper.createOperation('imageDownloader', 'img', { name: 'image' });
+                // var articleImage = scraper.createOperation('image', 'img', { name: 'article image' });
+
+                root.addOperation(category);
+                category.addOperation(article);
+                article.addOperation(h1);
+                article.addOperation(image);
+
+
+                await execute();
+
+                break;
 
             case 'google':
                 const processUrl = async (originalUrl) => {

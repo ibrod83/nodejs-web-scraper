@@ -257,8 +257,8 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
         refs.forEach((href) => {
             if (href) {
-                const absoluteUrl = this.getAbsoluteUrl(this.scraper.baseSiteUrl, href)
-                var scrapingObject = this.createScrapingObject(absoluteUrl, type);
+                // const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, href)
+                var scrapingObject = this.createScrapingObject(href,  type);
                 scrapingObjects.push(scrapingObject);
             }
 
@@ -299,11 +299,12 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         return this;
     }
 
-    createScrapingObject(href, type) {//Creates a scraping object, for all operations.
+    createScrapingObject(href,  type) {//Creates a scraping object, for all operations.
         const scrapingObject = {
             address: href,//The image href            
             referenceToOperationObject: this.referenceToOperationObject.bind(this),
             successful: false,
+            // baseUrlOfCurrentDomain,
             data: []
         }
         if (type)
@@ -361,6 +362,17 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
     }
 
+    resolveActualBaseUrl(currentAddress) {
+        const currentHost = new URL(currentAddress).host;
+        const originalHost = new URL(this.scraper.baseSiteUrl).host;
+
+        console.log('currentHost', currentHost);
+
+        return currentHost === originalHost ? this.scraper.baseSiteUrl : currentAddress
+        
+    }
+
+
 
 }
 
@@ -408,19 +420,20 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
 
 
         } catch (error) {
-            const errorString = `There was an error opening page ${this.scraper.baseSiteUrl}${href}, ${error}`;
+            const errorString = `There was an error opening page ${href}, ${error}`;
             this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString);
             return;
 
         }
 
-        const dataToPass = {//Temporary object, that will hold data that needs to be passed to child operations.
-            address: href,
-        }
+        // const dataToPass = {//Temporary object, that will hold data that needs to be passed to child operations.
+        //     address: href,
+        //     // baseUrlOfCurrentDomain: scrapingObject.baseUrlOfCurrentDomain
+        // }
 
         try {
-            var dataFromChildren = await this.scrapeChildren(this.operations, dataToPass, response)
+            var dataFromChildren = await this.scrapeChildren(this.operations,  response)
             response = null;
 
             if (this.after) {
@@ -495,7 +508,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
             let resp;
             try {
                 var begin = Date.now()
-                
+
 
                 resp = await axios({
                     method: 'get', url: href,
@@ -561,13 +574,13 @@ class Root extends CompositeOperation {
 
 class LinkClicker extends CompositeOperation {
 
-    async scrape(dataFromParent, responseObjectFromParent) {
+    async scrape( responseObjectFromParent) {
         // this.emit('scrape')
         console.log(this)
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
             type: 'Link Clicker',
             name: this.name,
-            address: dataFromParent.address,
+            address: responseObjectFromParent.config.url,
             data: []
         }
 
@@ -575,10 +588,10 @@ class LinkClicker extends CompositeOperation {
 
 
 
-
-        const refs = this.createLinkList(responseObjectFromParent)
+        const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
+        const refs = this.createLinkList(responseObjectFromParent,baseUrlOfCurrentDomain)
         responseObjectFromParent = {};
-
+        
         scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
         const hasLinkClickerOperation = this.operations.filter(child => child.constructor.name === 'LinkClicker').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         // console.log('hasLinkClickerOperation', hasLinkClickerOperation)
@@ -592,13 +605,20 @@ class LinkClicker extends CompositeOperation {
         return currentWrapper;
     }
 
+    
 
-    createLinkList(responseObjectFromParent) {
+
+
+    createLinkList(responseObjectFromParent,baseUrlOfCurrentDomain) {
+
         var $ = cheerio.load(responseObjectFromParent.data);
-        const scrapedLinks = $(this.querySelector);
+        const scrapedLinks = this.slice ? $(this.querySelector).slice(this.slice[0], this.slice[1]) : $(this.querySelector);
+
         const refs = [];
+
         scrapedLinks.each((index, link) => {
-            refs.push(link.attribs.href)
+            const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, link.attribs.href)
+            refs.push(absoluteUrl)
 
         })
 
@@ -613,14 +633,14 @@ class LinkClicker extends CompositeOperation {
 
 class ContentCollector extends Operation {
 
-    async scrape(dataFromParent, responseObjectFromParent) {
+    async scrape( responseObjectFromParent) {
         // this.emit('scrape')
         this.contentType = this.contentType || 'text';
         !responseObjectFromParent && console.log('empty reponse from content operation', responseObjectFromParent)
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
             type: 'Content Collector',
             name: this.name,
-            address: dataFromParent.address,
+            address: responseObjectFromParent.config.url,
             data: []
         }
 
@@ -674,27 +694,46 @@ class ContentCollector extends Operation {
 
 class ImageDownloader extends Operation {
 
-    async scrape(dataFromParent, responseObjectFromParent) {
+    async scrape( responseObjectFromParent) {
         // this.emit('scrape')
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
 
             type: 'Image Downloader',
             name: this.name,
-            address: dataFromParent.address,
+            address: responseObjectFromParent.config.url,
             data: [],
 
         }
+        // console.log('url from response object within image selector',responseObjectFromParent.config.url )
+        // if(responseObjectFromParent.config.url === 'http://bit.ly/2iZiKz4')
+            // debugger;
+
+
+        // console.log('response object',responseObjectFromParent)
 
         var $ = cheerio.load(responseObjectFromParent.data);
+
         const nodeList = $(this.querySelector);
+        
+        const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
+
         const imageHrefs = [];
+        
+        if (this.before) {//If a "before" callback was provided, it will be called
+            if (typeof this.before !== 'function')
+                throw "'Before' callback must be a function";
+            await this.before(nodeList)
+        }
+
         nodeList.each((index, element) => {
-            const src = $(element).attr('src');
-            if (!src || !this.customSrc && src.startsWith("data:image")) {
+            const originalSrc = $(element).attr('src');
+            if (!originalSrc || !this.customSrc && originalSrc.startsWith("data:image")) {
                 console.error('Invalid image href:', $(element).attr('src'))
                 return;
             }
-            imageHrefs.push(this.customSrc ? $(element).attr(this.customSrc) : src);
+            const src = this.customSrc ? $(element).attr(this.customSrc) : originalSrc;
+            const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain,src);
+            imageHrefs.push(absoluteUrl);
 
         })
 
@@ -703,7 +742,7 @@ class ImageDownloader extends Operation {
             // overallErrors++
             return;
         }
-
+        
         const scrapingObjects = this.createScrapingObjectsFromRefs(imageHrefs);
 
         await this.executeScrapingObjects(scrapingObjects);
@@ -757,7 +796,7 @@ class ImageDownloader extends Operation {
             let resp;
             try {
 
-                
+
                 await imageDownloader.download();
                 if (!this.scraper.mockImages)
                     await imageDownloader.save();
