@@ -9,13 +9,16 @@ const fs = require('fs');
 
 
 class ImageDownloader {
-    constructor({ url, dest, clone, flag, mockImages, responseType }) {
+    constructor({ url, dest, clone, flag, mockImages, responseType, auth,timeout,headers }) {
         this.url = url;
         this.dest = dest;
         this.clone = clone;
         this.flag = flag;
         this.mockImages = mockImages;
         this.responseType = responseType
+        this.auth = auth;
+        this.timeout = timeout;
+        this.headers = headers;
     }
 
     async download() {
@@ -23,8 +26,10 @@ class ImageDownloader {
             const response = await axios({
                 method: 'GET',
                 url: this.url,
-                timeout: 5000,
-                responseType: this.responseType
+                timeout: this.timeout,
+                responseType: this.responseType,
+                auth: this.auth,
+                headers: this.headers
 
             })
             // if (this.mockImages)
@@ -32,7 +37,7 @@ class ImageDownloader {
             // console.log(response.data)
             this.response = response;
         } catch (error) {
-           
+
 
             throw error;
         }
@@ -44,7 +49,7 @@ class ImageDownloader {
         const possiblePathNames = ['.jpg', '.jpeg', '.bmp', '.png', '.svg', '.gif'];
         const urlEndsWithValidImageExtension = possiblePathNames.includes(path.extname(this.url));
         const baseName = path.basename(this.url);
-       
+
         let imageName = "";
         if (urlEndsWithValidImageExtension) {
             imageName = sanitize(baseName);
@@ -55,7 +60,7 @@ class ImageDownloader {
             imageName = `${sanitize(baseName)}.${extension}`;
         }
 
-        if(baseName !== imageName){
+        if (baseName !== imageName) {
             // console.log('image name sanitized! ', baseName , imageName);
         }
         const fileProcessor = new FileProcessor({ fileName: imageName, path: this.dest });
@@ -93,7 +98,7 @@ class ImageDownloader {
                 await this.saveFromStream()
             }
         } catch (error) {
-          
+
             throw error
         }
 
@@ -103,7 +108,7 @@ class ImageDownloader {
 
         const imageName = this.getImageName();
         // console.log('flag of stream:', this.flag);
-       
+
 
         return new Promise((resolve, reject) => {
             const writeStream = fs.createWriteStream(this.dest + imageName, { encoding: 'binary', flags: this.flag })
