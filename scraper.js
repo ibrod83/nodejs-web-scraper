@@ -26,7 +26,7 @@ class Scraper {
     constructor(globalConfig) {
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-            imageFlag: 'w',//The flag provided to the file saving function. 
+            fileFlag: 'w',//The flag provided to the file saving function. 
             concurrency: 3,//Maximum concurrent requests.
             maxRetries: 5,//Maximum number of retries of a failed request.
             imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
@@ -48,7 +48,7 @@ class Scraper {
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
         this.useQyu = true;
-        this.mockImages = false;
+        this.mockImages = true;
         this.registeredOperations = []//Holds a reference to each created operation.
         this.numRequests = 0;
         this.scrapingObjects = []//for debugging    
@@ -83,7 +83,7 @@ class Scraper {
 
     getClassMap() {
         return {
-            clickLink: ClickLink,
+            openLinks: OpenLinks,
             root: Root,
             collectContent: CollectContent,
             download: Download,
@@ -242,8 +242,8 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
     createPresentableData(originalForm) {//Is used for passing cleaner data to user callbacks.
         switch (originalForm.type) {
-            case 'Image Downloader':
-                return originalForm.data.map((image) => { return { name: originalForm.name, content: image.address } });
+            case 'File Downloader':
+                return originalForm.data.map((file) => { return { name: originalForm.name, content: file.address } });
 
             case 'Content Collector':
                 return originalForm.data;
@@ -251,6 +251,24 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
                 return originalForm.data;
 
         }
+    }
+
+    async createNodeList($) {//Gets a cheerio object and creates a nodelist. Checks for "getNodeList" user callback.       
+
+        const nodeList = this.slice ? $(this.querySelector).slice(typeof this.slice === 'number' ? this.slice : this.slice[0], this.slice[1]) : $(this.querySelector);
+
+        if (this.getNodeList) {//If a "getNodeList" callback was provided, it will be called
+            try {
+                if (typeof this.getNodeList !== 'function') {
+                    throw "'getNodeList' callback must be a function";
+                }
+                await this.getNodeList(nodeList)
+            } catch (error) {
+                console.error(error);
+                
+            }
+        }
+        return nodeList;
     }
 
     createScrapingObjectsFromRefs(refs, type) {
@@ -306,7 +324,6 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
             address: href,//The image href            
             referenceToOperationObject: this.referenceToOperationObject.bind(this),
             successful: false,
-            // baseUrlOfCurrentDomain,
             data: []
         }
         if (type)
@@ -413,10 +430,10 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
 
             var response = await this.getPage(href);
 
-            if (this.before) {//If a "before" callback was provided, it will be called
-                if (typeof this.before !== 'function')
-                    throw "'Before' callback must be a function";
-                await this.before(response)
+            if (this.getResponse) {//If a "getResponse" callback was provided, it will be called
+                if (typeof this.getResponse !== 'function')
+                    throw "'getResponse' callback must be a function";
+                await this.getResponse(response)
             }
             // console.log('response.data after callback',response.data)
             scrapingObject.successful = true
@@ -429,11 +446,6 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
             return;
 
         }
-
-        // const dataToPass = {//Temporary object, that will hold data that needs to be passed to child operations.
-        //     address: href,
-        //     // baseUrlOfCurrentDomain: scrapingObject.baseUrlOfCurrentDomain
-        // }
 
         try {
             var dataFromChildren = await this.scrapeChildren(this.operations, response)
@@ -455,7 +467,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
 
     }
 
-    async scrapeChildren(childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this ClickLink object.
+    async scrapeChildren(childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
 
         const scrapedData = []
         for (let operation of childOperations) {
@@ -494,9 +506,9 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
                     // console.log('new href', url)
                 } catch (error) {
                     console.error('Error processing URL, continuing with original one: ', paginationUrl);
-                    
+
                 }
-    
+
             }
             paginationObject = this.createScrapingObject(paginationUrl);
             scrapingObjects.push(paginationObject);
@@ -589,13 +601,13 @@ class Root extends CompositeOperation {
 
 
 
-class ClickLink extends CompositeOperation {
+class OpenLinks extends CompositeOperation {
 
     async scrape(responseObjectFromParent) {
         // this.emit('scrape')
         console.log(this)
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
-            type: 'Link Clicker',
+            type: 'Link Opener',
             name: this.name,
             address: responseObjectFromParent.config.url,
             data: []
@@ -606,14 +618,14 @@ class ClickLink extends CompositeOperation {
 
 
         const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
-        const refs = this.createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain)
+        const refs = await this.createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain)
         responseObjectFromParent = {};
 
         scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
-        const hasClickLinkOperation = this.operations.filter(child => child.constructor.name === 'ClickLink').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
-        // console.log('hasClickLinkOperation', hasClickLinkOperation)
+        const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
+        // console.log('hasOpenLinksOperation', hasOpenLinksOperation)
 
-        const forceConcurrencyLimit = hasClickLinkOperation && 3;
+        const forceConcurrencyLimit = hasOpenLinksOperation && 3;
         // console.log('forceConcurrencyLimit', forceConcurrencyLimit)
         await this.executeScrapingObjects(scrapingObjects, forceConcurrencyLimit);
 
@@ -624,23 +636,17 @@ class ClickLink extends CompositeOperation {
     }
 
 
-
-
-
-    createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain) {
-
+    async createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain) {
         var $ = cheerio.load(responseObjectFromParent.data);
-        const scrapedLinks = this.slice ? $(this.querySelector).slice(typeof this.slice === 'number' ? this.slice : this.slice[0], this.slice[1]) : $(this.querySelector);
-
+        const nodeList = await this.createNodeList($);
+        $=null;
         const refs = [];
 
-        scrapedLinks.each((index, link) => {
+        nodeList.each((index, link) => {
             const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, link.attribs.href)
             refs.push(absoluteUrl)
 
-        })
-
-        $ = null;
+        })       
 
         return refs;
     }
@@ -663,25 +669,20 @@ class CollectContent extends Operation {
         }
 
         var $ = cheerio.load(responseObjectFromParent.data);
+        const nodeList = await this.createNodeList($);
 
-        const nodeList = $(this.querySelector);
-
-        if (this.before) {//If a "before" callback was provided, it will be called
-            if (typeof this.before !== 'function')
-                throw "'Before' callback must be a function";
-            await this.before(nodeList)
-        }
         nodeList.each(async (index, element) => {
             // console.log('element',element)
             const content = this.getNodeContent($(element));
             currentWrapper.data.push({ element: element.name, [this.contentType]: content });
         })
+        $=null;
 
         if (this.after) {
             await this.after(this.createPresentableData(currentWrapper));
         }
 
-        $ = null;
+     
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
         this.data = [...this.data, currentWrapper];
@@ -712,8 +713,18 @@ class CollectContent extends Operation {
 
 class Download extends Operation {
 
+    constructor(Scraper, querySelector, objectConfig) {
+        super(Scraper, querySelector, objectConfig);
+        this.overridableProps = ['filePath', 'fileFlag'];
+        // debugger;
+        for (let prop in objectConfig) {
+            if (this.overridableProps.includes(prop))
+                this[prop] = objectConfig[prop];
+        }
+    }
+
     async scrape(responseObjectFromParent) {
-        // this.emit('scrape')
+
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
 
             type: 'File Downloader',
@@ -724,10 +735,8 @@ class Download extends Operation {
         }
 
         this.type = this.type || 'image';
-
         var $ = cheerio.load(responseObjectFromParent.data);
-
-        const nodeList = $(this.querySelector);
+        const nodeList = await this.createNodeList($);
 
         const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
 
@@ -744,15 +753,7 @@ class Download extends Operation {
             fileRefs.push(absoluteUrl);
 
         })
-
-
-
-
-        if (this.before) {//If a "before" callback was provided, it will be called
-            if (typeof this.before !== 'function')
-                throw "'Before' callback must be a function";
-            await this.before(nodeList)
-        }
+        $=null;
 
         if (!fileRefs.length) {
             // this.errors.push(`No images found by the query, in ${dataFromParent.address}`);
@@ -770,9 +771,7 @@ class Download extends Operation {
 
         if (this.after) {
             await this.after(this.createPresentableData(currentWrapper));
-        }
-
-        $ = null;
+        }       
 
         return currentWrapper;
 
@@ -792,12 +791,12 @@ class Download extends Operation {
         }
 
         const responseType = this.type === 'file' ? 'stream' : this.responseType || 'arraybuffer';
-
+        // debugger;
         const options = {
             url,
-            dest: this.scraper.config.filePath,
+            dest: this.filePath || this.scraper.config.filePath,
             clone: this.scraper.config.cloneImages,
-            flag: this.scraper.config.imageFlag,
+            flag: this.fileFlag || this.scraper.config.fileFlag,
             responseType,
             auth: this.scraper.config.auth,
             timeout: this.scraper.config.timeout,
@@ -847,18 +846,18 @@ class Download extends Operation {
     async processOneScrapingObject(scrapingObject) {
 
         delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
-        const imageHref = scrapingObject.address;
-        if (!imageHref) {
+        const fileHref = scrapingObject.address;
+        if (!fileHref) {
             throw 'Image href is invalid, skipping.';
         }
         try {
 
-            await this.getFile(imageHref);
+            await this.getFile(fileHref);
             scrapingObject.successful = true;
 
         } catch (error) {
 
-            const errorString = `there was an error fetching image:, ${imageHref}, ${error}`
+            const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString)
 

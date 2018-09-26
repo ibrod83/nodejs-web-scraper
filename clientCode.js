@@ -18,10 +18,12 @@ const fs = require('fs');
     // 'pagination'
     // 'files'
     // 'zap'
+    // 'wplogin'
+    // 'booksnextbutton'
 
     var config = {
         concurrency: 10,
-        imageFlag: 'w',
+        fileFlag: 'w',
         maxRetries: 3,
         cloneImages: false,
         delay: 100,
@@ -29,11 +31,40 @@ const fs = require('fs');
         filePath: './images/'
     }
     var goodPages = [];
-    const currentMockClientCode = 'zap';
+    const currentMockClientCode = 'walla';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
         switch (siteName) {
+
+
+
+
+            case 'wplogin':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://wp.ibrod83.com/`,
+                    startUrl: `https://wp.ibrod83.com/wp-admin/`,
+                    headers: { "cookie": "wordpress_sec_84e4a2b34e96c8150d68d6c513eb121c=admin%7C1538056126%7CQybuTfcABd2myFi7pqbY5nYwVRE3NT7WwfZhsiU23se%7C7d9792f6189aacebeaf4254dbb3a1c82678dae4f567d8997ce953af7affd795e; wordpress_test_cookie=WP+Cookie+check; wordpress_logged_in_84e4a2b34e96c8150d68d6c513eb121c=admin%7C1538056126%7CQybuTfcABd2myFi7pqbY5nYwVRE3NT7WwfZhsiU23se%7Cb2c5a4fb4d5482eec775ca875b629aa36e6f881efeac5b983e24e39cb35821c1" },
+
+                }
+
+
+                var scraper = new Scraper(config);
+                var root = scraper.createOperation('root');
+                var a = scraper.createOperation('collectContent', 'a', { name: 'a' });
+                var image = scraper.createOperation('download', 'img', { name: 'image' });
+                root.addOperation(a);
+                root.addOperation(image);
+
+
+
+
+
+                await execute();
+
+                break;
 
             case 'zap':
 
@@ -44,18 +75,18 @@ const fs = require('fs');
                     // headers: {'chuj': 'ci w dupe'}
                 }
 
-                const processPaginationUrl =async (url)=>{
-                    console.log('pagination url from callback!',url)
+                const processPaginationUrl = async (url) => {
+                    console.log('pagination url from callback!', url)
                     return url
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                var category = scraper.createOperation('clickLink', ".LinksList a", { name: 'category', slice: 2 ,pagination: { queryString: 'pageinfo', begin: 1, end: 10,processPaginationUrl } });
-                var product = scraper.createOperation('clickLink', '.ProdInfoTitle a, .ProdName a', { name: 'product',  });
+                var category = scraper.createOperation('openLinks', ".LinksList a", { name: 'category', slice: 2, pagination: { queryString: 'pageinfo', begin: 1, end: 10, processPaginationUrl } });
+                var product = scraper.createOperation('openLinks', '.ProdInfoTitle a, .ProdName a', { name: 'product', });
                 var h1 = scraper.createOperation('collectContent', '.ProdName h1', { name: 'h1' });
                 // var image = scraper.createOperation('download', 'img', { name: 'image' });    
-                var image = scraper.createOperation('download', '.ProductPic img', { name: 'image' });
+                var image = scraper.createOperation('download', '.ProductPic img', { name: 'image', filePath: "./overridepath/" });
                 category.addOperation(product);
                 root.addOperation(category);
                 product.addOperation(image)
@@ -110,8 +141,8 @@ const fs = require('fs');
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                var category = scraper.createOperation('clickLink', "li[role='menuitem'] a", { name: 'category', slice: [0, 2] });
-                var article = scraper.createOperation('clickLink', 'article a', { name: 'article', });
+                var category = scraper.createOperation('openLinks', "li[role='menuitem'] a", { name: 'category', slice: [0, 2] });
+                var article = scraper.createOperation('openLinks', 'article a', { name: 'article', });
                 var p = scraper.createOperation('collectContent', 'p', { name: 'p' });
                 // var image = scraper.createOperation('download', 'img', { name: 'image' });    
                 var image = scraper.createOperation('download', 'img', { name: 'image' });
@@ -161,8 +192,8 @@ const fs = require('fs');
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                var category = scraper.createOperation('clickLink', 'li a', { name: 'category' });
-                var article = scraper.createOperation('clickLink', 'article a', { name: 'article' });
+                var category = scraper.createOperation('openLinks', 'li a', { name: 'category' });
+                var article = scraper.createOperation('openLinks', 'article a', { name: 'article' });
                 var h1 = scraper.createOperation('collectContent', 'h1', { name: 'h1' });
                 var image = scraper.createOperation('download', 'img', { name: 'image' });
                 // var articleImage = scraper.createOperation('image', 'img', { name: 'article image' });
@@ -193,7 +224,7 @@ const fs = require('fs');
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root', { pagination: { queryString: 'start', begin: 0, end: 10, offset: 10 } });
-                var americaPage = scraper.createOperation('clickLink', 'h3.r a', { name: 'americaPage', processUrl });
+                var americaPage = scraper.createOperation('openLinks', 'h3.r a', { name: 'americaPage', processUrl });
                 var h1 = scraper.createOperation('collectContent', 'h1', { name: 'h1' });
                 var image = scraper.createOperation('download', 'img', { name: 'image', processUrl });
                 // var articleImage = scraper.createOperation('image', 'img', { name: 'article image' });
@@ -223,7 +254,7 @@ const fs = require('fs');
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                var article = scraper.createOperation('clickLink', 'article a', { name: 'article' });
+                var article = scraper.createOperation('openLinks', 'article a', { name: 'article' });
                 var paragraph = scraper.createOperation('collectContent', 'h1', { name: 'paragraphs' });
                 var image = scraper.createOperation('download', 'img.media__image.media__image--responsive', { name: 'image', customSrc: 'data-src-medium' });
                 var articleImage = scraper.createOperation('download', 'img', { name: 'article image' });
@@ -248,19 +279,16 @@ const fs = require('fs');
                     startUrl: `https://ibrod83.com/books`,
                     // startUrl: `https://ibrod83.com/books/product/2/search?filter=Category`,
                 }
-                // const before = async (response) => {           
 
-
-                // }
                 const after = async (obj) => {
                     console.log('data from after', obj)
 
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                const categoryPage = scraper.createOperation('clickLink', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 3 }, after });
+                var categoryPage = scraper.createOperation('openLinks', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 3 }, after });
 
-                const productPage = scraper.createOperation('clickLink', '.product_name_link', { name: 'product', });
+                var productPage = scraper.createOperation('openLinks', '.product_name_link', { name: 'product', });
                 root.addOperation(categoryPage);
                 // root.addOperation(productPage);
                 categoryPage.addOperation(productPage);
@@ -288,7 +316,7 @@ const fs = require('fs');
 
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root', { pagination: { queryString: 'page', begin: 1, end: 5 } });
-                var product = scraper.createOperation('clickLink', '.product_name_link', { name: 'product', });
+                var product = scraper.createOperation('openLinks', '.product_name_link', { name: 'product', });
                 root.addOperation(product);
                 var publisherData = scraper.createOperation('collectContent', '.product_publisher', { name: 'publisher', });
                 var productName = scraper.createOperation('collectContent', '.product_name', { name: 'name', });
@@ -304,13 +332,15 @@ const fs = require('fs');
 
                 break;
             case 'slovakSite':
+                const codes = []
+                const getResponse = async (response) => {
 
-                const before = async (response) => {
-
-                    if (response.data.includes('Anglický jazyk - Pokročilý (C1)')) {
-                        console.log('includes!', response.config.url)
-                        goodPages.push(response.config.url)
-                    }
+                    // if (response.data.includes('Anglický jazyk - Pokročilý (C1)')) {
+                    //     console.log('includes!', response.config.url)
+                    //     goodPages.push(response.config.url)
+                    // }
+                    codes.push(response.status)
+                    console.log('response  from processReponse!', response)
                 }
 
 
@@ -322,7 +352,7 @@ const fs = require('fs');
                 var scraper = new Scraper(config);
 
                 var root = scraper.createOperation('root', { pagination: { queryString: 'page_num', begin: 1, end: 10 } });
-                var productLink = scraper.createOperation('clickLink', '.list-row a.title', { name: 'link', before });
+                var productLink = scraper.createOperation('openLinks', '.list-row a.title', { name: 'link', getResponse });
                 var span = scraper.createOperation('collectContent', 'span', { name: 'span' });
                 root.addOperation(productLink);
                 root.addOperation(span);
@@ -334,6 +364,7 @@ const fs = require('fs');
                 productLink.addOperation(paragraph);
                 // productLink.addOperation(productImage);
                 await execute();
+                console.log('codes!', codes)
                 console.log(goodPages.length)
                 fs.writeFile('./links.json', JSON.stringify(goodPages), (err) => {
                     if (err) {
@@ -356,8 +387,8 @@ const fs = require('fs');
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                var category = scraper.createOperation('clickLink', '.css-1wjnrbv', { name: 'category' });
-                var article = scraper.createOperation('clickLink', 'article a', { name: 'article' });
+                var category = scraper.createOperation('openLinks', '.css-1wjnrbv', { name: 'category' });
+                var article = scraper.createOperation('openLinks', 'article a', { name: 'article' });
                 var h1 = scraper.createOperation('collectContent', 'h1', { name: 'h1' });
                 var image = scraper.createOperation('download', 'img', { name: 'image' });
 
@@ -366,6 +397,35 @@ const fs = require('fs');
                 category.addOperation(article);
                 article.addOperation(h1);
 
+
+                await execute();
+
+                break;
+
+            case 'booksnextbutton':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://ibrod83.com`,
+                    startUrl: `https://ibrod83.com/books`,
+                    // startUrl: `https://ibrod83.com/books/product/2/search?filter=Category`,
+                }
+
+                var scraper = new Scraper(config);
+                var root = scraper.createOperation('root');
+                var categoryPage = scraper.createOperation('openLinks', '#content_65 ol a:eq(0)', { name: 'category' });
+                var nextButton = scraper.createOperation('openLinks', '#next', { name: 'next' });
+                var productPage = scraper.createOperation('openLinks', '.product_name_link', { name: 'product', });
+                root.addOperation(categoryPage);
+                categoryPage.addOperation(productPage);
+                categoryPage.addOperation(nextButton);
+                nextButton.addOperation(productPage);
+                var publisherData = scraper.createOperation('collectContent', '.product_publisher', { name: 'publisher' });
+                var productName = scraper.createOperation('collectContent', '.product_name', { name: 'name', });
+                var productImage = scraper.createOperation('download', '.book img', { name: 'image' });
+                productPage.addOperation(publisherData);
+                productPage.addOperation(productImage);
+                productPage.addOperation(productName);
 
                 await execute();
 
@@ -385,9 +445,9 @@ const fs = require('fs');
             // // {pagination:{nextButton:'a#pnnext',numPages:10}}
             // var scraper = new Scraper(config);
             // var root = scraper.createOperation('root');
-            // var main = scraper.createOperation('clickLink', "a", { name: 'main' });
-            // var outer = scraper.createOperation('clickLink', 'a', { name: 'outer pagination',pagination: { routingString: '/', begin: 1, end: 2 }});
-            // var inner = scraper.createOperation('clickLink', 'a', { name: 'inner pagination',pagination: { routingString: '/', begin: 1, end: 2 }});
+            // var main = scraper.createOperation('openLinks', "a", { name: 'main' });
+            // var outer = scraper.createOperation('openLinks', 'a', { name: 'outer pagination',pagination: { routingString: '/', begin: 1, end: 2 }});
+            // var inner = scraper.createOperation('openLinks', 'a', { name: 'inner pagination',pagination: { routingString: '/', begin: 1, end: 2 }});
             // var p = scraper.createOperation('collectContent', 'p', { name: 'p' });
 
 
@@ -438,7 +498,7 @@ const fs = require('fs');
     //     baseSiteUrl: `https://ibrod83.com`,
     //     startUrl: `https://ibrod83.com/books`,
     //     concurrency: 5,
-    //     imageFlag: 'wx'
+    //     fileFlag: 'wx'
     // }
     // const scraper = new Scraper(config);
 
