@@ -31,7 +31,7 @@ const fs = require('fs');
         filePath: './images/'
     }
     var goodPages = [];
-    const currentMockClientCode = 'walla';
+    const currentMockClientCode = 'bookSiteCategory';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
@@ -273,6 +273,8 @@ const fs = require('fs');
 
             case 'bookSiteCategory':
 
+                
+
                 config = {
                     ...config,
                     baseSiteUrl: `https://ibrod83.com`,
@@ -280,30 +282,45 @@ const fs = require('fs');
                     // startUrl: `https://ibrod83.com/books/product/2/search?filter=Category`,
                 }
 
-                const after = async (obj) => {
-                    console.log('data from after', obj)
+                const childData = [];
+                const afterScrape = async (dataFromChildren) => {
+                    console.log('data from afterScrape', dataFromChildren)
+                    childData.push(dataFromChildren);
+                }
 
+
+
+                var getNodeList = (nodeList) => {
+                    console.log('nodelist from callback', nodeList)
+                    nodeList.splice(1);
+                }
+                const condition = (response)=>{
+                    if(response.data.includes('רמת גן')){
+                        return true;
+                    }
                 }
                 var scraper = new Scraper(config);
                 var root = scraper.createOperation('root');
-                var categoryPage = scraper.createOperation('openLinks', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 3 }, after });
+                var categoryPage = scraper.createOperation('openLinks', '#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 1 } });
+                var inquiryOfPage = scraper.createOperation('inquiry',condition) ;
 
-                var productPage = scraper.createOperation('openLinks', '.product_name_link', { name: 'product', });
+                var productPage = scraper.createOperation('openLinks', '.product_name_link', { name: 'product',  });
                 root.addOperation(categoryPage);
                 // root.addOperation(productPage);
                 categoryPage.addOperation(productPage);
-                var publisherData = scraper.createOperation('collectContent', '.product_publisher', { name: 'publisher' });
-                var productName = scraper.createOperation('collectContent', '.product_name', { name: 'name', });
+                var publisherData = scraper.createOperation('collectContent', '.product_publisher', { name: 'publisher', });
+                var productName = scraper.createOperation('collectContent', '.product_name', { name: 'name' });
                 // var authorData = scraper.createOperation('collectContent', 'h4,span', { name: 'author', contentType: 'html' });
-                var productImage = scraper.createOperation('download', '.book img', { name: 'image' });
+                var productImage = scraper.createOperation('download', '.book img', { name: 'image',afterScrape });
                 // root.addOperation(authorData);
                 // root.addOperation(productImage);
                 productPage.addOperation(publisherData);
-                // productPage.addOperation(authorData);
+                productPage.addOperation(inquiryOfPage);
                 productPage.addOperation(productImage);
                 productPage.addOperation(productName);
 
                 await execute();
+                fs.writeFile('./childData.json',JSON.stringify(childData));
 
                 break;
             case 'books_america':

@@ -45,10 +45,11 @@ class Scraper {
 
             this.config[prop] = globalConfig[prop];
         }
+        this.existingUserFileDirectories = [];
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
         this.useQyu = true;
-        this.mockImages = true;
+        this.mockImages = false;
         this.registeredOperations = []//Holds a reference to each created operation.
         this.numRequests = 0;
         this.scrapingObjects = []//for debugging    
@@ -64,6 +65,18 @@ class Scraper {
             throw 'Scraper constructor expects a configuration object';
         if (!conf.baseSiteUrl || !conf.startUrl)
             throw 'Please provide both baseSiteUrl and startUrl';
+    }
+
+     verifyDirectoryExists(path) {//Will make sure the target directory exists.
+        if (!this.existingUserFileDirectories.includes(path)) {
+            console.log('checking if dir exists:',path)
+            if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
+                console.log('creating dir:',path)
+                fs.mkdirSync(path);                
+            }
+            this.existingUserFileDirectories.push(path);
+        }
+
     }
 
     async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root operation.
@@ -87,6 +100,7 @@ class Scraper {
             root: Root,
             collectContent: CollectContent,
             download: Download,
+            inquiry: Inquiry
         }
     }
 
@@ -95,9 +109,11 @@ class Scraper {
             throw 'Must provide a file path'
         const currentClass = this.getClassMap()[type];
         let operationObj = null;
-        if (currentClass == Root) {
+        if (currentClass == Root ) {
             // console.log(arguments[1])
             operationObj = new currentClass(this, null, arguments[1]);
+        }else if(currentClass == Inquiry){
+            operationObj = new currentClass(this,  arguments[1],config);
         } else {
             operationObj = new currentClass(this, querySelector, config);
         }
@@ -240,17 +256,21 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
 
 
-    createPresentableData(originalForm) {//Is used for passing cleaner data to user callbacks.
-        switch (originalForm.type) {
-            case 'File Downloader':
-                return originalForm.data.map((file) => { return { name: originalForm.name, content: file.address } });
+    createPresentableData(originalData) {//Is used for passing cleaner data to user callbacks.
+        var presentableData = {};
+        switch (originalData.type) {
 
-            case 'Content Collector':
-                return originalForm.data;
+            case 'Collect Content':
+            case 'File Downloader':
+                presentableData.address = originalData.address
+                presentableData.data = originalData.data
+                break;
             default:
-                return originalForm.data;
+                presentableData = originalData
+
 
         }
+        return presentableData;
     }
 
     async createNodeList($) {//Gets a cheerio object and creates a nodelist. Checks for "getNodeList" user callback.       
@@ -265,9 +285,10 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
                 await this.getNodeList(nodeList)
             } catch (error) {
                 console.error(error);
-                
+
             }
         }
+        // console.log('nodelist after removal',nodeList)
         return nodeList;
     }
 
@@ -451,14 +472,15 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
             var dataFromChildren = await this.scrapeChildren(this.operations, response)
             response = null;
 
-            if (this.after) {
-                if (typeof this.after !== 'function')
-                    throw "'After' callback must be a function";
+            if (this.afterScrape) {
+                if (typeof this.afterScrape !== 'function')
+                    throw "'afterScrape' callback must be a function";
                 const cleanData = [];
                 dataFromChildren.forEach((dataFromChild) => {
                     cleanData.push(this.createPresentableData(dataFromChild));
+                    // cleanData.push(dataFromChild)
                 })
-                await this.after(cleanData);
+                await this.afterScrape(cleanData);
             }
             scrapingObject.data = [...dataFromChildren];
         } catch (error) {
@@ -639,14 +661,14 @@ class OpenLinks extends CompositeOperation {
     async createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain) {
         var $ = cheerio.load(responseObjectFromParent.data);
         const nodeList = await this.createNodeList($);
-        $=null;
+        $ = null;
         const refs = [];
 
         nodeList.each((index, link) => {
             const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, link.attribs.href)
             refs.push(absoluteUrl)
 
-        })       
+        })
 
         return refs;
     }
@@ -662,7 +684,7 @@ class CollectContent extends Operation {
         this.contentType = this.contentType || 'text';
         !responseObjectFromParent && console.log('empty reponse from content operation', responseObjectFromParent)
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
-            type: 'Content Collector',
+            type: 'Collect Content',
             name: this.name,
             address: responseObjectFromParent.config.url,
             data: []
@@ -676,13 +698,13 @@ class CollectContent extends Operation {
             const content = this.getNodeContent($(element));
             currentWrapper.data.push({ element: element.name, [this.contentType]: content });
         })
-        $=null;
+        $ = null;
 
-        if (this.after) {
-            await this.after(this.createPresentableData(currentWrapper));
+        if (this.afterScrape) {
+            await this.afterScrape(this.createPresentableData(currentWrapper));
         }
 
-     
+
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
         this.data = [...this.data, currentWrapper];
@@ -753,7 +775,7 @@ class Download extends Operation {
             fileRefs.push(absoluteUrl);
 
         })
-        $=null;
+        $ = null;
 
         if (!fileRefs.length) {
             // this.errors.push(`No images found by the query, in ${dataFromParent.address}`);
@@ -769,9 +791,9 @@ class Download extends Operation {
 
         this.data.push(currentWrapper);
 
-        if (this.after) {
-            await this.after(this.createPresentableData(currentWrapper));
-        }       
+        if (this.afterScrape) {
+            await this.afterScrape(this.createPresentableData(currentWrapper));
+        }
 
         return currentWrapper;
 
@@ -803,9 +825,12 @@ class Download extends Operation {
             headers: this.scraper.config.headers
         }
 
+        this.scraper.verifyDirectoryExists(options.dest);
+
 
 
         const asyncFunction = async () => {
+
             const fileDownloader = new file_downloader(options);
             currentlyRunning++;
             console.log('fetching file:', url)
@@ -867,6 +892,50 @@ class Download extends Operation {
         }
 
     }
+
+
+}
+
+class Inquiry extends Operation {
+
+    constructor(Scraper, conditionFunction) {
+        debugger;
+        super(Scraper, null, null);
+        this.condition = conditionFunction;
+        // debugger;
+       
+    }
+
+    async scrape(responseObjectFromParent) {
+
+
+        // this.emit('scrape')
+        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
+            type: 'Inquiry',
+            name: this.name,
+            address: responseObjectFromParent.config.url,
+            data:{
+                meetsCondition: false
+            }
+        }      
+
+
+        if(await this.condition(responseObjectFromParent) === true){
+            currentWrapper.data['meetsCondition'] = true;
+        }
+
+        this.data = [...this.data, currentWrapper];
+
+
+
+        return currentWrapper;
+
+    }
+
+    
+
+
+
 
 
 }
