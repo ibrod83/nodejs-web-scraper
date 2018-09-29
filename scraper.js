@@ -39,12 +39,13 @@ class Scraper {
             headers: null
         }
 
-        this.validateConfig(globalConfig);
+        this.validateGlobalConfig(globalConfig);
 
         for (let prop in globalConfig) {
 
             this.config[prop] = globalConfig[prop];
         }
+        // debugger;
         this.existingUserFileDirectories = [];
         this.failedScrapingObjects = [];
         this.fakeErrors = false;
@@ -60,19 +61,19 @@ class Scraper {
 
     }
 
-    validateConfig(conf) {
+    validateGlobalConfig(conf) {
         if (!conf || typeof conf !== 'object')
             throw 'Scraper constructor expects a configuration object';
         if (!conf.baseSiteUrl || !conf.startUrl)
             throw 'Please provide both baseSiteUrl and startUrl';
     }
 
-     verifyDirectoryExists(path) {//Will make sure the target directory exists.
+    verifyDirectoryExists(path) {//Will make sure the target directory exists.
         if (!this.existingUserFileDirectories.includes(path)) {
-            console.log('checking if dir exists:',path)
+            console.log('checking if dir exists:', path)
             if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
-                console.log('creating dir:',path)
-                fs.mkdirSync(path);                
+                console.log('creating dir:', path)
+                fs.mkdirSync(path);
             }
             this.existingUserFileDirectories.push(path);
         }
@@ -84,13 +85,15 @@ class Scraper {
             throw 'Scraper.scrape() expects a root object as an argument!';
 
         await rootObject.scrape();
-
-        try {
-            await this.createLogs();
-        } catch (error) {
-            console.error('Error creating logs', error)
+        if (this.config.logPath) {
+            try {
+                await this.createLogs();
+            } catch (error) {
+                console.error('Error creating logs', error)
+            }
         }
 
+        console.log('overall images: ',downloadedImages)
         await this.repeatAllErrors(rootObject);
     }
 
@@ -104,26 +107,35 @@ class Scraper {
         }
     }
 
-    createOperation(type, querySelector, config) {
-        if (type === 'download' && !this.config.filePath)//If no image path was not originally provided to the Scraper object, an error is thrown.
-            throw 'Must provide a file path'
-        const currentClass = this.getClassMap()[type];
-        let operationObj = null;
-        if (currentClass == Root ) {
-            // console.log(arguments[1])
-            operationObj = new currentClass(this, null, arguments[1]);
-        }else if(currentClass == Inquiry){
-            operationObj = new currentClass(this,  arguments[1],config);
-        } else {
-            operationObj = new currentClass(this, querySelector, config);
+    createOperation(config) {
+        this.validateOperationConfig(config);
+
+        const currentClass = this.getClassMap()[config.type];
+        this.registeredOperations.push()
+        const newOperation = new currentClass(this, config);
+        this.registeredOperations.push(newOperation);
+        return newOperation
+
+    }
+
+
+    validateOperationConfig(config) {
+        if (!config || typeof config !== 'object')
+            throw 'Must provide a valid config object to every operation.'
+
+        switch (config.type) {
+            case 'download':
+                if (!this.config.filePath)
+                    throw 'Must provide a file path.'
+                break;
+            case 'openLinks':
+            case 'collectContent':
+                if (!config.querySelector)
+                    throw `${config.type} operation must be provided with a querySelector.`;
+                break;
+            default:
+                break;
         }
-
-        this.registeredOperations.push(operationObj)
-        // operationObj.emit('create')
-
-        return operationObj;
-
-
     }
 
 
@@ -147,6 +159,7 @@ class Scraper {
     }
 
     async createLogs() {
+        // debugger;
         for (let operation of this.registeredOperations) {
             const fileName = operation.constructor.name === 'Root' ? 'log' : operation.name;
             const data = operation.getData();
@@ -235,7 +248,8 @@ class Scraper {
 
 class Operation {//Base abstract class for operations. "leaf" operations will inherit directly from it.
 
-    constructor(Scraper, querySelector, objectConfig) {
+    constructor(Scraper, objectConfig) {
+        // validateOperationConfig();
         // console.log(this)
         if (objectConfig) {
             for (let i in objectConfig) {
@@ -248,11 +262,13 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
         this.data = [];
         this.scraper = Scraper;//Reference to the scraper main object.
-        this.querySelector = querySelector;
+        // this.querySelector = querySelector;
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
     }
+
+
 
 
 
@@ -419,7 +435,12 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 class CompositeOperation extends Operation {//Abstract class, that deals with "composite" operations, like a link(a link can hold other links, or "leaves", like data or image operations).
 
     addOperation(operationObject) {//Ads a reference to a operation object
-
+        // debugger;
+        // const yoyo = operationObject instanceof Operation;
+        if (!(operationObject instanceof Operation)) {
+            throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
+        }
+        // console.log(operationObject instanceof Operation)
         this.operations.push(operationObject)
     }
 
@@ -735,14 +756,16 @@ class CollectContent extends Operation {
 
 class Download extends Operation {
 
-    constructor(Scraper, querySelector, objectConfig) {
-        super(Scraper, querySelector, objectConfig);
-        this.overridableProps = ['filePath', 'fileFlag'];
+    constructor(Scraper, objectConfig) {
+        super(Scraper, objectConfig);
+        this.overridableProps = ['filePath', 'fileFlag','imageResponseType'];
         // debugger;
         for (let prop in objectConfig) {
             if (this.overridableProps.includes(prop))
                 this[prop] = objectConfig[prop];
         }
+
+
     }
 
     async scrape(responseObjectFromParent) {
@@ -756,7 +779,7 @@ class Download extends Operation {
 
         }
 
-        this.type = this.type || 'image';
+        this.contentType = this.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
         const nodeList = await this.createNodeList($);
 
@@ -765,7 +788,7 @@ class Download extends Operation {
         const fileRefs = [];
 
         nodeList.each((index, element) => {
-            const originalSrc = $(element).attr(this.type === 'image' ? 'src' : 'href');
+            const originalSrc = $(element).attr(this.contentType === 'image' ? 'src' : 'href');
             if (!originalSrc || !this.customSrc && originalSrc.startsWith("data:image")) {
                 console.error('Invalid image href:', $(element).attr('src'))
                 return;
@@ -812,7 +835,22 @@ class Download extends Operation {
 
         }
 
-        const responseType = this.type === 'file' ? 'stream' : this.responseType || 'arraybuffer';
+        let responseType;
+        // debugger;
+        if (this.contentType === 'file') {
+            responseType = 'stream';
+        } else {
+
+            if (this.imageResponseType) {
+                responseType = this.imageResponseType;
+            } else {
+                responseType = this.scraper.config.imageResponseType || 'arraybuffer';
+            }
+
+        }
+
+        // console.log('response type',responseType)
+        
         // debugger;
         const options = {
             url,
@@ -847,7 +885,7 @@ class Download extends Operation {
             } catch (err) {
 
                 if (err.code === 'EEXIST') {
-                    // console.log('File already exists in the directory, NOT overwriting it:', url);
+                    console.log('File already exists in the directory, NOT overwriting it:', url);
                 } else {
                     throw err;
                 }
@@ -861,7 +899,7 @@ class Download extends Operation {
 
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { downloadedImages++ })
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { downloadedImages++;console.log('images:',downloadedImages) })
 
 
 
@@ -898,14 +936,6 @@ class Download extends Operation {
 
 class Inquiry extends Operation {
 
-    constructor(Scraper, conditionFunction) {
-        debugger;
-        super(Scraper, null, null);
-        this.condition = conditionFunction;
-        // debugger;
-       
-    }
-
     async scrape(responseObjectFromParent) {
 
 
@@ -914,25 +944,23 @@ class Inquiry extends Operation {
             type: 'Inquiry',
             name: this.name,
             address: responseObjectFromParent.config.url,
-            data:{
+            data: {
                 meetsCondition: false
             }
-        }      
+        }
 
 
-        if(await this.condition(responseObjectFromParent) === true){
+        if (await this.condition(responseObjectFromParent) === true) {
             currentWrapper.data['meetsCondition'] = true;
         }
 
         this.data = [...this.data, currentWrapper];
 
-
-
         return currentWrapper;
 
     }
 
-    
+
 
 
 

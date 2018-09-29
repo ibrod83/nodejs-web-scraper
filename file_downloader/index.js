@@ -53,7 +53,7 @@ class FileDownloader {
         //Checks if the extension length makes sense. Pure hack..I did it because some "extensions" might not be an actual one.
         // const urlEndsWithValidExtension =extensionWithoutDot.length >=2  && extensionWithoutDot.length <=4 ?  true : false;
         // debugger;
-        console.log('extension', path.extname(this.url))
+        // console.log('extension', path.extname(this.url))
         let fileName = "";
         if (!this.response.headers['content-type'] || path.extname(this.url) === '.jpg') {//If it makes sense, i treat it normally.
             const baseName = path.basename(this.url);
@@ -88,7 +88,7 @@ class FileDownloader {
         const fileName = this.getFileName();
         return new Promise((resolve, reject) => {
 
-            fs.writeFile(this.dest + fileName, this.response.data, { encoding: 'binary', flag: this.flag }, (err) => {
+            fs.writeFile(path.join(this.dest, fileName), this.response.data, { encoding: 'binary', flag: this.flag }, (err) => {
 
                 if (err) {
 
@@ -124,7 +124,7 @@ class FileDownloader {
 
 
         return new Promise((resolve, reject) => {
-            const writeStream = fs.createWriteStream(this.dest + fileName, { encoding: 'binary', flags: this.flag })
+            const writeStream = fs.createWriteStream(path.join(this.dest,fileName), { encoding: 'binary', flags: this.flag })
             writeStream.on('open', () => {
                 this.response.data.pipe(writeStream)
 
