@@ -1,4 +1,4 @@
-const Scraper = require('./scraper');
+const { Scraper, Root, DownloadContent, Inquiry, OpenLinks, CollectContent } = require('./scraper');
 // const axios = require('axios');
 // const Promise = require('bluebird');
 const fs = require('fs');
@@ -22,80 +22,113 @@ const fs = require('fs');
     // 'booksnextbutton'
     // 'bbc'
     // 'skynews'
+    // 'typeface'
 
     var config = {
-        concurrency: 10,
+        concurrency: 2,
         fileFlag: 'w',
         maxRetries: 3,
-        cloneImages: true,
-        delay: 100,
+        cloneImages: false,
+        delay: 50,
         imageResponseType: 'arraybuffer',
         filePath: './images/',
         logPath: './'
     }
     var goodPages = [];
-    const currentMockClientCode = 'skynews';
+    const currentMockClientCode = 'cnn';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
         switch (siteName) {
 
-            case 'skynews':
+            case 'typeface':
 
             config = {
                 ...config,
-                baseSiteUrl: `https://news.sky.com/`,
-                startUrl: `https://news.sky.com/`,
+                baseSiteUrl: `https://www.grillitype.com/`,
+                startUrl: `https://www.grillitype.com/typeface/gt-america/`,
                 // headers: {'chuj': 'ci w dupe'}
             }
-            // {pagination:{nextButton:'a#pnnext',numPages:10}}
+
             var scraper = new Scraper(config);
-            var root = scraper.createOperation({ type: 'root' });
-            var category = scraper.createOperation({ type: 'openLinks', querySelector: ".sdc-news-header__nav-item a", name: 'category',  });
-            var article = scraper.createOperation({ type: 'openLinks', querySelector: '.sdc-news-story-grid__link', name: 'article', });
-            var h1 = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'h1' });
-            // var image = scraper.createOperation('download', 'img', { name: 'image' });    
-            var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image',filePath:'./sky_news' });
-            category.addOperation(article);
-            root.addOperation(category);
-            article.addOperation(image)
-            article.addOperation(h1)
-            // root.addOperation(image);
+
+            var root = new Root();         
+
+
+            var image = new DownloadContent('img', { name: 'image'});
+
+           
+            root.addOperation(image);
+          
 
 
 
             await execute();
 
             break;
+
+
+            case 'skynews':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://news.sky.com/`,
+                    startUrl: `https://news.sky.com/`,
+                    // headers: {'chuj': 'ci w dupe'}
+                }
+                // {pagination:{nextButton:'a#pnnext',numPages:10}}
+                var scraper = new Scraper(config);
+
+                var root = new Root();
+                var category = new OpenLinks(".sdc-news-header__nav-item a", { name: 'category', slice: [0, 2] });
+
+                var article = new OpenLinks(".sdc-news-story-grid__link ", { name: 'article' });
+
+
+                var h1 = new CollectContent('h1', { name: 'h1' });
+                // var image = scraper.createOperation('download', 'img', { name: 'image' });    
+                var image = new DownloadContent('img', { name: 'image', filePath: './sky_news' });
+
+                category.addOperation(article);
+                root.addOperation(category);
+                article.addOperation(image)
+                article.addOperation(h1)
+                // root.addOperation(image);
+
+
+
+                await execute();
+
+                break;
 
 
             case 'bbc':
 
-            config = {
-                ...config,
-                baseSiteUrl: `https://www.bbc.com/`,
-                startUrl: `https://www.bbc.com/news`,
-                // headers: {'chuj': 'ci w dupe'}
-            }
-            // {pagination:{nextButton:'a#pnnext',numPages:10}}
-            var scraper = new Scraper(config);
-            var root = scraper.createOperation({ type: 'root' });
-            var category = scraper.createOperation({ type: 'openLinks', querySelector: ".gs-o-list-ui__item--flush.gel-long-primer.gs-u-display-block.nw-c-nav__wide-menuitem-container a", name: 'category', slice: [0, 3] });
-            var article = scraper.createOperation({ type: 'openLinks', querySelector: '.title-link', name: 'article', });
-            var h1 = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'h1' });
-            // var image = scraper.createOperation('download', 'img', { name: 'image' });    
-            var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image' });
-            category.addOperation(article);
-            root.addOperation(category);
-            article.addOperation(image)
-            article.addOperation(h1)
-            // root.addOperation(image);
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://www.bbc.com/`,
+                    startUrl: `https://www.bbc.com/news`,
+                    // headers: {'chuj': 'ci w dupe'}
+                }
+                // {pagination:{nextButton:'a#pnnext',numPages:10}}
+                var scraper = new Scraper(config);
+                var root = new Root();
+                var category = new OpenLinks(".gs-o-list-ui__item--flush.gel-long-primer.gs-u-display-block.nw-c-nav__wide-menuitem-container a", { name: 'category', slice: [0, 3] });
+                var article = new OpenLinks('.title-link', { name: 'article', });
+                var h1 = new CollectContent('h1', { name: 'h1' });
+                // var image = scraper.createOperation('download', 'img', { name: 'image' });    
+                var image = new DownloadContent('img', { name: 'image' });
+                category.addOperation(article);
+                root.addOperation(category);
+                article.addOperation(image)
+                article.addOperation(h1)
+                // root.addOperation(image);
 
 
 
-            await execute();
+                await execute();
 
-            break;
+                break;
 
 
             case 'wplogin':
@@ -110,7 +143,7 @@ const fs = require('fs');
 
 
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
+                var root = new Root()
                 var a = scraper.createOperation({ type: 'collectContent', querySelector: 'a', name: 'a' });
                 var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image' });
                 root.addOperation(a);
@@ -139,12 +172,12 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
-                var category = scraper.createOperation({ type: 'openLinks', querySelector: ".LinksList a", name: 'category', slice: 2, pagination: { queryString: 'pageinfo', begin: 1, end: 10, processPaginationUrl } });
-                var product = scraper.createOperation({ type: 'openLinks', querySelector: '.ProdInfoTitle a, .ProdName a', name: 'product', });
-                var h1 = scraper.createOperation({ type: 'collectContent', querySelector: '.ProdName h1', name: 'h1' });
+                var root = new Root()
+                var category = new OpenLinks(".LinksList a", { name: 'category', slice: 2, pagination: { queryString: 'pageinfo', begin: 1, end: 10, processPaginationUrl } });
+                var product = new OpenLinks('.ProdInfoTitle a, .ProdName a', { name: 'product', });
+                var h1 = new CollectContent('.ProdName h1', { name: 'h1' });
                 // var image = scraper.createOperation('download', 'img', { name: 'image' });    
-                var image = scraper.createOperation({ type: 'download', querySelector: '.ProductPic img', name: 'image', filePath: "./overridepath/" });
+                var image = new DownloadContent('.ProductPic img', { name: 'image', filePath: "./overridepath/" });
                 category.addOperation(product);
                 root.addOperation(category);
                 product.addOperation(image)
@@ -173,8 +206,8 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
-                var file = scraper.createOperation({ type: 'download', querySelector: "a", name: 'file', contentType: 'file' });
+                var root = new Root()
+                var file = new DownloadContent("a", { name: 'file', contentType: 'file' });
 
 
                 root.addOperation(file);
@@ -198,12 +231,12 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
-                var category = scraper.createOperation({ type: 'openLinks', querySelector: "li[role='menuitem'] a", name: 'category', slice: [0, 2] });
-                var article = scraper.createOperation({ type: 'openLinks', querySelector: 'article a', name: 'article', });
-                var p = scraper.createOperation({ type: 'collectContent', querySelector: 'p', name: 'p' });
+                var root = new Root()
+                var category = new OpenLinks("li[role='menuitem'] a", { name: 'category', slice: [0, 2] });
+                var article = new OpenLinks('article a', { name: 'article', });
+                var p = new CollectContent('p', { name: 'p' });
                 // var image = scraper.createOperation('download', 'img', { name: 'image' });    
-                var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image' });
+                var image = new DownloadContent('img', { name: 'image' });
                 category.addOperation(article);
                 root.addOperation(category);
                 article.addOperation(image)
@@ -225,11 +258,11 @@ const fs = require('fs');
                 }
 
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root', pagination: { routingString: '/', begin: 1, end: 100 } });
+                var root = new Root({pagination: { routingString: '/', begin: 1, end: 100 } });
 
-                var a = scraper.createOperation({ type: 'collectContent', querySelector: '.video-thumb-info a', name: 'a' });
+                var a = new CollectContent('.video-thumb-info a', {name: 'a' });
 
-                var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image' });
+                var image = new DownloadContent('img', {name: 'image' });
 
                 root.addOperation(a);
                 root.addOperation(image);
@@ -249,7 +282,7 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
+                var root = new Root()
                 var category = scraper.createOperation({ type: 'openLinks', querySelector: 'li a', name: 'category' });
                 var article = scraper.createOperation({ type: 'openLinks', querySelector: 'article a', name: 'article' });
                 var h1 = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'h1' });
@@ -281,10 +314,10 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root', pagination: { queryString: 'start', begin: 0, end: 10, offset: 10 } });
-                var americaPage = scraper.createOperation({ type: 'openLinks', querySelector: 'h3.r a', name: 'americaPage', processUrl });
-                var h1 = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'h1' });
-                var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image', processUrl });
+                var root = new Root({pagination: { queryString: 'start', begin: 0, end: 20, offset: 10 } });
+                var americaPage = new OpenLinks('h3.r a', {name: 'americaPage', processUrl });
+                var h1 = new CollectContent('h1', {name: 'h1' });
+                var image = new DownloadContent('img', {name: 'image', processUrl });
                 // var articleImage = scraper.createOperation('image', 'img', { name: 'article image' });
 
                 root.addOperation(americaPage);
@@ -311,11 +344,11 @@ const fs = require('fs');
                     startUrl: `https://edition.cnn.com/sport`,
                 }
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
-                var article = scraper.createOperation({ type: 'openLinks', querySelector: 'article a', name: 'article' });
-                var paragraph = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'paragraphs' });
-                var image = scraper.createOperation({ type: 'download', querySelector: 'img.media__image.media__image--responsive', name: 'image', customSrc: 'data-src-medium' });
-                var articleImage = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'article image' });
+                var root = new Root()
+                var article = new OpenLinks('article a',{ name: 'article' });
+                var paragraph = new CollectContent('h1', {name: 'paragraphs' });
+                var image = new DownloadContent( 'img.media__image.media__image--responsive', {name: 'image', customSrc: 'data-src-medium' });
+                var articleImage = new DownloadContent( 'img', {name: 'article image' });
 
                 article.addOperation(articleImage);
                 article.addOperation(paragraph);
@@ -360,20 +393,16 @@ const fs = require('fs');
 
                 // scraper.createOperation({type: 'openLinks',querySelector: '#content_65 ol a:eq(0)',name: 'category'})
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
-                var categoryPage = scraper.createOperation({ type: 'openLinks', querySelector: '#content_65 ol a:eq(0)', name: 'category', pagination: { queryString: 'page', begin: 1, end: 2 } });
-                var inquiryOfPage = scraper.createOperation({ type: 'inquiry', condition });
+                var root = new Root()
+                var categoryPage = new OpenLinks('#content_65 ol a:eq(0)', {name: 'category', pagination: { queryString: 'page', begin: 1, end: 2 } });
+                var inquiryOfPage = new Inquiry(condition);
 
-                var productPage = scraper.createOperation({ type: 'openLinks', querySelector: '.product_name_link', name: 'product' });
+                var productPage = new OpenLinks('.product_name_link', {name: 'product' });
                 root.addOperation(categoryPage);
-                // root.addOperation(productPage);
                 categoryPage.addOperation(productPage);
-                var publisherData = scraper.createOperation({ type: 'collectContent', querySelector: '.product_publisher', name: 'publisher' });
-                var productName = scraper.createOperation({ type: 'collectContent', querySelector: '.product_name', name: 'name' });
-                // var authorData = scraper.createOperation('collectContent', 'h4,span', { name: 'author', contentType: 'html' });
-                var productImage = scraper.createOperation({ type: 'download',  querySelector: '.book img', name: 'image',imageResponseType:'arraybuffer', afterScrape });
-                // root.addOperation(authorData);
-                // root.addOperation(productImage);
+                var publisherData = new CollectContent( '.product_publisher',{ name: 'publisher' });
+                var productName = new CollectContent( '.product_name',{ name: 'name' });
+                var productImage = new DownloadContent('.book img', {name: 'image', imageResponseType: 'arraybuffer', afterScrape });
                 productPage.addOperation(publisherData);
                 productPage.addOperation(inquiryOfPage);
                 productPage.addOperation(productImage);
@@ -392,6 +421,7 @@ const fs = require('fs');
                 }
 
                 var scraper = new Scraper(config);
+
                 var root = scraper.createOperation({ type: 'root', pagination: { queryString: 'page', begin: 1, end: 5 } });
                 var product = scraper.createOperation({ type: 'openLinks', querySelector: '.product_name_link', name: 'product', });
                 root.addOperation(product);
@@ -463,7 +493,7 @@ const fs = require('fs');
                     startUrl: `https://www.nytimes.com/`,
                 }
                 var scraper = new Scraper(config);
-                var root = scraper.createOperation({ type: 'root' });
+                var root = new Root()
                 var category = scraper.createOperation({ type: 'openLinks', querySelector: '.css-1wjnrbv', name: 'category' });
                 var article = scraper.createOperation({ type: 'openLinks', querySelector: 'article a', name: 'article' });
                 var h1 = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'h1' });

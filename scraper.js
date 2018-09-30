@@ -7,7 +7,8 @@ var sizeof = require('object-sizeof');
 const Promise = require('bluebird');
 const URL = require('url').URL;
 // const EventEmitter = require('events');
-
+const http = require('http')
+const https = require('https')
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const file_downloader = require('./file_downloader');
@@ -18,9 +19,10 @@ let downloadedImages = 0;
 // var notFoundErrors = 0;
 var overallSeconds = 0;
 var overallPageRequests = 0;
-var overallRequests = 0;
+
 let currentlyRunning = 0;
 
+let _scraperInstance;
 
 class Scraper {
     constructor(globalConfig) {
@@ -38,6 +40,11 @@ class Scraper {
             auth: null,
             headers: null
         }
+
+        // this.instance = this;
+
+
+
 
         this.validateGlobalConfig(globalConfig);
 
@@ -57,8 +64,13 @@ class Scraper {
 
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
+        _scraperInstance = this;
 
+    }
 
+    static getInstance() {
+
+        return _scraperInstance;
     }
 
     validateGlobalConfig(conf) {
@@ -93,7 +105,7 @@ class Scraper {
             }
         }
 
-        console.log('overall images: ',downloadedImages)
+        console.log('overall images: ', downloadedImages)
         await this.repeatAllErrors(rootObject);
     }
 
@@ -107,21 +119,25 @@ class Scraper {
         }
     }
 
-    createOperation(config) {
-        this.validateOperationConfig(config);
+    // createOperation(config) {
+    //     this.validateOperationConfig(config);
 
-        const currentClass = this.getClassMap()[config.type];
-        this.registeredOperations.push()
-        const newOperation = new currentClass(this, config);
-        this.registeredOperations.push(newOperation);
-        return newOperation
+    //     const currentClass = this.getClassMap()[config.type];
+    //     this.registeredOperations.push()
+    //     const newOperation = new currentClass(this, config);
+    //     this.registeredOperations.push(newOperation);
+    //     return newOperation
 
+    // }
+
+    handleNewOperationCreation(Operation) {
+        this.registeredOperations.push(Operation);
     }
 
 
     validateOperationConfig(config) {
-        if (!config || typeof config !== 'object')
-            throw 'Must provide a valid config object to every operation.'
+        // if (!config || typeof config !== 'object')
+        //     throw 'Must provide a valid config object to every operation.'
 
         switch (config.type) {
             case 'download':
@@ -248,9 +264,15 @@ class Scraper {
 
 class Operation {//Base abstract class for operations. "leaf" operations will inherit directly from it.
 
-    constructor(Scraper, objectConfig) {
-        // validateOperationConfig();
+    constructor(objectConfig) {
+        // debugger;
+        this.scraper = Scraper.getInstance();//Reference to the scraper main object.        
+
+        // this.scraper.validateOperationConfig(objectConfig);
+
+        this.scraper.handleNewOperationCreation(this);
         // console.log(this)
+        // console.log('instance', Scraper.getInstance())
         if (objectConfig) {
             for (let i in objectConfig) {
                 this[i] = objectConfig[i];
@@ -259,12 +281,11 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         if (!this.name)
             this.name = `Default ${this.constructor.name} name`;
 
-
         this.data = [];
-        this.scraper = Scraper;//Reference to the scraper main object.
-        // this.querySelector = querySelector;
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
+
+
 
     }
 
@@ -277,7 +298,7 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         switch (originalData.type) {
 
             case 'Collect Content':
-            case 'File Downloader':
+            case 'Download Content':
                 presentableData.address = originalData.address
                 presentableData.data = originalData.data
                 break;
@@ -386,9 +407,9 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
 
         const maxRetries = this.scraper.config.maxRetries;
         try {
-            overallRequests++
-            console.log('overallRequests', overallRequests)
-            this.scraper.numRequests++
+            // overallRequests++
+            // console.log('overallRequests', overallRequests)
+
             return await promiseFactory();
         } catch (error) {
 
@@ -571,9 +592,11 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
         const asyncFunction = async () => {
             currentlyRunning++;
             console.log('opening page', href);
-            // console.log('currentlyRunning:', currentlyRunning);
+            console.log('currentlyRunning:', currentlyRunning);
             // console.log('delay from page', this.scraper.delay)
             await this.scraper.createDelay();
+            this.scraper.numRequests++
+            console.log('overall requests', this.scraper.numRequests)
             let resp;
             try {
                 var begin = Date.now()
@@ -583,7 +606,9 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
                     method: 'get', url: href,
                     timeout: this.scraper.config.timeout,
                     auth: this.scraper.config.auth,
-                    headers: this.scraper.config.headers
+                    headers: this.scraper.config.headers,
+                    httpAgent: new http.Agent({ keepAlive: true }),
+                    httpsAgent: new https.Agent({ keepAlive: true }),
                 })
                 console.log(resp)
                 // console.log('before strip',sizeof(resp.data))                           
@@ -601,7 +626,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
                 overallSeconds += seconds;
                 overallPageRequests++
                 currentlyRunning--;
-                // console.log('currentlyRunning:', currentlyRunning);
+                console.log('currentlyRunning:', currentlyRunning);
             }
             return resp;
         }
@@ -646,6 +671,12 @@ class Root extends CompositeOperation {
 
 class OpenLinks extends CompositeOperation {
 
+    constructor(querySelector, config) {
+        super(config);
+        this.querySelector = querySelector;
+
+    }
+
     async scrape(responseObjectFromParent) {
         // this.emit('scrape')
         console.log(this)
@@ -660,8 +691,8 @@ class OpenLinks extends CompositeOperation {
 
 
 
-        const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
-        const refs = await this.createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain)
+        // const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
+        const refs = await this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
 
         scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
@@ -679,14 +710,14 @@ class OpenLinks extends CompositeOperation {
     }
 
 
-    async createLinkList(responseObjectFromParent, baseUrlOfCurrentDomain) {
+    async createLinkList(responseObjectFromParent) {
         var $ = cheerio.load(responseObjectFromParent.data);
         const nodeList = await this.createNodeList($);
         $ = null;
         const refs = [];
 
         nodeList.each((index, link) => {
-            const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, link.attribs.href)
+            const absoluteUrl = this.getAbsoluteUrl(responseObjectFromParent.request.res.responseUrl, link.attribs.href)
             refs.push(absoluteUrl)
 
         })
@@ -699,6 +730,12 @@ class OpenLinks extends CompositeOperation {
 
 
 class CollectContent extends Operation {
+
+    constructor(querySelector, config) {
+        super(config);
+        this.querySelector = querySelector;
+
+    }
 
     async scrape(responseObjectFromParent) {
         // this.emit('scrape')
@@ -754,11 +791,14 @@ class CollectContent extends Operation {
 
 }
 
-class Download extends Operation {
+class DownloadContent extends Operation {
 
-    constructor(Scraper, objectConfig) {
-        super(Scraper, objectConfig);
-        this.overridableProps = ['filePath', 'fileFlag','imageResponseType'];
+
+
+    constructor(querySelector, objectConfig) {
+        super(objectConfig);
+        this.querySelector = querySelector;
+        this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
         // debugger;
         for (let prop in objectConfig) {
             if (this.overridableProps.includes(prop))
@@ -772,7 +812,7 @@ class Download extends Operation {
 
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
 
-            type: 'File Downloader',
+            type: 'Download Content',
             name: this.name,
             address: responseObjectFromParent.config.url,
             data: [],
@@ -782,19 +822,27 @@ class Download extends Operation {
         this.contentType = this.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
         const nodeList = await this.createNodeList($);
-
-        const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
+        // debugger;
+        // if(responseObjectFromParent.request.res.responseUrl.includes('grillitype'))
+        // debugger;
+        // const baseUrlOfCurrentDomain = this.resolveActualBaseUrl(responseObjectFromParent.request.res.responseUrl);
 
         const fileRefs = [];
 
         nodeList.each((index, element) => {
-            const originalSrc = $(element).attr(this.contentType === 'image' ? 'src' : 'href');
+            var originalSrc = $(element).attr(this.contentType === 'image' ? 'src' : 'href');
             if (!originalSrc || !this.customSrc && originalSrc.startsWith("data:image")) {
+                debugger;
+                console.log(responseObjectFromParent.data)
                 console.error('Invalid image href:', $(element).attr('src'))
                 return;
             }
+            const isRelativeUrl = !originalSrc.includes('http') && !originalSrc.includes('www.')
+            if (isRelativeUrl && originalSrc.charAt(0) !== "/") {
+                originalSrc = "/" + originalSrc;
+            }
             const src = this.customSrc ? $(element).attr(this.customSrc) : originalSrc;
-            const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, src);
+            const absoluteUrl = this.getAbsoluteUrl(responseObjectFromParent.request.res.responseUrl, src);
             fileRefs.push(absoluteUrl);
 
         })
@@ -850,7 +898,7 @@ class Download extends Operation {
         }
 
         // console.log('response type',responseType)
-        
+
         // debugger;
         const options = {
             url,
@@ -872,9 +920,11 @@ class Download extends Operation {
             const fileDownloader = new file_downloader(options);
             currentlyRunning++;
             console.log('fetching file:', url)
-            // console.log('currentlyRunning:', currentlyRunning);
+            console.log('currentlyRunning:', currentlyRunning);
             // console.log('delay from image', this.scraper.delay)
             await this.scraper.createDelay()
+            this.scraper.numRequests++
+            console.log('overall requests', this.scraper.numRequests)
             let resp;
             try {
 
@@ -893,13 +943,13 @@ class Download extends Operation {
 
             finally {
                 currentlyRunning--;
-                // console.log('currentlyRunning:', currentlyRunning);
+                console.log('currentlyRunning:', currentlyRunning);
             }
             return resp;
 
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { downloadedImages++;console.log('images:',downloadedImages) })
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { downloadedImages++; console.log('images:', downloadedImages) })
 
 
 
@@ -935,6 +985,11 @@ class Download extends Operation {
 }
 
 class Inquiry extends Operation {
+
+    constructor(conditionFunction) {
+        super({});
+        this.condition = conditionFunction;
+    }
 
     async scrape(responseObjectFromParent) {
 
@@ -1026,7 +1081,14 @@ class Inquiry extends Operation {
 
 
 
-module.exports = Scraper;
+module.exports = {
+    Scraper,
+    Root,
+    DownloadContent,
+    Inquiry,
+    OpenLinks,
+    CollectContent
+};
 
 
 
