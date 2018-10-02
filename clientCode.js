@@ -1,4 +1,4 @@
-const { Scraper, Root, DownloadContent, Inquiry, OpenLinks, CollectContent } = require('./scraper');
+const { Scraper, Root, DownloadContent, Inquiry, OpenLinks, CollectContent } = require('./node-scraper');
 // const axios = require('axios');
 // const Promise = require('bluebird');
 const fs = require('fs');
@@ -25,14 +25,14 @@ const fs = require('fs');
     // 'typeface'
 
     var config = {
-        concurrency: 2,
+        concurrency: 10,
         fileFlag: 'w',
         maxRetries: 3,
         cloneImages: false,
         delay: 50,
         imageResponseType: 'arraybuffer',
         filePath: './images/',
-        logPath: './'
+        logPath: './logs/'
     }
     var goodPages = [];
     const currentMockClientCode = 'cnn';
@@ -43,29 +43,29 @@ const fs = require('fs');
 
             case 'typeface':
 
-            config = {
-                ...config,
-                baseSiteUrl: `https://www.grillitype.com/`,
-                startUrl: `https://www.grillitype.com/typeface/gt-america/`,
-                // headers: {'chuj': 'ci w dupe'}
-            }
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://www.grillitype.com/`,
+                    startUrl: `https://www.grillitype.com/typeface/gt-america/`,
+                    // headers: {'chuj': 'ci w dupe'}
+                }
 
-            var scraper = new Scraper(config);
+                var scraper = new Scraper(config);
 
-            var root = new Root();         
-
-
-            var image = new DownloadContent('img', { name: 'image'});
-
-           
-            root.addOperation(image);
-          
+                var root = new Root();
 
 
+                var image = new DownloadContent('img', { name: 'image' });
 
-            await execute();
 
-            break;
+                root.addOperation(image);
+
+
+
+
+                await execute();
+
+                break;
 
 
             case 'skynews':
@@ -76,6 +76,8 @@ const fs = require('fs');
                     startUrl: `https://news.sky.com/`,
                     // headers: {'chuj': 'ci w dupe'}
                 }
+
+               
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
 
@@ -258,11 +260,11 @@ const fs = require('fs');
                 }
 
                 var scraper = new Scraper(config);
-                var root = new Root({pagination: { routingString: '/', begin: 1, end: 100 } });
+                var root = new Root({ pagination: { routingString: '/', begin: 1, end: 100 } });
 
-                var a = new CollectContent('.video-thumb-info a', {name: 'a' });
+                var a = new CollectContent('.video-thumb-info a', { name: 'a' });
 
-                var image = new DownloadContent('img', {name: 'image' });
+                var image = new DownloadContent('img', { name: 'image' });
 
                 root.addOperation(a);
                 root.addOperation(image);
@@ -314,10 +316,10 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = new Root({pagination: { queryString: 'start', begin: 0, end: 20, offset: 10 } });
-                var americaPage = new OpenLinks('h3.r a', {name: 'americaPage', processUrl });
-                var h1 = new CollectContent('h1', {name: 'h1' });
-                var image = new DownloadContent('img', {name: 'image', processUrl });
+                var root = new Root({ pagination: { queryString: 'start', begin: 0, end: 20, offset: 10 } });
+                var americaPage = new OpenLinks('h3.r a', { name: 'americaPage', processUrl });
+                var h1 = new CollectContent('h1', { name: 'h1' });
+                var image = new DownloadContent('img', { name: 'image', processUrl });
                 // var articleImage = scraper.createOperation('image', 'img', { name: 'article image' });
 
                 root.addOperation(americaPage);
@@ -345,18 +347,20 @@ const fs = require('fs');
                 }
                 var scraper = new Scraper(config);
                 var root = new Root()
-                var article = new OpenLinks('article a',{ name: 'article' });
-                var paragraph = new CollectContent('h1', {name: 'paragraphs' });
-                var image = new DownloadContent( 'img.media__image.media__image--responsive', {name: 'image', customSrc: 'data-src-medium' });
-                var articleImage = new DownloadContent( 'img', {name: 'article image' });
+                var article = new OpenLinks('article a', { name: 'article' });
+                var paragraph = new CollectContent('h1', { name: 'paragraphs' });
+                var image = new DownloadContent('img.media__image.media__image--responsive', { name: 'image', alternativeSrc: ['data-src','data-src-small'] });
+                var articleImage = new DownloadContent('img', { name: 'article image', alternativeSrc: ['data-src-small', 'data-src'] });
 
+                root.addOperation(article);
                 article.addOperation(articleImage);
                 article.addOperation(paragraph);
                 article.addOperation(image);
-                root.addOperation(article);
                 root.addOperation(paragraph);
                 root.addOperation(image);
                 root.addOperation(paragraph);
+
+
 
                 await execute();
 
@@ -373,17 +377,28 @@ const fs = require('fs');
                     // startUrl: `https://ibrod83.com/books/product/2/search?filter=Category`,
                 }
 
+                // var beforeScrape = (response)=>{
+                //     console.log('response from beforeScrape! ',response)
+                // }
+
                 const childData = [];
-                const afterScrape = async (dataFromChildren) => {
-                    console.log('data from afterScrape', dataFromChildren)
+                const afterOneLinkScrape = async (dataFromChildren) => {
+                    console.log('data from afterOneLinkScrape', dataFromChildren)
                     childData.push(dataFromChildren);
+                }
+
+                const beforeOneLinkScrape = (response)=>{
+                    console.log('before one link scrape! ',response)
                 }
 
 
 
-                var getNodeList = (nodeList) => {
-                    console.log('nodelist from callback', nodeList)
-                    nodeList.splice(1);
+                var getElementList = (elementList) => {
+                    // const node = elementList
+                    // console.log()
+                    // debugger;
+                    // console.log('elementList from callback', elementList[0].find)
+                    // nodeList.splice(1);
                 }
                 const condition = (response) => {
                     if (response.data.includes('רמת גן')) {
@@ -394,22 +409,26 @@ const fs = require('fs');
                 // scraper.createOperation({type: 'openLinks',querySelector: '#content_65 ol a:eq(0)',name: 'category'})
                 var scraper = new Scraper(config);
                 var root = new Root()
-                var categoryPage = new OpenLinks('#content_65 ol a:eq(0)', {name: 'category', pagination: { queryString: 'page', begin: 1, end: 2 } });
+                var categoryPage = new OpenLinks('#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 1 } });
                 var inquiryOfPage = new Inquiry(condition);
 
-                var productPage = new OpenLinks('.product_name_link', {name: 'product' });
+                var productPage = new OpenLinks('.product_name_link', { name: 'product', afterOneLinkScrape,beforeOneLinkScrape });
                 root.addOperation(categoryPage);
                 categoryPage.addOperation(productPage);
-                var publisherData = new CollectContent( '.product_publisher',{ name: 'publisher' });
-                var productName = new CollectContent( '.product_name',{ name: 'name' });
-                var productImage = new DownloadContent('.book img', {name: 'image', imageResponseType: 'arraybuffer', afterScrape });
+                var publisherData = new CollectContent('.product_publisher', { name: 'publisher' });
+                var p = new CollectContent('p', { name: 'p',getElementList });
+                var productName = new CollectContent('.product_name', { name: 'name' });
+                var productImage = new DownloadContent('.book img', { name: 'image', imageResponseType: 'arraybuffer' });
                 productPage.addOperation(publisherData);
                 productPage.addOperation(inquiryOfPage);
                 productPage.addOperation(productImage);
                 productPage.addOperation(productName);
+                productPage.addOperation(p);
+                categoryPage.addOperation(p)
+                root.addOperation(p);
 
                 await execute();
-                fs.writeFile('./inquiry.json', JSON.stringify(inquiryOfPage.getData()));
+                fs.writeFile('./logs/p.json', JSON.stringify(p.getData()));
 
                 break;
             case 'books_america':
@@ -458,15 +477,15 @@ const fs = require('fs');
                 }
                 var scraper = new Scraper(config);
 
-                var root = scraper.createOperation({ type: 'root', pagination: { queryString: 'page_num', begin: 1, end: 10 } });
-                var productLink = scraper.createOperation({ type: 'openLinks', querySelector: '.list-row a.title', name: 'link', getResponse });
-                var span = scraper.createOperation({ type: 'collectContent', querySelector: 'span', name: 'span' });
+                var root = new Root({pagination: { queryString: 'page_num', begin: 1, end: 10 } });
+                var productLink = new OpenLinks('.list-row a.title', {name: 'link', getResponse });
+                var span = new CollectContent( 'span', {name: 'span' });
                 root.addOperation(productLink);
                 root.addOperation(span);
-                var paragraph = scraper.createOperation({ type: 'collectContent', querySelector: 'h4,h2', name: 'h4&h2' });
+                var paragraph = new CollectContent( 'h4,h2', {name: 'h4&h2' });
                 root.addOperation(paragraph);
 
-                var productImage = scraper.createOperation({ type: 'download', querySelector: 'img:first', name: 'image' });
+                var productImage = new DownloadContent('img:first',{ name: 'image' });
 
                 productLink.addOperation(paragraph);
                 // productLink.addOperation(productImage);

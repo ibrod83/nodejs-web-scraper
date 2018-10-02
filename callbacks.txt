@@ -1,0 +1,14 @@
+CollectContent, OpenLinks, DownloadContent:
+
+function getElementList(elementList)){}
+called in Operation.createElementList();
+----------------------------------------------
+
+OpenLinks, Root:
+
+function afterOneLinkScrape(cleanData){}
+called in CompositeOperation.processOneScrapingObject()
+
+function beforeOneLinkScrape(response){}
+called in CompositeOperation.processOneScrapingObject()
+

@@ -8,26 +8,6 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "axios": "^0.18.0",
-    "bluebird": "^3.5.1",
-    "cheerio": "^1.0.0-rc.2",
-    "cheerio-advanced-selectors": "^2.0.1",
-    "es6-promise-pool": "^2.5.0",
-    "express": "^4.16.3",
-    "json-stringify-safe": "^5.0.1",
-    "lodash": "^4.17.10",
-    "mime-types": "^2.1.20",
-    "node-fetch": "^2.2.0",
-    "object-sizeof": "^1.2.0",
-    "prompt-input": "^3.0.0",
-    "queue": "^4.5.0",
-    "qyu": "^0.3.0",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.2",
-    "sanitize-filename": "^1.6.1",
-    "uuid": "^3.3.2"
-  },
   "devDependencies": {
     "babel-plugin-transform-class-properties": "^6.24.1"
   },
@@ -36,5 +16,6 @@
       "*.json",
       "images/*"
     ]
-  }
+  },
+  "dependencies": {}
 }
