@@ -3,66 +3,71 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const file_downloader = require('../file_downloader')
+const YoyoTrait = require('../YoyoTrait');
 
 
+// console.log(DownloadContent)
 
 class DownloadContent extends Operation {
 
     constructor(querySelector, objectConfig) {
         super(objectConfig);
+
+        // this.useTrait(YoyoTrait);
+        this.yoyo('chuj ci w dupsko!',this);
+    //    debugger;
+
         this.querySelector = querySelector;
         this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
-        // debugger;
         for (let prop in objectConfig) {
             if (this.overridableProps.includes(prop))
                 this[prop] = objectConfig[prop];
         }
         // debugger;
         this.validateOperationArguments();
+       
+        // this.yoyo();
+        
 
 
     }
+      
 
     async scrape(responseObjectFromParent) {
-
-        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
-
-            type: 'Download Content',
-            name: this.name,
-            address: responseObjectFromParent.config.url,
-            data: [],
-        }
+        // debugger;
+        // console.log(this.prototype)
+        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
 
         this.contentType = this.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
-        const elementList = this.createElementList($);
+        // debugger;
+        const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
 
+        const elementList = this.createElementList($);
 
         const fileRefs = [];
         elementList.forEach((element) => {
-            // console.log(element.find)
             var src;
-            // debugger;
             src = element.attr(this.contentType === 'image' ? 'src' : 'href')
-            // const yoyo =  $(element);
-            // console.log(yoyo[0].attribs)
-            // debugger;
+
             if (!src || src.startsWith("data:image")) {
                 const alternativeAttrib = this.alternativeSrc && this.getAlternativeAttrib(element[0].attribs);
                 if (alternativeAttrib) {
-                   
+
                     src = element.attr(alternativeAttrib);
                     console.log('alternative src result', src)
                 } else {
                     console.log('page of image error:', responseObjectFromParent.request.res.responseUrl)
+
                     const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.request.res.responseUrl}, alternative srcs: ${this.alternativeSrc}`;
                     console.error(errorString)
                     return;
                 }
             }
 
-            src = this.processRelativeSrc(src);
-            const absoluteUrl = this.getAbsoluteUrl(responseObjectFromParent.request.res.responseUrl, src);
+            // src = this.processRelativeSrc(src);
+
+            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, src);
             fileRefs.push(absoluteUrl);
 
 
@@ -84,7 +89,7 @@ class DownloadContent extends Operation {
         this.data.push(currentWrapper);
 
         if (this.afterScrape) {
-            await this.afterScrape(this.createPresentableData(currentWrapper));
+            await this.afterScrape(currentWrapper);
         }
 
         return this.createMinimalData(currentWrapper);
@@ -106,7 +111,7 @@ class DownloadContent extends Operation {
     }
 
     async getFile(url) {
-
+        // debugger;
 
         if (this.processUrl) {
             try {
@@ -150,18 +155,18 @@ class DownloadContent extends Operation {
         const asyncFunction = async () => {
 
             const fileDownloader = new file_downloader(options);
-            this.scraper.currentlyRunning++;
+            this.scraper.state.currentlyRunning++;
             console.log('fetching file:', url)
-            console.log('currentlyRunning:', this.scraper.currentlyRunning);
+            console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
             await this.createDelay()
-            this.scraper.numRequests++
-            console.log('overall requests', this.scraper.numRequests)
+            this.scraper.state.numRequests++
+            console.log('overall requests', this.scraper.state.numRequests)
             let resp;
             try {
 
                 //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
                 await fileDownloader.download();
-                if (!this.scraper.mockImages)
+                if (!this.scraper.config.mockImages)
                     await fileDownloader.save();
             } catch (err) {
 
@@ -173,14 +178,14 @@ class DownloadContent extends Operation {
             }
 
             finally {
-                this.scraper.currentlyRunning--;
-                console.log('currentlyRunning:', this.scraper.currentlyRunning);
+                this.scraper.state.currentlyRunning--;
+                console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
             }
             return resp;
 
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { this.scraper.downloadedImages++; console.log('images:', this.scraper.downloadedImages) })
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages) })
 
 
 
@@ -196,11 +201,13 @@ class DownloadContent extends Operation {
         }
         try {
 
+
             await this.getFile(fileHref);
+            // debugger;
             scrapingObject.successful = true;
 
         } catch (error) {
-
+            // debugger;
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString)
@@ -214,5 +221,16 @@ class DownloadContent extends Operation {
 
 
 }
+DownloadContent.useTrait(YoyoTrait,DownloadContent);
+// console.log(DownloadContent.prototype)
+// YoyoTrait.prototype = Object.create(DownloadContent.prototype);
+// Object.keys(YoyoTrait.prototype).forEach((prop) => {
+//     if (YoyoTrait.prototype.hasOwnProperty(prop)) {
+//         DownloadContent.prototype[prop] = DownloadContent.prototype[prop] || YoyoTrait.prototype[prop];
+//     }
+// })
+// debugger;
+// console.log(DownloadContent.prototype)
+// console.log(DownloadContent.__proto__)
 
 module.exports = DownloadContent;

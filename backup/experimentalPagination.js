@@ -311,7 +311,7 @@ class Selector {//Base abstract class for selectors. "leaf" selectors will inher
             const errorCode = error.code;
             console.log(errorCode);
             if (errorCodesToSkip.includes(errorCode))
-                throw `Skipping error ${errorCode}`;
+                throw `Skipping error ${errorCode}, from href: ${href}`;
             console.log('Retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('Retreis', newRetries)

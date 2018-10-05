@@ -7,12 +7,13 @@ const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
+
 // const Root = require('./operations/Root');
 
 
 
 //*********************** */
-let _scraperInstance;
+let scraperInstance;//Will hold a reference to the Scraper object.
 
 
 class Scraper {
@@ -33,33 +34,40 @@ class Scraper {
             headers: null
         }
 
+        this.state = {
+            existingUserFileDirectories: [],
+            failedScrapingObjects: [],
+            downloadedImages: 0,
+            currentlyRunning: 0,
+            registeredOperations: [],//Holds a reference to each created operation.
+            numRequests: 0,
+            scrapingObjects: []//for debugging
+        }
+
+
+
         this.validateGlobalConfig(globalConfig);
 
         for (let prop in globalConfig) {
-
             this.config[prop] = globalConfig[prop];
         }
-        this.existingUserFileDirectories = [];
-        this.failedScrapingObjects = [];
-        this.fakeErrors = false;
-        this.useQyu = true;
-        this.mockImages = false;
-        this.downloadedImages = 0;
-        this.currentlyRunning=0;
-        this.registeredOperations = []//Holds a reference to each created operation.
-        this.numRequests = 0;
-        this.scrapingObjects = []//for debugging    
 
+        this.config.fakeErrors = false;
+        this.config.useQyu = true;
+        this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
-        _scraperInstance = this;
+        if (scraperInstance)
+            throw 'Scraper can have only one instance.'
+        scraperInstance = this;
 
     }
 
-    static getInstance() {
+    static getScraperInstance() {
 
-        return _scraperInstance;
+        return scraperInstance;
     }
+
 
     validateGlobalConfig(conf) {
         if (!conf || typeof conf !== 'object')
@@ -69,20 +77,20 @@ class Scraper {
     }
 
     verifyDirectoryExists(path) {//Will make sure the target directory exists.
-        if (!this.existingUserFileDirectories.includes(path)) {
+        if (!this.state.existingUserFileDirectories.includes(path)) {
             console.log('checking if dir exists:', path)
             if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
                 console.log('creating dir:', path)
                 fs.mkdirSync(path);
             }
-            this.existingUserFileDirectories.push(path);
+            this.state.existingUserFileDirectories.push(path);
         }
 
     }
 
     async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root operation.
         // debugger;
-        if (rootObject.constructor.name !== 'Root'  || !rootObject)
+        if (rootObject.constructor.name !== 'Root' || !rootObject)
             throw 'Scraper.scrape() expects a root object as an argument!';
 
         await rootObject.scrape();
@@ -94,21 +102,17 @@ class Scraper {
             }
         }
 
-        console.log('overall images: ', this.downloadedImages)
+        console.log('overall images: ', this.state.downloadedImages)
         await this.repeatAllErrors(rootObject);
     }
 
- 
-    handleNewOperationCreation(Operation) {
-        this.registeredOperations.push(Operation);
-    }
 
     saveFile(obj) {
         this.verifyDirectoryExists(this.config.logPath);
         // debugger;
         return new Promise((resolve, reject) => {
             console.log('saving file')
-            fs.writeFile(path.join(this.config.logPath,`${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
+            fs.writeFile(path.join(this.config.logPath, `${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
                 // reject('chuj ci w dupe')
                 if (error) {
                     reject(error)
@@ -125,12 +129,12 @@ class Scraper {
 
     async createLogs() {
         // debugger;
-        for (let operation of this.registeredOperations) {
+        for (let operation of this.state.registeredOperations) {
             const fileName = operation.constructor.name === 'Root' ? 'log' : operation.name;
             const data = operation.getData();
             await this.createLog({ fileName, data })
         }
-        await this.createLog({ fileName: 'failedObjects', data: this.failedScrapingObjects })
+        await this.createLog({ fileName: 'failedObjects', data: this.state.failedScrapingObjects })
     }
 
 
@@ -138,12 +142,12 @@ class Scraper {
         await this.saveFile(obj);
     }
 
-    
+
 
 
     async repeatAllErrors(referenceToRootOperation) {
         while (true) {
-            if (this.failedScrapingObjects.length) {
+            if (this.state.failedScrapingObjects.length) {
 
                 const repeat = await this.repeatErrors();
                 if (repeat === 'done')
@@ -151,7 +155,7 @@ class Scraper {
                 var entireTree = referenceToRootOperation.getData();
 
                 await this.createLog({ fileName: 'log', data: entireTree })
-                await this.createLog({ fileName: 'failedObjects', data: this.failedScrapingObjects })
+                await this.createLog({ fileName: 'failedObjects', data: this.state.failedScrapingObjects })
 
             } else {
                 return
@@ -169,14 +173,14 @@ class Scraper {
 
         // this.fakeErrors = false;
         let counter = 0
-        // const failedImages = this.failedScrapingObjects.filter((object) => { return !object.data })
-        console.log('number of failed objects:', this.failedScrapingObjects.length)
+        // const failedImages = this.state.failedScrapingObjects.filter((object) => { return !object.data })
+        console.log('number of failed objects:', this.state.failedScrapingObjects.length)
         const shouldScraperRepeat = await input.run();
         console.log(shouldScraperRepeat);
         if (shouldScraperRepeat !== 'y' && shouldScraperRepeat !== 'Y')
             return 'done';
         await Promise.all(
-            this.failedScrapingObjects.map(async (failedObject) => {
+            this.state.failedScrapingObjects.map(async (failedObject) => {
                 counter++
                 console.log('failed object counter:', counter)
                 console.log('failed object', failedObject)
@@ -186,7 +190,7 @@ class Scraper {
                 console.log('failed object after repetition', failedObject);
                 if (failedObject.successful == true) {
                     delete failedObject.error;
-                    this.failedScrapingObjects.splice(this.failedScrapingObjects.indexOf(failedObject), 1);
+                    this.state.failedScrapingObjects.splice(this.state.failedScrapingObjects.indexOf(failedObject), 1);
                 }
 
             })
@@ -260,7 +264,7 @@ class Scraper {
 // if (this.pagination && this.pagination.nextButton) {
 //     var paginationSelectors = [];
 //     for (let i = 0; i < this.pagination.numPages; i++) {
-//         const paginationSelector = this.scraper.createSelector('page', this.pagination.nextButton);
+//         const paginationSelector = this.state.createSelector('page', this.pagination.nextButton);
 //         paginationSelector.operations = this.operations;
 //         paginationSelectors.push(paginationSelector);
 //     }

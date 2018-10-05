@@ -5,13 +5,14 @@ const Promise = require('bluebird');
 const _ = require('lodash');
 
 
+
 class Operation {//Base abstract class for operations. "leaf" operations will inherit directly from it.
 
     constructor(objectConfig) {
         // debugger;
-        this.scraper = Scraper.getInstance();//Reference to the scraper main object.
+        this.scraper = Scraper.getScraperInstance();//Reference to the scraper main object.
 
-        this.scraper.handleNewOperationCreation(this);
+        this.handleNewOperationCreation(this);
 
         if (objectConfig) {
             for (let i in objectConfig) {
@@ -25,9 +26,35 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
+        // debugger;
+        // console.log(this.prototype)
 
 
     }
+
+    static useTrait(Trait,Class) {
+       
+        Object.keys(Trait.prototype).forEach((prop) => {
+            if (Trait.prototype.hasOwnProperty(prop)) {
+                Class.prototype[prop] = Class.prototype[prop] || Trait.prototype[prop];
+            }
+        })
+       
+
+    }
+
+    // static extend(Trait,Class) {
+        
+    //     Object.keys(Trait.prototype).forEach((prop) => {
+    //         if (Trait.prototype.hasOwnProperty(prop)) {
+    //             Class.prototype[prop] = Class.prototype[prop] || Trait.prototype[prop];
+    //         }
+    //     })
+       
+
+    // }
+
+
 
     validateOperationArguments() {
 
@@ -58,72 +85,42 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         }
     }
 
+    handleNewOperationCreation(Operation) {
+        this.scraper.state.registeredOperations.push(Operation);
+    }
 
 
-
-
-    // createPresentableData(originalData) {//Is used for passing cleaner data to user callbacks.
-    //     // debugger;
-    //     // const newData= _.clone(originalData);
-    //     // delete newData.address;
-    //     switch (originalData.type) {
-
-    //         // case 'Collect Content':
-    //         // case 'Download Content':
-    //         //     presentableData.address = originalData.address
-    //         //     presentableData.data = originalData.data
-    //         //     break;
-    //         default:
-    //             // delete originalData.address;
-    //             return originalData;
-
-
-    //     }
-    //     // return originalData;
-    // }
-    createElementList($){
+    createElementList($) {
         const nodeList = this.createNodeList($);
-        const elementList=[];
+        const elementList = [];
         nodeList.each((index, node) => {
-        
+
             elementList.push($(node))
 
         })
-        if(this.getElementList){
+        if (this.getElementList) {
             this.getElementList(elementList);
         }
         return elementList;
     }
 
-     createNodeList($) {//Gets a cheerio object and creates a nodelist. Checks for "getNodeList" user callback.       
+    createNodeList($) {//Gets a cheerio object and creates a nodelist. Checks for "getNodeList" user callback.       
 
         const nodeList = this.slice ? $(this.querySelector).slice(typeof this.slice === 'number' ? this.slice : this.slice[0], this.slice[1]) : $(this.querySelector);
 
-        // if (this.getNodeList) {//If a "getNodeList" callback was provided, it will be called
-        //     try {
-        //         if (typeof this.getNodeList !== 'function') {
-        //             throw "'getNodeList' callback must be a function";
-        //         }
-        //         await this.getNodeList(nodeList)
-        //     } catch (error) {
-        //         console.error(error);
-
-        //     }
-        // }
-        // console.log('nodelist after removal',nodeList)
         return nodeList;
     }
 
-    processRelativeSrc(src) {
-        let newSrc;
-        const isRelativeUrl = !src.includes('http') && !src.includes('www.')
-        if (isRelativeUrl && src.charAt(0) !== "/") {
-            newSrc = "/" + src;
-        } else {
-            newSrc = src;
-        }
-        return newSrc;
-    }
+    // processRelativeSrc(src) {
+    //     let newSrc;
+    //     const isRelativeUrl = !src.includes('http') && !src.includes('www.')
+    //     if (isRelativeUrl && src.charAt(0) !== "/") {
+    //         newSrc = "/" + src;
+    //     } else {
+    //         newSrc = src;
+    //     }
+    //     return newSrc;
+    // }
 
     createScrapingObjectsFromRefs(refs, type) {
 
@@ -140,6 +137,16 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         return scrapingObjects;
     }
 
+    createWrapper(address) {
+        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
+            type: this.constructor.name,
+            name: this.name,
+            address,
+            data: []
+        }
+        return currentWrapper;
+    }
+
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
         // console.log('overwriteConcurrency', overwriteConcurrency)
         await Promise.map(scrapingObjects, (scrapingObject) => {
@@ -148,17 +155,18 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
     }
 
     handleFailedScrapingObject(scrapingObject, errorString) {
+        // debugger;
         console.error(errorString);
         scrapingObject.error = errorString;
-        if (!this.scraper.failedScrapingObjects.includes(scrapingObject)) {
+        if (!this.scraper.state.failedScrapingObjects.includes(scrapingObject)) {
             // console.log('scrapingObject not included,pushing it!')
-            this.scraper.failedScrapingObjects.push(scrapingObject);
+            this.scraper.state.failedScrapingObjects.push(scrapingObject);
         }
     }
 
 
     qyuFactory(promiseFunction) {//This function pushes promise-returning functions into the qyu. 
-        if (!this.scraper.useQyu) {
+        if (!this.scraper.config.useQyu) {
             return promiseFunction();
         }
         return this.scraper.qyu(promiseFunction);
@@ -194,26 +202,26 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
         if (type)
             scrapingObject.type = type;
 
-        this.scraper.scrapingObjects.push(scrapingObject)
+        this.scraper.state.scrapingObjects.push(scrapingObject)
 
         return scrapingObject;
     }
 
-    getData() {        
+    getData() {
         return this.data;
     }
 
-    createMinimalData(currentWrapper){
-        
-        return {type:currentWrapper.type,name:currentWrapper.name,data:currentWrapper.data};
+    createMinimalData(currentWrapper) {
+
+        return { type: currentWrapper.type, name: currentWrapper.name, data: currentWrapper.data };
     }
 
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
         const errorCodesToSkip = [404];
-        const randomNumber = this.scraper.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
-        if (this.scraper.numRequests > 3 && randomNumber == 1) {
+        const randomNumber = this.scraper.config.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
+        if (this.scraper.state.numRequests > 3 && randomNumber == 1) {
             throw 'randomly generated error,' + href;
         }
 
@@ -246,24 +254,52 @@ class Operation {//Base abstract class for operations. "leaf" operations will in
     }
 
     getAbsoluteUrl(base, relative) {//Handles the absolute URL.
+        // debugger;
         const newUrl = new URL(relative, base).toString();
         return newUrl;
 
     }
 
-    resolveActualBaseUrl(currentAddress) {
-        const currentHost = new URL(currentAddress).host;
-        const originalHost = new URL(this.scraper.config.baseSiteUrl).host;
+    getBaseUrlFromBaseTag($) {
+        let baseMetaTag = $('base');
 
-        // console.log('currentHost', currentHost);
+        // debugger;
+        if (baseMetaTag.length == 0 || baseMetaTag.length > 1) {
+            baseMetaTag = null;
+        }
+        else {
+            baseMetaTag = baseMetaTag[0];
+            var baseUrlFromBaseTag = baseMetaTag.attribs.href || null;
+        }
 
-        return currentHost === originalHost ? this.scraper.config.baseSiteUrl : currentAddress
+        if (baseUrlFromBaseTag) {
+            if (baseUrlFromBaseTag === '/') {
+                baseUrlFromBaseTag = this.scraper.config.baseSiteUrl
+            }
+        }
+
+        return baseUrlFromBaseTag;
+
 
     }
+
+    // resolveActualBaseUrl(currentAddress) {
+    //     const currentHost = new URL(currentAddress).host;
+    //     const originalHost = new URL(this.scraper.config.baseSiteUrl).host;
+
+    //     // console.log('currentHost', currentHost);
+
+    //     return currentHost === originalHost ? this.scraper.config.baseSiteUrl : currentAddress
+
+    // }
 
 
 
 }
+
+// Operation.prototype.yoyo = () => {
+//     console.log('yoyoyoyoyoyoyoy')
+// }
 
 
 module.exports = Operation;

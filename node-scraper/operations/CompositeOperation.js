@@ -5,7 +5,7 @@ var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 // debugger;
 //***for debugging *******/
-var overallSeconds = 0;
+// var overallSeconds = 0;
 //*********************** */
 class CompositeOperation extends Operation {//Abstract class, that deals with "composite" operations, like a link(a link can hold other links, or "leaves", like data or image operations).
 
@@ -33,7 +33,7 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
 
         let href = scrapingObject.address;
         try {
-            // if (this.scraper.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
+            // if (this.state.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
             if (this.processUrl) {
                 try {
                     href = await this.processUrl(href)
@@ -150,13 +150,13 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
     async getPage(href, bypassError) {//Fetches the html of a given page.
 
         const asyncFunction = async () => {
-            this.scraper.currentlyRunning++;
+            this.scraper.state.currentlyRunning++;
             console.log('opening page', href);
-            console.log('currentlyRunning:', this.scraper.currentlyRunning);
-            // console.log('delay from page', this.scraper.delay)
+            console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+            // console.log('delay from page', this.state.delay)
             await this.createDelay();
-            this.scraper.numRequests++
-            console.log('overall requests', this.scraper.numRequests)
+            this.scraper.state.numRequests++
+            console.log('overall requests', this.scraper.state.numRequests)
             let resp;
             try {
                 var begin = Date.now()
@@ -180,13 +180,13 @@ class CompositeOperation extends Operation {//Abstract class, that deals with "c
                 throw error;
             }
             finally {
-                const end = Date.now();
-                const seconds = (end - begin) / 1000
+                // const end = Date.now();
+                // const seconds = (end - begin) / 1000
                 // console.log('seconds: ', seconds);
-                overallSeconds += seconds;
+                // overallSeconds += seconds;
                 // overallPageRequests++
-                this.scraper.currentlyRunning--;
-                console.log('this.scraper.currentlyRunning:', this.scraper.currentlyRunning);
+                this.scraper.state.currentlyRunning--;
+                console.log('this.scraper.state.currentlyRunning:', this.scraper.state.currentlyRunning);
             }
             return resp;
         }

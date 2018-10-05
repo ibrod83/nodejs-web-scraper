@@ -4,11 +4,15 @@ function getElementList(elementList)){}
 called in Operation.createElementList();
 ----------------------------------------------
 
-OpenLinks, Root:
+OpenLinks:
 
 function afterOneLinkScrape(cleanData){}
 called in CompositeOperation.processOneScrapingObject()
 
 function beforeOneLinkScrape(response){}
 called in CompositeOperation.processOneScrapingObject()
+
+All Operations besides root
+function afterScrape(currentWrapper){}
+called in scrape()
 

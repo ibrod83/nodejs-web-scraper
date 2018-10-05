@@ -16,7 +16,7 @@ class Root extends CompositeOperation {
     getErrors() {//Will get the errors from all registered operations.
         let errors = [...this.errors];
 
-        this.scraper.registeredOperations.forEach((operation) => {
+        this.scraper.state.registeredOperations.forEach((operation) => {
             if (operation.constructor.name !== 'Root')
                 errors = [...operation.getErrors()]
         })

@@ -5,26 +5,26 @@ class Inquiry extends Operation {
     constructor(conditionFunction) {
         super({});
         this.condition = conditionFunction;
-        // debugger;
         this.validateOperationArguments();
     }
 
     async scrape(responseObjectFromParent) {
+        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
 
-        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
-            type: 'Inquiry',
-            name: this.name,
-            address: responseObjectFromParent.config.url,
-            data: {
-                meetsCondition: false
-            }
+        let meetsCondition;
+
+        if (await this.condition(responseObjectFromParent) === true)
+            meetsCondition = true;
+        else
+            meetsCondition = false;
+
+        currentWrapper.data = { meetsCondition}
+
+        if (this.afterScrape) {
+            await this.afterScrape(currentWrapper);
         }
 
-        if (await this.condition(responseObjectFromParent) === true) {
-            currentWrapper.data['meetsCondition'] = true;
-        }
 
-        
 
         this.data = [...this.data, currentWrapper];
 

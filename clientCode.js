@@ -23,6 +23,8 @@ const fs = require('fs');
     // 'bbc'
     // 'skynews'
     // 'typeface'
+    // 'basemetatag'
+    // 'rebooks'
 
     var config = {
         concurrency: 10,
@@ -35,11 +37,69 @@ const fs = require('fs');
         logPath: './logs/'
     }
     var goodPages = [];
-    const currentMockClientCode = 'cnn';
+    const currentMockClientCode = 'bookSiteCategory';
     await mockClientCode(currentMockClientCode);
 
     async function mockClientCode(siteName) {
         switch (siteName) {
+
+            case 'rebooks':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://rebooks.org.il/`,
+                    startUrl: `https://rebooks.org.il/loadBooks.php?g=x&at=0&limit=10&i=3&d=1&b=0&s=&first=1&sm=0&store=x`,
+                    // headers: {'chuj': 'ci w dupe'}
+                }
+
+                var scraper = new Scraper(config);
+
+                var root = new Root();
+
+                var product = new OpenLinks("a", { name: 'product' });
+                var title = new CollectContent('h1',{shouldTrim:false})
+
+                var image = new DownloadContent('img', { name: 'image' });
+                product.addOperation(image)
+                product.addOperation(title)
+
+                root.addOperation(product);
+
+
+
+
+                await execute();
+
+                break;
+
+            case 'basemetatag':
+
+                config = {
+                    ...config,
+                    baseSiteUrl: `https://www.as-coa.org/`,
+                    startUrl: `https://www.as-coa.org/`,
+                    // headers: {'chuj': 'ci w dupe'}
+                }
+
+                var scraper = new Scraper(config);
+
+                var root = new Root();
+                // console.log(root.prototype)
+                // debugger;
+                // console.log('Root.prototype',Root.prototype)
+
+                var image = new DownloadContent('img', { name: 'image' });
+                debugger;
+                console.log('DownloadContent.prototype',DownloadContent.prototype)
+
+                root.addOperation(image);
+
+
+
+
+                await execute();
+
+                break;
 
             case 'typeface':
 
@@ -77,7 +137,7 @@ const fs = require('fs');
                     // headers: {'chuj': 'ci w dupe'}
                 }
 
-               
+
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
 
@@ -316,7 +376,7 @@ const fs = require('fs');
                 }
                 // {pagination:{nextButton:'a#pnnext',numPages:10}}
                 var scraper = new Scraper(config);
-                var root = new Root({ pagination: { queryString: 'start', begin: 0, end: 20, offset: 10 } });
+                var root = new Root({ pagination: { queryString: 'start', begin: 0, end: 40, offset: 10 } });
                 var americaPage = new OpenLinks('h3.r a', { name: 'americaPage', processUrl });
                 var h1 = new CollectContent('h1', { name: 'h1' });
                 var image = new DownloadContent('img', { name: 'image', processUrl });
@@ -349,7 +409,7 @@ const fs = require('fs');
                 var root = new Root()
                 var article = new OpenLinks('article a', { name: 'article' });
                 var paragraph = new CollectContent('h1', { name: 'paragraphs' });
-                var image = new DownloadContent('img.media__image.media__image--responsive', { name: 'image', alternativeSrc: ['data-src','data-src-small'] });
+                var image = new DownloadContent('img.media__image.media__image--responsive', { name: 'image', alternativeSrc: ['data-src', 'data-src-small'] });
                 var articleImage = new DownloadContent('img', { name: 'article image', alternativeSrc: ['data-src-small', 'data-src'] });
 
                 root.addOperation(article);
@@ -387,8 +447,8 @@ const fs = require('fs');
                     childData.push(dataFromChildren);
                 }
 
-                const beforeOneLinkScrape = (response)=>{
-                    console.log('before one link scrape! ',response)
+                const beforeOneLinkScrape = (response) => {
+                    console.log('before one link scrape! ', response)
                 }
 
 
@@ -406,17 +466,21 @@ const fs = require('fs');
                     }
                 }
 
+                const afterScrape = (wrapper) => {
+                    console.log('after scrape of productpage operation. wrapper:', wrapper)
+                }
+
                 // scraper.createOperation({type: 'openLinks',querySelector: '#content_65 ol a:eq(0)',name: 'category'})
                 var scraper = new Scraper(config);
                 var root = new Root()
                 var categoryPage = new OpenLinks('#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 1 } });
                 var inquiryOfPage = new Inquiry(condition);
 
-                var productPage = new OpenLinks('.product_name_link', { name: 'product', afterOneLinkScrape,beforeOneLinkScrape });
+                var productPage = new OpenLinks('.product_name_link', { name: 'product', afterOneLinkScrape, beforeOneLinkScrape, afterScrape });
                 root.addOperation(categoryPage);
                 categoryPage.addOperation(productPage);
                 var publisherData = new CollectContent('.product_publisher', { name: 'publisher' });
-                var p = new CollectContent('p', { name: 'p',getElementList });
+                var p = new CollectContent('p', { name: 'p', getElementList, });
                 var productName = new CollectContent('.product_name', { name: 'name' });
                 var productImage = new DownloadContent('.book img', { name: 'image', imageResponseType: 'arraybuffer' });
                 productPage.addOperation(publisherData);
@@ -426,6 +490,7 @@ const fs = require('fs');
                 productPage.addOperation(p);
                 categoryPage.addOperation(p)
                 root.addOperation(p);
+
 
                 await execute();
                 fs.writeFile('./logs/p.json', JSON.stringify(p.getData()));
@@ -477,15 +542,15 @@ const fs = require('fs');
                 }
                 var scraper = new Scraper(config);
 
-                var root = new Root({pagination: { queryString: 'page_num', begin: 1, end: 10 } });
-                var productLink = new OpenLinks('.list-row a.title', {name: 'link', getResponse });
-                var span = new CollectContent( 'span', {name: 'span' });
+                var root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });
+                var productLink = new OpenLinks('.list-row a.title', { name: 'link', getResponse });
+                var span = new CollectContent('span', { name: 'span' });
                 root.addOperation(productLink);
                 root.addOperation(span);
-                var paragraph = new CollectContent( 'h4,h2', {name: 'h4&h2' });
+                var paragraph = new CollectContent('h4,h2', { name: 'h4&h2' });
                 root.addOperation(paragraph);
 
-                var productImage = new DownloadContent('img:first',{ name: 'image' });
+                var productImage = new DownloadContent('img:first', { name: 'image' });
 
                 productLink.addOperation(paragraph);
                 // productLink.addOperation(productImage);
@@ -513,10 +578,10 @@ const fs = require('fs');
                 }
                 var scraper = new Scraper(config);
                 var root = new Root()
-                var category = scraper.createOperation({ type: 'openLinks', querySelector: '.css-1wjnrbv', name: 'category' });
-                var article = scraper.createOperation({ type: 'openLinks', querySelector: 'article a', name: 'article' });
-                var h1 = scraper.createOperation({ type: 'collectContent', querySelector: 'h1', name: 'h1' });
-                var image = scraper.createOperation({ type: 'download', querySelector: 'img', name: 'image' });
+                var category = new OpenLinks('.css-1wjnrbv', { name: 'category' });
+                var article = new OpenLinks('article a', { name: 'article' });
+                var h1 = new CollectContent('h1', { name: 'h1' });
+                var image = new DownloadContent('img', { name: 'image' });
 
                 root.addOperation(category);
                 article.addOperation(image);
