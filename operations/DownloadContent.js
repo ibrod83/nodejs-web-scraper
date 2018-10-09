@@ -170,9 +170,12 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
             try {
 
                 //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
-                await fileDownloader.download();
-                if (!this.scraper.config.mockImages)
+                await fileDownloader.download();             
+                if (!this.scraper.config.mockImages){
                     await fileDownloader.save();
+                    this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages)
+                }
+                    
             } catch (err) {
 
                 if (err.code === 'EEXIST') {
@@ -190,7 +193,8 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url).then(() => { this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages) })
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url)
+        // .then(() => { this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages) })
 
 
 

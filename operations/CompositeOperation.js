@@ -66,7 +66,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                 // overallSeconds += seconds;
                 // overallPageRequests++
                 this.scraper.state.currentlyRunning--;
-                console.log('this.scraper.state.currentlyRunning:', this.scraper.state.currentlyRunning);
+                console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
             }
             return resp;
         }

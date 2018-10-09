@@ -8,6 +8,14 @@ It supports features like automatic retries of failed requests, concurrency limi
 ```sh
 $ npm install nodejs-web-scraper
 ```
+# Table of Contents
+- [Basic example](#basic-example) 
+- [Advanced](#advanced-examples)  
+- [API](#api) 
+- [Pagination explained](#pagination-explained) 
+- [Error Handling](#error-handling) 
+- [Memory consumption](#memory-consumption) 
+- [Concurrency](#concurrency) 
 
 ## Basic example
 
@@ -68,7 +76,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 ## Advanced Examples
 
-#### Scraping with pagination and an "afterOneLinkScraped" callback.
+#### Pagination and an "afterOneLinkScraped" callback.
 
 ```javascript
 
@@ -117,11 +125,11 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
 
 
-#### Scraping with file download(non-image) and a "processElementContent" callback.
+#### File download(non-image) and a "getElementContent" callback.
 
 ```javascript
 
-const processElementContent = (contentString)=>{
+const getElementContent = (contentString)=>{
     if(contentString.includes('Hey!')){
           return `${contentString} some appended phrase...`;//You need to return a new string.
     }
@@ -143,7 +151,7 @@ config = {
 
     const video = new DownloadContent('a.video',{ contentType: 'file' });//The "contentType" makes it clear for the scraper that this is NOT an image(therefore the "href is used instead of "src"). 
 
-    const description = new CollectContent('h1'{processElementContent});//Using a callback on each node text.       
+    const description = new CollectContent('h1'{getElementContent});//Using a callback on each node text.       
 
     root.addOperation(video);      
     root.addOperation(description);//Notice that i use the same "header" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
@@ -157,7 +165,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
 &nbsp;
 
-#### Scraping with "processUrl" callback and a "beforeOneLinkScrape" callback.
+#### "processUrl" callback and a "beforeOneLinkScrape" callback.
 
 ```javascript
 
@@ -212,11 +220,12 @@ These are available options for the scraper, with their default values:
 const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
-            logPath://Highly recommended.Will create a log for each scraping operation(object).         
+            logPath://Highly recommended.Will create a log for each scraping operation(object).  
+            shouldPromptForScrapingRepetition:true//At the end of the scraping process, Prompts you from the console, whether all failed requests should repeat. For more details refer to the "error handling section.       
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             fileFlag: 'w',//The flag provided to the file saving function. 
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
-            maxRetries: 5,//Maximum number of retries of a failed request.
+            maxRetries: 5,//Maximum number of retries of a failed request.            
             imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
             delay: 100,
             timeout: 5000,
@@ -281,7 +290,8 @@ The optional config can receive these properties:
     name:'some name',
     contentType:'text',//Either 'text' or 'html'. Default is text.   
     shouldTrim:true,//Default is true. Applies JS String.trim() method.
-    getElementList:(elementList)=>{},    
+    getElementList:(elementList)=>{},  
+    getElementContent:(elementContentString)=>{}//Called with each element collected.  
     afterScrape:(data)=>{},//In the case of CollectContent, it will be called with each page, this operation collects content from.
     slice:[start,end]
 }
@@ -301,7 +311,8 @@ The optional config can receive these properties:
 ```javascript
 {
     name:'some name',
-    contentType:'image',//Either 'image' or 'file'. Default is image.  
+    contentType:'image',//Either 'image' or 'file'. Default is image.
+    alternativeSrc:['first-alternative','second-alternative']//Some images might not have an actual "src", but a data:url. You can provide as many alternative src's as you wish. If the scraper doesn't find a valid src, it will try the alternatives.  
     getElementList:(elementList)=>{},    
     afterScrape:(data)=>{},//In this case, it will just return a list of downloaded items.
     filePath:'./somePath',//Overrides the global filePath passed to the Scraper config.
@@ -382,7 +393,11 @@ After Scraper.scrape() has has come to an end, and if the failedRequests array i
 
 ## Memory consumption
 
-In scraping jobs that require the "opening" of many large HTML pages at the same time(some sites completely bloat their HTML. I'm using regex to clean-up scripts and CSS), memory consumption can reach about 250MB. This is of course fine, **but if you're using Chrome devtools for debugging,  consumtion can sky-rocket**. I do not know why this happens, but the solution is to shutdown the devtools. Please keep that in mind, in case you run into memory trouble. Note also, that in some cases, I force-limit the concurrency, due to the memory issue.
+In scraping jobs that require the "opening" of many large HTML pages at the same time(some sites completely bloat their HTML. I'm using regex to clean-up scripts and CSS), memory consumption can reach about 250MB. This is of course fine, **but if you're using Chrome devtools for debugging,  consumtion can sky-rocket**. I do not know why this happens, but the solution is to shutdown the devtools. 
+
+## Concurrency
+
+nodejs-web-scraper uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most.
 
 
 

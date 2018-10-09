@@ -32,8 +32,8 @@ class CollectContent extends Operation {
 
         elementList.forEach((element) => {
             let content = this.getNodeContent(element);
-            if (this.processElementContent) {
-                const contentFromCallback = this.processElementContent(content)
+            if (this.getElementContent) {
+                const contentFromCallback = this.getElementContent(content)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
 

@@ -31,7 +31,8 @@ class Scraper {
             timeout: 5000,
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,
-            headers: null
+            headers: null,
+            shouldPromptForScrapingRepetition:true
         }
 
         this.state = {
@@ -103,7 +104,10 @@ class Scraper {
         }
 
         console.log('overall images: ', this.state.downloadedImages)
-        await this.repeatAllErrors(rootObject);
+        if(this.config.shouldPromptForScrapingRepetition){
+             await this.repeatAllErrors(rootObject);
+        }
+       
     }
 
 
