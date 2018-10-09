@@ -134,7 +134,7 @@ class Scraper {
             const data = operation.getData();
             await this.createLog({ fileName, data })
         }
-        await this.createLog({ fileName: 'failedObjects', data: this.state.failedScrapingObjects })
+        await this.createLog({ fileName: 'failedRequests', data: this.state.failedScrapingObjects })
     }
 
 
@@ -155,7 +155,7 @@ class Scraper {
                 var entireTree = referenceToRootOperation.getData();
 
                 await this.createLog({ fileName: 'log', data: entireTree })
-                await this.createLog({ fileName: 'failedObjects', data: this.state.failedScrapingObjects })
+                await this.createLog({ fileName: 'failedRequests', data: this.state.failedScrapingObjects })
 
             } else {
                 return

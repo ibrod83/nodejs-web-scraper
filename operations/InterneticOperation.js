@@ -60,6 +60,7 @@ class InterneticOperation extends Operation{//Base class for all operations that
 
 
         } catch (error) {
+            // debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
             this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString);

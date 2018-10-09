@@ -1,5 +1,5 @@
 Nodejs-web-scraper is a simple, yet powerful tool for Node programmers who want to quickly setup a complex scraping job of server-side rendered web sites.
-It supports features like automatic retries of failed requests, concurrency limitation, request delay, etc.
+It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc.
 
 # Readme file is still being written...
 
@@ -368,6 +368,22 @@ nodejs-web-scraper covers most scenarios of pagination(assuming it's server-side
 
     { pagination: { routingString: '/', begin: 1, end: 100 } }
 ```
+
+&nbsp;
+
+## Error Handling
+
+### Repeating failed requests on the fly
+
+nodejs-web-scraper will automatically repeat every failed request(except 404). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped, and an object representing it will be pushed into a "failedRequests" array. After the entire scraping process is complete, all failed objects will be printed as a JSON into a file called **"failedRequests.json"**(assuming you provided a logPath). 
+
+### Repeating all failedRequests again, after scraping process has ended
+After Scraper.scrape() has has come to an end, and if the failedRequests array isn't empty, nodejs-web-scraper **will prompt you from the console**, asking you if you want to repeat those failed requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. If you press "y", the repetition will begin, and you will be prompted again and again - until all requests have finally succeeded. You can just press "n" at any time, if you do not wish to repeat.  
+
+## Memory consumption
+
+In scraping jobs that require the "opening" of many large HTML pages at the same time(some sites completely bloat their HTML. I'm using regex to clean-up scripts and CSS), memory consumption can reach about 250MB. This is of course fine, **but if you're using Chrome devtools for debugging,  consumtion can sky-rocket**. I do not know why this happens, but the solution is to shutdown the devtools. Please keep that in mind, in case you run into memory trouble. Note also, that in some cases, I force-limit the concurrency, due to the memory issue.
+
 
 
 

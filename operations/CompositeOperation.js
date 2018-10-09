@@ -4,7 +4,7 @@ const axios = require('axios');
 class CompositeOperation extends InterneticOperation {//Base class for all operations that are composite, meaning they hold references to other Operations.
 
     addOperation(operationObject) {//Ads a reference to a operation object     
-        console.log(operationObject instanceof Object.getPrototypeOf(InterneticOperation))
+        // console.log(operationObject instanceof Object.getPrototypeOf(InterneticOperation))
         if (!(operationObject instanceof Object.getPrototypeOf(InterneticOperation))) {
             throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
         }
@@ -50,7 +50,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                     // httpAgent: new http.Agent({ keepAlive: true }),
                     // httpsAgent: new https.Agent({ keepAlive: true }),
                 })
-                console.log(resp)
+                // console.log(resp)
                 // console.log('before strip',sizeof(resp.data))                           
                 this.stripTags(resp);
                 // console.log('after strip',sizeof(resp.data))

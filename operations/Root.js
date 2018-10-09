@@ -8,7 +8,7 @@ class Root extends CompositeOperation {//Fetches the initial page, and starts th
     
     async scrape() {
         // this.emit('scrape')
-        console.log(this)
+        // console.log(this)
 
 
         const scrapingObject = this.createScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination')
@@ -18,11 +18,12 @@ class Root extends CompositeOperation {//Fetches the initial page, and starts th
     }
 
     getErrors() {//Will get the errors from all registered operations.
+        debugger;
         let errors = [...this.errors];
 
         this.scraper.state.registeredOperations.forEach((operation) => {
             if (operation.constructor.name !== 'Root')
-                errors = [...operation.getErrors()]
+                errors = [...errors,...operation.getErrors()]
         })
         return errors;
     }

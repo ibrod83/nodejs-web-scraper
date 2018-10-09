@@ -1,18 +1,30 @@
 {
-  "name": "scraperplayground",
-  "version": "1.0.0",
-  "description": "",
-  "main": "clientcode.js",
+  "name": "nodejs-web-scraper",
+  "version": "1.0.51",
+  "description": "A web scraper for NodeJs",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "scraper",
+    "web scraper",
+    "crawler",
+    "web crawler",
+    "web-scraper",
+    "nodejs",
+    "node"
+  ],
   "author": "",
   "license": "ISC",
-  "nodemonConfig": {
-    "ignore": [
-      "*.json",
-      "images/*"
-    ]
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bluebird": "^3.5.1",
+    "cheerio": "^1.0.0-rc.2",
+    "cheerio-advanced-selectors": "^2.0.1",   
+    "mime-types": "^2.1.20",  
+    "prompt-input": "^3.0.0",
+    "qyu": "^0.3.0",
+    "sanitize-filename": "^1.6.1"
   }
-  
 }
