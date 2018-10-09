@@ -283,7 +283,7 @@ Public methods:
 
 | Name        | Description                                    |
 |-------------|------------------------------------------------|
-| getData()   | Gets all data collected by this operation.     |
+| getData()   | Will get the data from all pages processed by this operation|
 | getErrors() | Gets all errors encountered by this operation. |
 
 &nbsp;
@@ -334,7 +334,7 @@ Public methods:
 
 | Name        | Description                                    |
 |-------------|------------------------------------------------|
-| getData()   | Gets all data collected by this operation.     |
+| getData()   | Gets all file names that were downloaded, and their relevant data     |
 | getErrors() | Gets all errors encountered by this operation. |
 
 
@@ -364,7 +364,7 @@ Public methods:
 
 | Name        | Description                                    |
 |-------------|------------------------------------------------|
-| getData()   | Gets all data collected by this operation.     |
+| getData()   | Gets all inquiries    |
 
 &nbsp;
 
