@@ -1,6 +1,6 @@
 const Operation = require('./Operation')
 
-class Inquiry extends Operation {
+class Inquiry extends Operation {//This operation checks if a given HTML page meets a certain demand, as defined by the client.
 
     constructor(conditionFunction) {
         super({});

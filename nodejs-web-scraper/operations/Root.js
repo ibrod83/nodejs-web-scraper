@@ -1,7 +1,11 @@
 const CompositeOperation = require('./CompositeOperation');
 
-class Root extends CompositeOperation {
+class Root extends CompositeOperation {//Fetches the initial page, and starts the scraping process.
 
+    constructor(objectConfig){
+        super(objectConfig)
+    }
+    
     async scrape() {
         // this.emit('scrape')
         console.log(this)

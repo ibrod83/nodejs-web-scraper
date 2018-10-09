@@ -2,7 +2,7 @@
 
 
 var Input = require('prompt-input');
-var sizeof = require('object-sizeof');
+// var sizeof = require('object-sizeof');
 const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');

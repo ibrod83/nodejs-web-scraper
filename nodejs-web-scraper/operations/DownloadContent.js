@@ -1,20 +1,23 @@
-const Operation = require('./Operation');
+const InterneticOperation = require('./InterneticOperation');
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const file_downloader = require('../file_downloader')
-const YoyoTrait = require('../YoyoTrait');
+
+// const YoyoTrait = require('../YoyoTrait');
 
 
 // console.log(DownloadContent)
 
-class DownloadContent extends Operation {
+class DownloadContent extends InterneticOperation {//Responsible for downloading files and images from a given page.
 
     constructor(querySelector, objectConfig) {
         super(objectConfig);
-
+        // debugger;
+        // this.lodash=_;
+        // this.special = special
         // this.useTrait(YoyoTrait);
-        this.yoyo('chuj ci w dupsko!',this);
+        // this.yoyo('chuj ci w dupsko!',this);
     //    debugger;
 
         this.querySelector = querySelector;
@@ -35,6 +38,8 @@ class DownloadContent extends Operation {
 
     async scrape(responseObjectFromParent) {
         // debugger;
+        // console.log('dependency:',this._)
+        // console.log('now from dependency injected _:', this._.now())
         // console.log(this.prototype)
         const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
 
@@ -112,7 +117,7 @@ class DownloadContent extends Operation {
 
     async getFile(url) {
         // debugger;
-
+        
         if (this.processUrl) {
             try {
                 url = await this.processUrl(url)
@@ -221,7 +226,10 @@ class DownloadContent extends Operation {
 
 
 }
-DownloadContent.useTrait(YoyoTrait,DownloadContent);
+
+
+
+// DownloadContent.useTrait(YoyoTrait,DownloadContent);
 // console.log(DownloadContent.prototype)
 // YoyoTrait.prototype = Object.create(DownloadContent.prototype);
 // Object.keys(YoyoTrait.prototype).forEach((prop) => {

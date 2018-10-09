@@ -1,4 +1,4 @@
-const { Scraper, Root, DownloadContent, Inquiry, OpenLinks, CollectContent } = require('./node-scraper');
+const { Scraper, Root, DownloadContent, Inquiry, OpenLinks, CollectContent } = require('./nodejs-web-scraper');
 // const axios = require('axios');
 // const Promise = require('bluebird');
 const fs = require('fs');
@@ -189,6 +189,7 @@ const fs = require('fs');
 
 
                 await execute();
+                
 
                 break;
 
@@ -442,13 +443,17 @@ const fs = require('fs');
                 // }
 
                 const childData = [];
-                const afterOneLinkScrape = async (dataFromChildren) => {
+                var afterOneLinkScrape = async (dataFromChildren) => {
                     console.log('data from afterOneLinkScrape', dataFromChildren)
                     childData.push(dataFromChildren);
                 }
 
                 const beforeOneLinkScrape = (response) => {
                     console.log('before one link scrape! ', response)
+                }
+
+                const processElementContent = (str)=>{
+                    return str+'yoyoyoyoyo';
                 }
 
 
@@ -473,16 +478,19 @@ const fs = require('fs');
                 // scraper.createOperation({type: 'openLinks',querySelector: '#content_65 ol a:eq(0)',name: 'category'})
                 var scraper = new Scraper(config);
                 var root = new Root()
-                var categoryPage = new OpenLinks('#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 1 } });
+                // debugger;
+                var categoryPage = new OpenLinks('#content_65 ol a:eq(0)', { name: 'category', pagination: { queryString: 'page', begin: 1, end: 2 } });
+                // debugger;
                 var inquiryOfPage = new Inquiry(condition);
 
                 var productPage = new OpenLinks('.product_name_link', { name: 'product', afterOneLinkScrape, beforeOneLinkScrape, afterScrape });
                 root.addOperation(categoryPage);
+                root.addOperation(productPage);
                 categoryPage.addOperation(productPage);
                 var publisherData = new CollectContent('.product_publisher', { name: 'publisher' });
                 var p = new CollectContent('p', { name: 'p', getElementList, });
-                var productName = new CollectContent('.product_name', { name: 'name' });
-                var productImage = new DownloadContent('.book img', { name: 'image', imageResponseType: 'arraybuffer' });
+                var productName = new CollectContent('.product_name', { name: 'name',processElementContent });
+                var productImage = new DownloadContent('img', { name: 'image', imageResponseType: 'arraybuffer' });
                 productPage.addOperation(publisherData);
                 productPage.addOperation(inquiryOfPage);
                 productPage.addOperation(productImage);
@@ -490,10 +498,14 @@ const fs = require('fs');
                 productPage.addOperation(p);
                 categoryPage.addOperation(p)
                 root.addOperation(p);
+                root.addOperation(productImage);
 
-
+                // console.log('productImage.lodash',productImage.lodash.cloneDeep)
                 await execute();
                 fs.writeFile('./logs/p.json', JSON.stringify(p.getData()));
+                fs.writeFile('./logs/productPage.json', JSON.stringify(productPage.getData()));
+                fs.writeFile('./logs/publisherData.json', JSON.stringify(publisherData.getData()));
+                fs.writeFile('./logs/productImage.json', JSON.stringify(productImage.getData()));
 
                 break;
             case 'books_america':
@@ -524,47 +536,46 @@ const fs = require('fs');
                 break;
             case 'slovakSite':
                 const codes = []
-                const getResponse = async (response) => {
-
-                    // if (response.data.includes('Anglický jazyk - Pokročilý (C1)')) {
-                    //     console.log('includes!', response.config.url)
-                    //     goodPages.push(response.config.url)
-                    // }
+                var afterOneAdPageScraped = async (response) => {
                     codes.push(response.status)
-                    console.log('response  from processReponse!', response)
+                    console.log('response  from afterOneLinkScrape!', response)
                 }
 
 
-                config = {
-                    ...config,
+                config = {        
                     baseSiteUrl: `https://www.profesia.sk`,
                     startUrl: `https://www.profesia.sk/praca/`,
+                    filePath: './images/',
+                    logPath:'./logs/'
                 }
                 var scraper = new Scraper(config);
-
-                var root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });
-                var productLink = new OpenLinks('.list-row a.title', { name: 'link', getResponse });
+            
+                var root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+            
+                var jobAd = new OpenLinks('.list-row a.title', {  afterOneLinkScrape:afterOneAdPageScraped });//Opens every job ad, and calls a callback after every page is done.
+            
+                var image = new DownloadContent('img:first', { name: 'image' });
+            
                 var span = new CollectContent('span', { name: 'span' });
-                root.addOperation(productLink);
-                root.addOperation(span);
-                var paragraph = new CollectContent('h4,h2', { name: 'h4&h2' });
-                root.addOperation(paragraph);
+                
+                var header = new CollectContent('h4,h2');
+            
+                root.addOperation(jobAd);
+                    jobAd.addOperation(span);
+                    jobAd.addOperation(header);    
+                    jobAd.addOperation(image);    
+                root.addOperation(header);
+                // console.log('codes!', codes)
+                // console.log(goodPages.length)
+                // fs.writeFile('./links.json', JSON.stringify(goodPages), (err) => {
+                //     if (err) {
+                //         console.log(err)
+                //     } else {
+                //         console.log('The file has been saved!');
+                //     }
 
-                var productImage = new DownloadContent('img:first', { name: 'image' });
-
-                productLink.addOperation(paragraph);
-                // productLink.addOperation(productImage);
+                // });
                 await execute();
-                console.log('codes!', codes)
-                console.log(goodPages.length)
-                fs.writeFile('./links.json', JSON.stringify(goodPages), (err) => {
-                    if (err) {
-                        console.log(err)
-                    } else {
-                        console.log('The file has been saved!');
-                    }
-
-                });
 
 
                 break;

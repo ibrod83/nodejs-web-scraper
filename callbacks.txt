@@ -16,3 +16,7 @@ All Operations besides root
 function afterScrape(currentWrapper){}
 called in scrape()
 
+CollectContent
+function processElementContent(content){}
+called in scrape();
+

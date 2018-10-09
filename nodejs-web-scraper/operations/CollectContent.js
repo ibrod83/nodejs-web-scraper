@@ -2,28 +2,20 @@ const Operation = require('./Operation')
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors')
 cheerio = cheerioAdv.wrap(cheerio)
-const YoyoTrait = require('../YoyoTrait');
+// const YoyoTrait = require('../YoyoTrait');
 
 
 class CollectContent extends Operation {
 
     constructor(querySelector, config) {
         super(config);
-        debugger;
-        // this.useTrait(YoyoTrait);
-        // // debugger;
-        // this.chuj('heyyyyy');
         this.querySelector = querySelector;
         this.validateOperationArguments();
-        if(typeof this.shouldTrim !== 'undefined' ){//Checks if the user passed a "shouldTrim" property.
+        if (typeof this.shouldTrim !== 'undefined') {//Checks if the user passed a "shouldTrim" property.
             this.shouldTrim = this.shouldTrim;
-        }else{
+        } else {
             this.shouldTrim = true;
         }
-     
-        
-
-       
 
     }
 
@@ -39,7 +31,11 @@ class CollectContent extends Operation {
 
 
         elementList.forEach((element) => {
-            const content = this.getNodeContent(element);
+            let content = this.getNodeContent(element);
+            if (this.processElementContent) {
+                const contentFromCallback = this.processElementContent(content)
+                content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
+            }
 
             currentWrapper.data.push({ element: element.name, [this.contentType]: content });
         })
@@ -48,8 +44,6 @@ class CollectContent extends Operation {
         if (this.afterScrape) {
             await this.afterScrape(currentWrapper);
         }
-
-
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
         this.data = [...this.data, currentWrapper];
@@ -61,7 +55,7 @@ class CollectContent extends Operation {
     }
 
     getNodeContent(elem) {
-        const getText = () => this.shouldTrim  ? elem.text().trim() : elem.text();//Will trim the string, if "shouldTrim" is true.
+        const getText = () => this.shouldTrim ? elem.text().trim() : elem.text();//Will trim the string, if "shouldTrim" is true.
         switch (this.contentType) {
             case 'text':
                 return getText();

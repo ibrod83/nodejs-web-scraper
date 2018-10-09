@@ -3,7 +3,7 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 
-class OpenLinks extends CompositeOperation {
+class OpenLinks extends CompositeOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
 
     constructor(querySelector, config) {
         super(config);
