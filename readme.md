@@ -253,6 +253,7 @@ const root= new Root({ pagination: { queryString: 'page', begin: 1, end: 100 }})
 ```
 
 Public methods:
+
 | Name        | Description                                                                                               |
 |-------------|-----------------------------------------------------------------------------------------------------------|
 | getData()   | Gets all data collected by this operation. In the case of root, it will just be the entire scraping tree. |
