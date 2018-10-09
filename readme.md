@@ -235,10 +235,14 @@ const config ={
         }
 ```
 Public methods:
-| Name         | Description                                                                                                           
-|--------------|------------------------------------------------------------------------------------------------------------------------|---|---|---|
-| scrape(Root) | After all operations have created and assembled, you begin the process by calling this method, passing the root object 
+
+| Name         | Description                                |
+|--------------|--------------------------------------------|
+| scrape(Root) | After all operations have created and assembled, you begin the process by calling this method, passing the root object |
+
 &nbsp;
+
+ 
 
 ## class Root([config])
 
@@ -252,7 +256,7 @@ Public methods:
 | Name        | Description                                                                                               |
 |-------------|-----------------------------------------------------------------------------------------------------------|
 | getData()   | Gets all data collected by this operation. In the case of root, it will just be the entire scraping tree. |
-| getErrors() | In the case of root, it will show all errors in every operation.                                                            |                                                   
+| getErrors() | In the case of root, it will show all errors in every operation.|                                                   
 
 &nbsp;
 
@@ -275,6 +279,7 @@ The optional config can have these properties:
 
 ```
 Public methods:
+
 | Name        | Description                                    |
 |-------------|------------------------------------------------|
 | getData()   | Gets all data collected by this operation.     |
@@ -325,6 +330,7 @@ The optional config can receive these properties:
 
 
 Public methods:
+
 | Name        | Description                                    |
 |-------------|------------------------------------------------|
 | getData()   | Gets all data collected by this operation.     |
@@ -354,6 +360,7 @@ In the scraping tree log, you will see a boolean field "meetsCondition", for eac
 Notice that this whole thing could also be achieved simply by using callbacks, with the OpenLinks operation.
 
 Public methods:
+
 | Name        | Description                                    |
 |-------------|------------------------------------------------|
 | getData()   | Gets all data collected by this operation.     |
