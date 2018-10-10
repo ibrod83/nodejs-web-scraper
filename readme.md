@@ -42,28 +42,28 @@ const { Scraper, Root, DownloadContent, OpenLinks, CollectContent, Inquiry } =  
 
     const root =  new Root();//The root object fetches the startUrl, and starts the process.  
 
-    const category =  new OpenLinks('.css-1wjnrbv');//Opens each category page.
+    const categories =  new OpenLinks('.css-1wjnrbv');//Opens each category page.
 
-    const article =  new OpenLinks('article a');//Opens each article page
+    const articles =  new OpenLinks('article a');//Opens each article page
 
-    const image =  new DownloadContent('img');//Downloads every image from a given page.  
+    const images =  new DownloadContent('img');//Downloads every image from a given page.  
 
-    const h1 =  new CollectContent('h1');//"Collects" the text from each H1 element.
+    const titles =  new CollectContent('h1');//"Collects" the text from each H1 element.
 
 
-    root.addOperation(category);//Then we create a scraping "tree":
-        category.addOperation(article);
-            article.addOperation(image);
-            article.addOperation(h1);
+    root.addOperation(categories);//Then we create a scraping "tree":
+        categories.addOperation(articles);
+            articles.addOperation(images);
+            articles.addOperation(titles);
             
     await scraper.scrape(root);//Pass the root object to the Scraper.scrape method, and the work begins.
 
-    //All done. We specified a 'logPath', so now JSON files were automatically created.        
+    //All done. We specified a 'logPath', so now JSON files were automatically created.   
 
     //You can also manually get the data of each operation object, by calling the getData() method, for example:
 
-    const articleFinalData = article.getData();
-    const h1FinalData = h1.getData();
+    const allArticles = articles.getData();
+    const allTitles = titles.getData();
 
     //Do something with that data...
 
@@ -100,22 +100,23 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
 
-    const jobAd = new OpenLinks('.list-row a.title', {  afterOneLinkScrape });//Opens every job ad, and calls a callback after every page is done.
+    const jobAds = new OpenLinks('.list-row a.title', {  afterOneLinkScrape });//Opens every job ad, and calls a callback after every page is done.
 
-    const image = new DownloadContent('img:first', { name: 'Good Image' });//Notice that you can give each operation a name, for clarity in the logs.
+    const images = new DownloadContent('img:first', { name: 'Good Image' });//Notice that you can give each operation a name, for clarity in the logs.
 
-    const span = new CollectContent('span');
+    const spans = new CollectContent('span');
     
-    const header = new CollectContent('h4,h2');
+    const titles = new CollectContent('h4,h2');
 
-    root.addOperation(jobAd);
-        jobAd.addOperation(span);
-        jobAd.addOperation(header);    
-        jobAd.addOperation(image);    
-    root.addOperation(header);//Notice that i use the same "header" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
+    root.addOperation(jobAds);
+        jobAds.addOperation(spans);
+        jobAds.addOperation(titles);    
+        jobAds.addOperation(images);    
+    root.addOperation(titles);//Notice that i use the same "header" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
 
     await scraper.scrape(root);
-    console.log(ads)//Doing something with the array we created from the callbacks...
+
+    fs.writeFile('./myAds.json', JSON.stringify(ads));//Doing something with the array we created from the callbacks...
 })()
 
 
@@ -189,16 +190,16 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
     const root = new Root();
 
-    const article = new OpenLinks('article a'{processUrl});//Will be called for each link, before the HTTP request is made, allowing you to modify the URL, if needed for some reason.
+    const articles = new OpenLinks('article a'{processUrl});//Will be called for each link, before the HTTP request is made, allowing you to modify the URL, if needed for some reason.
 
-    const post = new OpenLinks('.post a'{beforeOneLinkScrape});//Is called after the HTML of a link was fetched, but before the children have been scraped. Is passed the response object of the page.    
+    const posts = new OpenLinks('.post a'{beforeOneLinkScrape});//Is called after the HTML of a link was fetched, but before the children have been scraped. Is passed the response object of the page.    
 
     const myDiv = new CollectContent('.myDiv');
 
-    root.addOperation(article);      
-        article.addOperation(myDiv);
-    root.addOperation(post);
-        post.addOperation(myDiv)   
+    root.addOperation(articles);      
+        articles.addOperation(myDiv);
+    root.addOperation(posts);
+        posts.addOperation(myDiv)   
 
    await scraper.scrape(root);
 
@@ -237,10 +238,10 @@ const config ={
 ```
 Public methods:
 
-| Name         | Description                                |
-|--------------|--------------------------------------------|
-| async scrape(Root) | After all operations have created and assembled, you begin the process by calling this method, passing the root object |
-| async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen.
+| Name                                     | Description                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| async scrape(Root)                       | After all operations have created and assembled, you begin the process by calling this method, passing the root object                                                                                                                                                                                                        |
+| async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen. |
 
 &nbsp;
 
@@ -257,9 +258,9 @@ const root= new Root({ pagination: { queryString: 'page', begin: 1, end: 100 }})
 Public methods:
 
 | Name        | Description                                                                                               |
-|-------------|-----------------------------------------------------------------------------------------------------------|
+| ----------- | --------------------------------------------------------------------------------------------------------- |
 | getData()   | Gets all data collected by this operation. In the case of root, it will just be the entire scraping tree. |
-| getErrors() | In the case of root, it will show all errors in every operation.|                                                   
+| getErrors() | In the case of root, it will show all errors in every operation.                                          |
 
 &nbsp;
 
@@ -283,10 +284,10 @@ The optional config can have these properties:
 ```
 Public methods:
 
-| Name        | Description                                    |
-|-------------|------------------------------------------------|
-| getData()   | Will get the data from all pages processed by this operation|
-| getErrors() | Gets all errors encountered by this operation. |
+| Name        | Description                                                  |
+| ----------- | ------------------------------------------------------------ |
+| getData()   | Will get the data from all pages processed by this operation |
+| getErrors() | Gets all errors encountered by this operation.               |
 
 &nbsp;
 
@@ -308,7 +309,7 @@ The optional config can receive these properties:
 Public methods:
 
 | Name      | Description                                |
-|-----------|--------------------------------------------|
+| --------- | ------------------------------------------ |
 | getData() | Gets all data collected by this operation. |
 
 &nbsp;
@@ -334,10 +335,10 @@ The optional config can receive these properties:
 
 Public methods:
 
-| Name        | Description                                    |
-|-------------|------------------------------------------------|
-| getData()   | Gets all file names that were downloaded, and their relevant data     |
-| getErrors() | Gets all errors encountered by this operation. |
+| Name        | Description                                                       |
+| ----------- | ----------------------------------------------------------------- |
+| getData()   | Gets all file names that were downloaded, and their relevant data |
+| getErrors() | Gets all errors encountered by this operation.                    |
 
 
 &nbsp;
@@ -364,9 +365,9 @@ Notice that this whole thing could also be achieved simply by using callbacks, w
 
 Public methods:
 
-| Name        | Description                                    |
-|-------------|------------------------------------------------|
-| getData()   | Gets all inquiries    |
+| Name      | Description        |
+| --------- | ------------------ |
+| getData() | Gets all inquiries |
 
 &nbsp;
 
