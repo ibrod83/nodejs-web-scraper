@@ -62,10 +62,11 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                     src = element.attr(alternativeAttrib);
                     console.log('alternative src result', src)
                 } else {
-                    console.log('page of image error:', responseObjectFromParent.request.res.responseUrl)
+                    // console.log('page of image error:', responseObjectFromParent.request.res.responseUrl)
 
                     const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.request.res.responseUrl}, alternative srcs: ${this.alternativeSrc}`;
-                    console.error(errorString)
+                    console.error(errorString);
+                    this.errors.push(errorString);
                     return;
                 }
             }
@@ -205,9 +206,9 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
         delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
         const fileHref = scrapingObject.address;
-        if (!fileHref) {
-            throw 'Image href is invalid, skipping.';
-        }
+        // if (!fileHref) {
+        //     throw 'Image href is invalid, skipping.';
+        // }
         try {
 
 
@@ -217,9 +218,11 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
         } catch (error) {
             // debugger;
+            // error.code
+            const errorCode = error.code
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
-            this.handleFailedScrapingObject(scrapingObject, errorString)
+            this.handleFailedScrapingObject(scrapingObject, errorString,errorCode);
 
             return;
 

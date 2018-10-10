@@ -14,8 +14,10 @@ $ npm install nodejs-web-scraper
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling) 
+- [Automatic Logs](#automatic-logs) 
 - [Memory consumption](#memory-consumption) 
 - [Concurrency](#concurrency) 
+
 
 ## Basic example
 
@@ -238,7 +240,8 @@ Public methods:
 
 | Name         | Description                                |
 |--------------|--------------------------------------------|
-| scrape(Root) | After all operations have created and assembled, you begin the process by calling this method, passing the root object |
+| async scrape(Root) | After all operations have created and assembled, you begin the process by calling this method, passing the root object |
+| async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1).
 
 &nbsp;
 
@@ -394,14 +397,17 @@ nodejs-web-scraper covers most scenarios of pagination(assuming it's server-side
 
 ### Repeating failed requests on the fly
 
-nodejs-web-scraper will automatically repeat every failed request(except 404). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped, and an object representing it will be pushed into a "failedRequests" array. After the entire scraping process is complete, all failed objects will be printed as a JSON into a file called **"failedRequests.json"**(assuming you provided a logPath). 
+nodejs-web-scraper will automatically repeat every failed request(except 404,400,403 and invalid images). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped, and an object representing it will be pushed into a "failedRequests" array. After the entire scraping process is complete, all failed objects will be printed as a JSON into a file called **"failedRepeatableRequests.json"**(assuming you provided a logPath). 
 
-### Repeating all failedRequests again, after scraping process has ended
-After Scraper.scrape() has has come to an end, and if the failedRequests array isn't empty, nodejs-web-scraper **will prompt you from the console**, asking you if you want to repeat those failed requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. If you press "y", the repetition will begin, and you will be prompted again and again - until all requests have finally succeeded. You can just press "n" at any time, if you do not wish to repeat.  
+### Repeating all failedRepeatableRequests again, after scraping process has ended
+After Scraper.scrape() has has come to an end, You can call the Scraper.repeatAllFailedRequests(numCycles), to retry those requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. At the end of this process, log files will be overwritten, with the fresh situation. 
+
+## Automatic logs
+If a logPath was provided, the scraper will create a log for each operation object you create, and also the following ones: "log.json"(summary of the entire scraping tree), "allErrors.json"(an array of all errors encountered) and "failedRepeatableRequests.json"(an array of all errors that can be repeated). I really recommend using this feature, along side your own callbacks and data handling.
 
 ## Memory consumption
 
-In scraping jobs that require the "opening" of many large HTML pages at the same time(some sites completely bloat their HTML. I'm using regex to clean-up scripts and CSS), memory consumption can reach about 250MB. This is of course fine, **but if you're using Chrome devtools for debugging,  consumtion can sky-rocket**. I do not know why this happens, but the solution is to shutdown the devtools. 
+In scraping jobs that require the "opening" of many large HTML pages at the same time(some sites completely bloat their HTML. I'm using regex to clean-up scripts and CSS), memory consumption can reach about 250MB. This is of course fine, **but if you're using Chrome devtools for debugging,  consumption can sky-rocket**. I do not know why this happens, but the solution is to shutdown the devtools. 
 
 ## Concurrency
 

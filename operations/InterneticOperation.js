@@ -6,7 +6,7 @@ const URL = require('url').URL;
 const Promise = require('bluebird');
 
 
-class InterneticOperation extends Operation{//Base class for all operations that require reaching out to the internet.
+class InterneticOperation extends Operation {//Base class for all operations that require reaching out to the internet.
     stripTags(responseObject) {//Cleans the html string from script and style tags.
 
         responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, '').replace(/<\s*script[^>]*>[\s\S]*?(<\s*\/script[^>]*>|$)/ig)
@@ -28,77 +28,11 @@ class InterneticOperation extends Operation{//Base class for all operations that
         return scrapingObject;
     }
 
-    async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object.
-
-        if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-            return this.paginate(scrapingObject);
-        }
-
-        let href = scrapingObject.address;
-        try {
-            // if (this.state.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
-            if (this.processUrl) {
-                try {
-                    href = await this.processUrl(href)
-                    // console.log('new href', href)
-                } catch (error) {
-                    console.error('Error processing URL, continuing with original one: ', href);
-                }
-
-            }
-
-
-            var response = await this.getPage(href);
-            // debugger;
-            if (this.beforeOneLinkScrape) {//If a "getResponse" callback was provided, it will be called
-                if (typeof this.beforeOneLinkScrape !== 'function')
-                    throw "'beforeOneLinkScrape' callback must be a function";
-                await this.beforeOneLinkScrape(response)
-            }
-            // console.log('response.data after callback',response.data)
-            scrapingObject.successful = true
-
-
-        } catch (error) {
-            // debugger;
-            const errorString = `There was an error opening page ${href}, ${error}`;
-            this.errors.push(errorString);
-            this.handleFailedScrapingObject(scrapingObject, errorString);
-            return;
-
-        }
-
-        try {
-            var dataFromChildren = await this.scrapeChildren(this.operations, response)
-            response = null;
-
-            if (this.afterOneLinkScrape) {
-                if (typeof this.afterOneLinkScrape !== 'function')
-                    throw "'afterOneLinkScrape' callback must be a function";
-
-                const cleanData = {
-                    address:href,
-                    data:[]
-                };
-
-                dataFromChildren.forEach((dataFromChild) => {
-                    // cleanData.data.push(this.createPresentableData(dataFromChild));
-                    cleanData.data.push(dataFromChild);
-                    // cleanData.push(dataFromChild)
-                })
-                await this.afterOneLinkScrape(cleanData);
-            }
-            scrapingObject.data = [...dataFromChildren];
-        } catch (error) {
-            console.error(error);
-        }
-
-    }
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
-        const errorCodesToSkip = [404];
-        const randomNumber = this.scraper.config.fakeErrors ? Math.floor(Math.random() * (3 - 1 + 1)) + 1 : 3;
+
+        const randomNumber = this.scraper.config.fakeErrors ? Math.floor(Math.random() * (7 - 1 + 1)) + 1 : 7;
         if (this.scraper.state.numRequests > 3 && randomNumber == 1) {
             throw 'randomly generated error,' + href;
         }
@@ -114,8 +48,15 @@ class InterneticOperation extends Operation{//Base class for all operations that
 
             const errorCode = error.response ? error.response.status : error
             console.log('error code', errorCode);
-            if (errorCodesToSkip.includes(errorCode))
-                throw `Skipping error ${errorCode}`;
+            if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
+                // debugger;
+                const error = new Error();
+                error.message = `Skipping error ${errorCode}`;
+                // debugger;
+                error.code = errorCode;
+                throw error;
+            }
+
             console.log('Retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('Retreis', newRetries)
@@ -188,17 +129,20 @@ class InterneticOperation extends Operation{//Base class for all operations that
         }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
     }
 
-    handleFailedScrapingObject(scrapingObject, errorString) {
+    handleFailedScrapingObject(scrapingObject, errorString,errorCode) {
         // debugger;
+        console.log('error code from handle',errorCode);
         console.error(errorString);
         scrapingObject.error = errorString;
-        if (!this.scraper.state.failedScrapingObjects.includes(scrapingObject)) {
+        // debugger;
+        const shouldNotBeSkipped = !this.scraper.config.errorCodesToSkip.includes(errorCode);
+        if (!this.scraper.state.failedScrapingObjects.includes(scrapingObject) && shouldNotBeSkipped) {
             // console.log('scrapingObject not included,pushing it!')
             this.scraper.state.failedScrapingObjects.push(scrapingObject);
         }
     }
 
-    
+
     qyuFactory(promiseFunction) {//This function pushes promise-returning functions into the qyu. 
         if (!this.scraper.config.useQyu) {
             return promiseFunction();
@@ -250,4 +194,4 @@ class InterneticOperation extends Operation{//Base class for all operations that
 
 }
 
-module.exports= InterneticOperation;
+module.exports = InterneticOperation;
