@@ -222,8 +222,7 @@ These are available options for the scraper, with their default values:
 const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
-            logPath://Highly recommended.Will create a log for each scraping operation(object).  
-            shouldPromptForScrapingRepetition:true//At the end of the scraping process, Prompts you from the console, whether all failed requests should repeat. For more details refer to the "error handling section.       
+            logPath://Highly recommended.Will create a log for each scraping operation(object).               
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             fileFlag: 'w',//The flag provided to the file saving function. 
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
@@ -241,7 +240,7 @@ Public methods:
 | Name         | Description                                |
 |--------------|--------------------------------------------|
 | async scrape(Root) | After all operations have created and assembled, you begin the process by calling this method, passing the root object |
-| async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1).
+| async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen.
 
 &nbsp;
 

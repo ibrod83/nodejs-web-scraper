@@ -28,8 +28,7 @@ class Scraper {
             timeout: 5000,
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,
-            headers: null,
-            shouldPromptForScrapingRepetition: true
+            headers: null,         
         }
 
         this.state = {
