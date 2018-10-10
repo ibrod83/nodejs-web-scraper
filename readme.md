@@ -78,7 +78,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 ## Advanced Examples
 
-#### Pagination and an "afterOneLinkScraped" callback.
+#### Pagination and an "afterOneLinkScrape" callback.
 
 ```javascript
 
@@ -88,7 +88,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const afterOneLinkScrape = async (dataFromAd) => {
       ads.push(dataFromAd)
-    }//This is passed as a callback to "afterOneLinkScraped", in the jobAd object.Receives formatted data as an argument. 
+    }//This is passed as a callback to "afterOneLinkScrape", in the jobAd object.Receives formatted data as an argument. 
 
     config = {        
         baseSiteUrl: `https://www.profesia.sk`,
