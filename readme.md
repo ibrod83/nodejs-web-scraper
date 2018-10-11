@@ -112,7 +112,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
         jobAds.addOperation(spans);
         jobAds.addOperation(titles);    
         jobAds.addOperation(images);    
-    root.addOperation(titles);//Notice that i use the same "header" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
+    root.addOperation(titles);//Notice that i use the same "titles" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
 
     await scraper.scrape(root);
 
@@ -128,17 +128,9 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
 
 
-#### File download(non-image) and a "getElementContent" callback.
+#### File download(non-image).
 
 ```javascript
-
-const getElementContent = (contentString)=>{
-    if(contentString.includes('Hey!')){
-          return `${contentString} some appended phrase...`;//You need to return a new string.
-    }
-    //If you dont return anything, the original string is used.
-  
-}
 
 config = {        
         baseSiteUrl: `https://www.some-content-site.com`,
@@ -154,21 +146,21 @@ config = {
 
     const video = new DownloadContent('a.video',{ contentType: 'file' });//The "contentType" makes it clear for the scraper that this is NOT an image(therefore the "href is used instead of "src"). 
 
-    const description = new CollectContent('h1'{getElementContent});//Using a callback on each node text.       
+    const description = new CollectContent('h1').       
 
     root.addOperation(video);      
-    root.addOperation(description);//Notice that i use the same "header" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
+    root.addOperation(description);
 
    await scraper.scrape(root);
 
     console.log(description.getData())//You can call the "getData" method on every operation object, giving you the aggregated data collected by it.
 ```
-Description: "Go to https://www.some-content-site.com; Download every video; Collect each h1, while processing the content with a callback; At the end, get the entire data from the "description" object;
+Description: "Go to https://www.some-content-site.com; Download every video; Collect each h1; At the end, get the entire data from the "description" object;
 
 
 &nbsp;
 
-#### "processUrl" callback and a "beforeOneLinkScrape" callback.
+#### "getElementContent" callback and a "beforeOneLinkScrape" callback.
 
 ```javascript
 
@@ -176,9 +168,11 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
         //Do something with response.data(the HTML content). No need to return anything.
     }
 
-    const processUrl =async (originalUrl) => {       
-        const newUrl = originalUrl.replace('https://www.nice-site.com/url?q=', 'some string...');       
-        return newUrl;
+    const myDivs=[];
+
+    const getElementContent = (content, pageAddress) => {
+               
+        myDivs.push(`myDiv content from page ${pageAddress} is ${content}...`)
     }
 
     config = {        
@@ -190,11 +184,11 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
     const root = new Root();
 
-    const articles = new OpenLinks('article a'{processUrl});//Will be called for each link, before the HTTP request is made, allowing you to modify the URL, if needed for some reason.
+    const articles = new OpenLinks('article a');
 
     const posts = new OpenLinks('.post a'{beforeOneLinkScrape});//Is called after the HTML of a link was fetched, but before the children have been scraped. Is passed the response object of the page.    
 
-    const myDiv = new CollectContent('.myDiv');
+    const myDiv = new CollectContent('.myDiv',{getElementContent});//Will be called after every "myDiv" element is collected.
 
     root.addOperation(articles);      
         articles.addOperation(myDiv);
@@ -205,7 +199,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
     
 ```
-Description: "Go to https://www.nice-site/some-section; Collect every article link; Call processUrl(); Collect each .myDiv".
+Description: "Go to https://www.nice-site/some-section; Open every article link; Call processUrl(); Collect each .myDiv".
 
 "Also, from https://www.nice-site/some-section, open every post; Before scraping the children(myDiv object), call beforeOneLinkScrape(); CollCollect each .myDiv".
 
@@ -215,9 +209,9 @@ Description: "Go to https://www.nice-site/some-section; Collect every article li
 
 ## class Scraper(config)
 
-The main nodejs-web-scraper object. Starts the scraping entire scraping process via Scraper.scrape(Root). Holds the configuration and global state.
+The main nodejs-web-scraper object. Starts the entire scraping process via Scraper.scrape(Root). Holds the configuration and global state.
 
-These are available options for the scraper, with their default values:
+These are the available options for the scraper, with their default values:
 
 ```javascript
 const config ={
@@ -240,7 +234,7 @@ Public methods:
 
 | Name                                     | Description                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| async scrape(Root)                       | After all operations have created and assembled, you begin the process by calling this method, passing the root object                                                                                                                                                                                                        |
+| async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object                                                                                                                                                                                                        |
 | async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen. |
 
 &nbsp;
@@ -264,7 +258,7 @@ Public methods:
 
 &nbsp;
 
-## class Openlinks(querySelector,[config])
+## class OpenLinks(querySelector,[config])
 
 Responsible for "opening links" in a given page. Basically it just creates a nodelist of anchor elements, fetches their html, and continues the process of scraping, in those pages - according to the user-defined scraping tree.
 
@@ -300,7 +294,7 @@ The optional config can receive these properties:
     contentType:'text',//Either 'text' or 'html'. Default is text.   
     shouldTrim:true,//Default is true. Applies JS String.trim() method.
     getElementList:(elementList)=>{},  
-    getElementContent:(elementContentString)=>{}//Called with each element collected.  
+    getElementContent:(elementContentString,pageAddress)=>{}//Called with each element collected.  
     afterScrape:(data)=>{},//In the case of CollectContent, it will be called with each page, this operation collects content from.
     slice:[start,end]
 }

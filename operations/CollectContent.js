@@ -20,11 +20,12 @@ class CollectContent extends Operation {
     }
 
     async scrape(responseObjectFromParent) {
-
-        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
+        // console.log('address',responseObjectFromParent.request.res.responseUrl)
+        const parentAddress = responseObjectFromParent.request.res.responseUrl
+        const currentWrapper = this.createWrapper(parentAddress);
 
         this.contentType = this.contentType || 'text';
-        !responseObjectFromParent && console.log('empty reponse from content operation', responseObjectFromParent)
+        !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
 
         var $ = cheerio.load(responseObjectFromParent.data);
         const elementList = this.createElementList($);
@@ -33,7 +34,7 @@ class CollectContent extends Operation {
         elementList.forEach((element) => {
             let content = this.getNodeContent(element);
             if (this.getElementContent) {
-                const contentFromCallback = this.getElementContent(content)
+                const contentFromCallback = this.getElementContent(content,parentAddress)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
 
