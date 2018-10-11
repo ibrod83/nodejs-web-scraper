@@ -199,7 +199,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
     
 ```
-Description: "Go to https://www.nice-site/some-section; Open every article link; Call processUrl(); Collect each .myDiv".
+Description: "Go to https://www.nice-site/some-section; Open every article link; Collect each .myDiv; Call getElementContent()".
 
 "Also, from https://www.nice-site/some-section, open every post; Before scraping the children(myDiv object), call beforeOneLinkScrape(); CollCollect each .myDiv".
 
