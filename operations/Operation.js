@@ -61,6 +61,8 @@ class Operation {//Base class for all operations.
         }
     }
 
+  
+
     handleNewOperationCreation(Operation) {
         this.scraper.state.registeredOperations.push(Operation);
     }

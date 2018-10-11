@@ -11,7 +11,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
         this.operations.push(operationObject)
     }
 
-    
+
     async scrapeChildren(childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
 
         const scrapedData = []
@@ -25,7 +25,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
         return scrapedData;
     }
 
-  
+
 
     async getPage(href, bypassError) {//Fetches the html of a given page.
 
@@ -49,8 +49,15 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
 
                 })
                 // console.log(resp)
-                // console.log('before strip',sizeof(resp.data))                           
-                this.stripTags(resp);
+                // console.log('before strip',sizeof(resp.data))    
+
+                if (this.scraper.config.removeStyleAndScriptTags) {
+                    this.stripTags(resp);
+                }
+
+                if (this.getHtml) {
+                    await this.getHtml(resp.data,resp.request.res.responseUrl)
+                }
                 // console.log('after strip',sizeof(resp.data))
                 // console.log(resp.data)
             } catch (error) {
@@ -109,7 +116,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
             const errorCode = error.code
             const errorString = `There was an error opening page ${href}, ${error}`;
             this.errors.push(errorString);
-            this.handleFailedScrapingObject(scrapingObject, errorString,errorCode);
+            this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
             return;
 
         }

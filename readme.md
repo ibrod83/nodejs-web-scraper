@@ -10,7 +10,11 @@ $ npm install nodejs-web-scraper
 ```
 # Table of Contents
 - [Basic example](#basic-example) 
-- [Advanced](#advanced-examples)  
+- [Advanced](#advanced-examples) 
+  * [Pagination and an "afterOneLinkScrape" callback](#pagination-and-an-"afterOneLinkScrape"-callback)  
+  * [Get an entire HTML file](#get-an-entire-html-file)  
+  * [File download(non-image).](#file-download(non-image))  
+  * ["getElementContent" callback and a "beforeOneLinkScrape" callback.](#"getElementContent"-callback-and-a-"beforeOneLinkScrape"-callback)  
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling) 
@@ -126,9 +130,43 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
 &nbsp;
 
+#### Get an entire HTML file
 
+```javascript
+
+  const sanitize = require('sanitize-filename');//Using this npm module to sanitize file names.
+
+
+  config = {        
+        baseSiteUrl: `https://www.profesia.sk`,
+        startUrl: `https://www.profesia.sk/praca/`,
+        removeStyleAndScriptTags: false//Telling the scraper NOT to remove style and script tags, cause i want it in my html files, for this example.        
+    }
+
+  const getHtml = (html,pageAddress) => {//Saving the HTML file, using the page address as a name.
+      const name = sanitize(pageAddress)
+      fs.writeFile(`./html/${name}.html`,html)
+   }   
+
+    const scraper = new Scraper(config);
+
+    const root = new Root();
+
+    const jobAds = new OpenLinks('.list-row a.title', { getHtml });//Opens every job ad, and calls a callback after every page is done.
+
+    root.addOperation(jobAds);       
+
+    await scraper.scrape(root);
+
+```
+Description: "Go to https://www.profesia.sk/praca/; Open every job ad; Save every job ad page as an html file;
+
+
+&nbsp;
 
 #### File download(non-image).
+
+
 
 ```javascript
 
@@ -219,6 +257,7 @@ const config ={
             startUrl: '',//Mandatory. The page from which the process begins.   
             logPath://Highly recommended.Will create a log for each scraping operation(object).               
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
+            removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.
             fileFlag: 'w',//The flag provided to the file saving function. 
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
             maxRetries: 5,//Maximum number of retries of a failed request.            
@@ -234,7 +273,7 @@ Public methods:
 
 | Name                                     | Description                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object                                                                                                                                                                                                        |
+| async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object                                                                                                                                                                                                      |
 | async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen. |
 
 &nbsp;
@@ -268,6 +307,7 @@ The optional config can have these properties:
 {
     name:'some name',//Like every operation object, you can specify a name, for better clarity in the logs.
     pagination:{},//Look at the pagination API for more details.
+    getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     afterOneLinkScrape:(cleanData)=>{}//Called after every all data was collected from a link, opened by this operation.(if a given page has 10 links, it will be called 10 times, with the child data).
     beforeOneLinkScrape:(axiosResponse)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the axios response object. Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.

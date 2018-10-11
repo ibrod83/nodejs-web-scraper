@@ -4,12 +4,21 @@ var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const URL = require('url').URL;
 const Promise = require('bluebird');
+var sizeof = require('object-sizeof');
+
 
 
 class InterneticOperation extends Operation {//Base class for all operations that require reaching out to the internet.
+    
     stripTags(responseObject) {//Cleans the html string from script and style tags.
-
-        responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, '').replace(/<\s*script[^>]*>[\s\S]*?(<\s*\/script[^>]*>|$)/ig)
+               
+       
+        if(this.scraper.config.removeStyleAndScriptTags){
+            responseObject.data = responseObject.data.replace(/<\s*script[^>]*>[\s\S]*?(<\s*\/script[^>]*>|$)/ig,'');
+            responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, ''); 
+         
+        }
+        console.log('after strip',sizeof(responseObject.data))     
 
     }
 
