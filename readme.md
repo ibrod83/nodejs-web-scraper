@@ -11,10 +11,10 @@ $ npm install nodejs-web-scraper
 # Table of Contents
 - [Basic example](#basic-example) 
 - [Advanced](#advanced-examples) 
-  * [Pagination and an "afterOneLinkScrape" callback](#pagination-and-an-"afterOneLinkScrape"-callback)  
+  * [Pagination and an afterOneLinkScrape callback](#pagination-and-an-afteronelinkscrape-callback)  
   * [Get an entire HTML file](#get-an-entire-html-file)  
-  * [File download(non-image).](#file-download(non-image))  
-  * ["getElementContent" callback and a "beforeOneLinkScrape" callback.](#"getElementContent"-callback-and-a-"beforeOneLinkScrape"-callback)  
+  * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
+  * [getElementContent callback and a beforeOneLinkScrape callback.](#getelementcontent-callback-and-a-beforeonelinkscrape-callback)  
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling) 
@@ -82,7 +82,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 ## Advanced Examples
 
-#### Pagination and an "afterOneLinkScrape" callback.
+#### Pagination and an afterOneLinkScrape callback.
 
 ```javascript
 
@@ -164,7 +164,7 @@ Description: "Go to https://www.profesia.sk/praca/; Open every job ad; Save ever
 
 &nbsp;
 
-#### File download(non-image).
+#### Downloading a file that is not an image.
 
 
 
@@ -198,7 +198,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
 &nbsp;
 
-#### "getElementContent" callback and a "beforeOneLinkScrape" callback.
+#### getElementContent callback and a beforeOneLinkScrape callback.
 
 ```javascript
 
