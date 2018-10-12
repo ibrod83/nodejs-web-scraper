@@ -130,7 +130,7 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
 &nbsp;
 
-#### Get an entire HTML file
+#### Get an entire HTML file.
 
 ```javascript
 
@@ -150,7 +150,7 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
     const scraper = new Scraper(config);
 
-    const root = new Root();
+     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 100 } });
 
     const jobAds = new OpenLinks('.list-row a.title', { getHtml });//Opens every job ad, and calls a callback after every page is done.
 
@@ -159,7 +159,7 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
     await scraper.scrape(root);
 
 ```
-Description: "Go to https://www.profesia.sk/praca/; Open every job ad; Save every job ad page as an html file;
+Description: "Go to https://www.profesia.sk/praca/; Paginate 100 pages from the root; Open every job ad; Save every job ad page as an html file;
 
 
 &nbsp;
