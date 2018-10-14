@@ -82,7 +82,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 ## Advanced Examples
 
-#### Pagination and an getPageData callback.
+#### Pagination and a getPageData callback.
 
 ```javascript
 
