@@ -92,7 +92,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const getPageData = async (dataFromAd) => {
       ads.push(dataFromAd)
-    }//This is passed as a callback to "getPageData", in the jobAd object.Receives formatted data as an argument. 
+    }//This is passed as a callback to "getPageData", in the jobAd object .Receives formatted data as an argument. 
 
     config = {        
         baseSiteUrl: `https://www.profesia.sk`,
@@ -126,7 +126,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 
 ```
-Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect span,h2,h4 elements and download the first image; Also collect h2,h4 in the root(each pagination)."
+Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect span,h2,h4 elements and download the first image; Call getPageData callback with each page; Also collect h2,h4 in the root(each pagination)."
 
 &nbsp;
 
@@ -309,7 +309,7 @@ The optional config can have these properties:
     pagination:{},//Look at the pagination API for more details.
     getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
-    getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this operation.(if a given page has 10 links, it will be called 10 times, with the child data).
+    getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
     getPageResponse:(axiosResponse)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the axios response object. Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
     afterScrape:(data)=>{},//Is called after all scraping associated with the current "OpenLinks" operation is completed(like opening 10 pages, and downloading all images form them). Notice that if this operation was added as a child(via "addOperation()") in more than one place, then this callback will be called multiple times, each time with its corresponding data.
     slice:[start,end]//You can define a certain range of elements from the node list.Also possible to pass just a number, instead of an array, if you only want to specify the start. This uses the Cheerio/Jquery slice method.
