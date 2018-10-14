@@ -25,58 +25,54 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
         return scrapedData;
     }
 
+    stripTags(responseObject) {//Cleans the html string from script and style tags.
+
+
+        if (this.scraper.config.removeStyleAndScriptTags) {
+            responseObject.data = responseObject.data.replace(/<\s*script[^>]*>[\s\S]*?(<\s*\/script[^>]*>|$)/ig, '');
+            responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, '');
+
+        }
+        // console.log('after strip', sizeof(responseObject.data))
+
+    }
+
 
 
     async getPage(href, bypassError) {//Fetches the html of a given page.
 
-        const asyncFunction = async () => {
-            this.scraper.state.currentlyRunning++;
-            console.log('opening page', href);
-            console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
-            await this.createDelay();
-            this.scraper.state.numRequests++
-            console.log('overall requests', this.scraper.state.numRequests)
+        const promiseFactory = async () => {
+
+            await this.beforePromiseFactory('Opening page:' + href);
+
             let resp;
-            try {
-                var begin = Date.now()
-
-
+            try {             
                 resp = await axios({
                     method: 'get', url: href,
                     timeout: this.scraper.config.timeout,
                     auth: this.scraper.config.auth,
                     headers: this.scraper.config.headers,
 
-                })
-                // console.log(resp)
-                // console.log('before strip',sizeof(resp.data))    
+                })         
 
                 if (this.scraper.config.removeStyleAndScriptTags) {
                     this.stripTags(resp);
                 }
 
                 if (this.getHtml) {
-                    await this.getHtml(resp.data,resp.request.res.responseUrl)
+                    await this.getHtml(resp.data, resp.request.res.responseUrl)
                 }
-                // console.log('after strip',sizeof(resp.data))
-                // console.log(resp.data)
+               
             } catch (error) {
-                // console.error('error code from axios',error.response.status);
                 throw error;
             }
             finally {
-                // const end = Date.now();
-                // const seconds = (end - begin) / 1000
-                // console.log('seconds: ', seconds);
-                // overallSeconds += seconds;
-                // overallPageRequests++
-                this.scraper.state.currentlyRunning--;
-                console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+                this.afterPromiseFactory();
             }
             return resp;
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, href, bypassError);
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
 
     }
 
@@ -102,12 +98,17 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
 
             var response = await this.getPage(href);
             // debugger;
-            if (this.beforeOneLinkScrape) {//If a "getResponse" callback was provided, it will be called
+            if (this.getPageResponse) {//If a "getResponse" callback was provided, it will be called
+                if (typeof this.getPageResponse !== 'function')
+                    throw "'getPageResponse' callback must be a function";
+                await this.getPageResponse(response);
+
+            }else if (this.beforeOneLinkScrape) {//Backward compatibility
                 if (typeof this.beforeOneLinkScrape !== 'function')
                     throw "'beforeOneLinkScrape' callback must be a function";
-                await this.beforeOneLinkScrape(response)
+                await this.beforeOneLinkScrape(response);
             }
-            // console.log('response.data after callback',response.data)
+            
             scrapingObject.successful = true
 
 
@@ -124,10 +125,12 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
         try {
             var dataFromChildren = await this.scrapeChildren(this.operations, response)
             response = null;
-
-            if (this.afterOneLinkScrape) {
-                if (typeof this.afterOneLinkScrape !== 'function')
-                    throw "'afterOneLinkScrape' callback must be a function";
+            let callback;
+            // debugger;
+            callback = this.getPageData || this.afterOneLinkScrape;//For backward compatibility. 
+            if (callback) {
+                if (typeof callback !== 'function')
+                    throw  "callback must be a function";
 
                 const cleanData = {
                     address: href,
@@ -139,7 +142,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                     cleanData.data.push(dataFromChild);
                     // cleanData.push(dataFromChild)
                 })
-                await this.afterOneLinkScrape(cleanData);
+                await callback(cleanData);
             }
             scrapingObject.data = [...dataFromChildren];
         } catch (error) {

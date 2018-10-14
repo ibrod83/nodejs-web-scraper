@@ -158,18 +158,12 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
 
 
-        const asyncFunction = async () => {
+        const promiseFactory = async () => {
 
-            const fileDownloader = new file_downloader(options);
-            this.scraper.state.currentlyRunning++;
-            console.log('fetching file:', url)
-            console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
-            await this.createDelay()
-            this.scraper.state.numRequests++
-            console.log('overall requests', this.scraper.state.numRequests)
-            let resp;
+            await this.beforePromiseFactory('Fetching file:'+url);
+
             try {
-
+                const fileDownloader = new file_downloader(options);
                 //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
                 await fileDownloader.download();             
                 if (!this.scraper.config.mockImages){
@@ -187,16 +181,13 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
             }
 
             finally {
-                this.scraper.state.currentlyRunning--;
-                console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+                this.afterPromiseFactory();    
             }
-            return resp;
+            // return resp;
 
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(asyncFunction) }, url)
-        // .then(() => { this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages) })
-
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
 
 
     }

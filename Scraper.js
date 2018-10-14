@@ -1,5 +1,4 @@
 
-// var sizeof = require('object-sizeof');
 const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');
@@ -39,6 +38,7 @@ class Scraper {
             currentlyRunning: 0,
             registeredOperations: [],//Holds a reference to each created operation.
             numRequests: 0,
+            repetitionCycles:0,
             scrapingObjects: []//for debugging
         }
 
@@ -122,6 +122,7 @@ class Scraper {
     // }
 
     areThereRepeatableErrors() {
+        // debugger;
         return this.state.failedScrapingObjects.length > 0;
     }
 
@@ -164,7 +165,9 @@ class Scraper {
 
     async repeatAllFailedRequests(numCycles = 1) {
         let cycleCounter = 0;
+        
         while (cycleCounter < numCycles) {
+            // debugger;
             if (this.areThereRepeatableErrors()) {
                 await this.repeatErrors();
 
@@ -182,8 +185,10 @@ class Scraper {
 
 
     async repeatErrors() {
-
-        console.log('Beginning a cycle of repetition');
+        // debugger;
+        // console.log('Beginning a cycle of repetition');
+        this.state.repetitionCycles++
+        console.log('Repetition cycle number:',this.state.repetitionCycles);
         console.log('Number of failed objects before repetition cycle:', this.state.failedScrapingObjects.length)
 
         await Promise.all(

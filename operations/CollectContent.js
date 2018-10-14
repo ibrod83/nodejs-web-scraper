@@ -20,6 +20,7 @@ class CollectContent extends Operation {
     }
 
     async scrape(responseObjectFromParent) {
+        // debugger;
         // console.log('address',responseObjectFromParent.request.res.responseUrl)
         const parentAddress = responseObjectFromParent.request.res.responseUrl
         const currentWrapper = this.createWrapper(parentAddress);
@@ -37,8 +38,8 @@ class CollectContent extends Operation {
                 const contentFromCallback = this.getElementContent(content,parentAddress)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
-
-            currentWrapper.data.push({ element: element.name, [this.contentType]: content });
+            // debugger;
+            currentWrapper.data.push(content);
         })
         $ = null;
 

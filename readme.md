@@ -11,10 +11,10 @@ $ npm install nodejs-web-scraper
 # Table of Contents
 - [Basic example](#basic-example) 
 - [Advanced](#advanced-examples) 
-  * [Pagination and an afterOneLinkScrape callback](#pagination-and-an-afteronelinkscrape-callback)  
+  * [Pagination and an getPageData callback](#pagination-and-an-getpagedata-callback)  
   * [Get an entire HTML file](#get-an-entire-html-file)  
   * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
-  * [getElementContent callback and a beforeOneLinkScrape callback.](#getelementcontent-callback-and-a-beforeonelinkscrape-callback)  
+  * [getElementContent callback and a getPageResponse callback.](#getelementcontent-callback-and-a-getpageresponse-callback)  
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling) 
@@ -82,7 +82,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 ## Advanced Examples
 
-#### Pagination and an afterOneLinkScrape callback.
+#### Pagination and an getPageData callback.
 
 ```javascript
 
@@ -90,9 +90,9 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const ads=[];
 
-    const afterOneLinkScrape = async (dataFromAd) => {
+    const getPageData = async (dataFromAd) => {
       ads.push(dataFromAd)
-    }//This is passed as a callback to "afterOneLinkScrape", in the jobAd object.Receives formatted data as an argument. 
+    }//This is passed as a callback to "getPageData", in the jobAd object.Receives formatted data as an argument. 
 
     config = {        
         baseSiteUrl: `https://www.profesia.sk`,
@@ -104,7 +104,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
 
-    const jobAds = new OpenLinks('.list-row a.title', {  afterOneLinkScrape });//Opens every job ad, and calls a callback after every page is done.
+    const jobAds = new OpenLinks('.list-row a.title', {  getPageData });//Opens every job ad, and calls a callback after every page is done, with the collected data.
 
     const images = new DownloadContent('img:first', { name: 'Good Image' });//Notice that you can give each operation a name, for clarity in the logs.
 
@@ -198,11 +198,11 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
 &nbsp;
 
-#### getElementContent callback and a beforeOneLinkScrape callback.
+#### getElementContent callback and a getPageResponse callback.
 
 ```javascript
 
-  const beforeOneLinkScrape = async (response) => {
+  const getPageResponse = async (response) => {
         //Do something with response.data(the HTML content). No need to return anything.
     }
 
@@ -224,7 +224,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
     const articles = new OpenLinks('article a');
 
-    const posts = new OpenLinks('.post a'{beforeOneLinkScrape});//Is called after the HTML of a link was fetched, but before the children have been scraped. Is passed the response object of the page.    
+    const posts = new OpenLinks('.post a'{getPageResponse});//Is called after the HTML of a link was fetched, but before the children have been scraped. Is passed the response object of the page.    
 
     const myDiv = new CollectContent('.myDiv',{getElementContent});//Will be called after every "myDiv" element is collected.
 
@@ -239,7 +239,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 ```
 Description: "Go to https://www.nice-site/some-section; Open every article link; Collect each .myDiv; Call getElementContent()".
 
-"Also, from https://www.nice-site/some-section, open every post; Before scraping the children(myDiv object), call beforeOneLinkScrape(); CollCollect each .myDiv".
+"Also, from https://www.nice-site/some-section, open every post; Before scraping the children(myDiv object), call getPageResponse(); CollCollect each .myDiv".
 
 &nbsp;
 
@@ -309,8 +309,8 @@ The optional config can have these properties:
     pagination:{},//Look at the pagination API for more details.
     getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
-    afterOneLinkScrape:(cleanData)=>{}//Called after every all data was collected from a link, opened by this operation.(if a given page has 10 links, it will be called 10 times, with the child data).
-    beforeOneLinkScrape:(axiosResponse)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the axios response object. Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
+    getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this operation.(if a given page has 10 links, it will be called 10 times, with the child data).
+    getPageResponse:(axiosResponse)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the axios response object. Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
     afterScrape:(data)=>{},//Is called after all scraping associated with the current "OpenLinks" operation is completed(like opening 10 pages, and downloading all images form them). Notice that if this operation was added as a child(via "addOperation()") in more than one place, then this callback will be called multiple times, each time with its corresponding data.
     slice:[start,end]//You can define a certain range of elements from the node list.Also possible to pass just a number, instead of an array, if you only want to specify the start. This uses the Cheerio/Jquery slice method.
 }

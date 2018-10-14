@@ -10,18 +10,7 @@ const Promise = require('bluebird');
 
 class InterneticOperation extends Operation {//Base class for all operations that require reaching out to the internet.
 
-    stripTags(responseObject) {//Cleans the html string from script and style tags.
-
-
-        if (this.scraper.config.removeStyleAndScriptTags) {
-            responseObject.data = responseObject.data.replace(/<\s*script[^>]*>[\s\S]*?(<\s*\/script[^>]*>|$)/ig, '');
-            responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, '');
-
-        }
-        // console.log('after strip', sizeof(responseObject.data))
-
-    }
-
+    
     createScrapingObject(href, type) {//Creates a scraping object, for all operations.
         const scrapingObject = {
             address: href,//The image href            
@@ -41,8 +30,10 @@ class InterneticOperation extends Operation {//Base class for all operations tha
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
 
-        const randomNumber = this.scraper.config.fakeErrors ? Math.floor(Math.random() * (7 - 1 + 1)) + 1 : 7;
-        if (this.scraper.state.numRequests > 3 && randomNumber == 1) {
+        const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
+        // debugger;
+        if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
+            
             throw 'randomly generated error,' + href;
         }
 
@@ -56,7 +47,7 @@ class InterneticOperation extends Operation {//Base class for all operations tha
 
 
             const errorCode = error.response ? error.response.status : error
-            console.log('error code', errorCode);
+            // console.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
                 // debugger;
                 const error = new Error();
@@ -91,11 +82,14 @@ class InterneticOperation extends Operation {//Base class for all operations tha
             const mark = scrapingObject.address.includes('?') ? '&' : '?';
             var paginationUrl;
             var paginationObject;
+            // debugger;
             if (this.pagination.queryString) {
                 paginationUrl = `${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`;
             } else {
-                paginationUrl = `${scrapingObject.address}/${this.pagination.routingString}/${i}`;
-
+                
+                paginationUrl = `${scrapingObject.address}/${this.pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
+                
+                
             }
             if (this.pagination.processPaginationUrl) {
                 try {
@@ -140,7 +134,7 @@ class InterneticOperation extends Operation {//Base class for all operations tha
 
     handleFailedScrapingObject(scrapingObject, errorString, errorCode) {
         // debugger;
-        console.log('error code from handle', errorCode);
+        // console.log('error code from handle', errorCode);
         console.error(errorString);
         scrapingObject.error = errorString;
         // debugger;
@@ -158,6 +152,21 @@ class InterneticOperation extends Operation {//Base class for all operations tha
         }
         return this.scraper.qyu(promiseFunction);
 
+    }
+
+    async beforePromiseFactory(message) {//Runs at the beginning of the promise-returning function, that is sent to repeatPromiseUntilResolved().
+      
+        this.scraper.state.currentlyRunning++;
+        console.log(message);
+        console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+        await this.createDelay()
+        this.scraper.state.numRequests++
+        console.log('overall requests', this.scraper.state.numRequests)
+    }
+
+    afterPromiseFactory() {//Runs at the end of the promise-returning function, that is sent to repeatPromiseUntilResolved().
+        this.scraper.state.currentlyRunning--;
+        console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
     }
 
     async createDelay() {
