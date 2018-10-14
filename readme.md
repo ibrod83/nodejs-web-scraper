@@ -11,7 +11,7 @@ $ npm install nodejs-web-scraper
 # Table of Contents
 - [Basic example](#basic-example) 
 - [Advanced](#advanced-examples) 
-  * [Pagination and a getPageData callback](#pagination-and-an-getpagedata-callback)  
+  * [Pagination and a getPageData callback](#pagination-and-a-getpagedata-callback)  
   * [Get an entire HTML file](#get-an-entire-html-file)  
   * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
   * [getElementContent callback and a getPageResponse callback.](#getelementcontent-callback-and-a-getpageresponse-callback)  
