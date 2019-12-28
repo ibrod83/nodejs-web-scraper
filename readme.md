@@ -1,8 +1,6 @@
 Nodejs-web-scraper is a simple, yet powerful tool for Node programmers who want to quickly setup a complex scraping job of server-side rendered web sites.
 It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc.
 
-# Readme file is still being written...
-
 ## Installation
 
 ```sh
@@ -104,7 +102,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
 
-    const jobAds = new OpenLinks('.list-row a.title', {  getPageData });//Opens every job ad, and calls a callback after every page is done, with the collected data.
+    const jobAds = new OpenLinks('.list-row a', {  getPageData });//Opens every job ad, and calls a callback after every page is done, with the collected data.
 
     const images = new DownloadContent('img:first', { name: 'Good Image' });//Notice that you can give each operation a name, for clarity in the logs.
 
@@ -145,14 +143,14 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
   const getHtml = (html,pageAddress) => {//Saving the HTML file, using the page address as a name.
       const name = sanitize(pageAddress)
-      fs.writeFile(`./html/${name}.html`,html)
+      fs.writeFile(`./html/${name}.html`,html,()=>{})
    }   
 
     const scraper = new Scraper(config);
 
      const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 100 } });
 
-    const jobAds = new OpenLinks('.list-row a.title', { getHtml });//Opens every job ad, and calls a callback after every page is done.
+    const jobAds = new OpenLinks('.list-row a', { getHtml });//Opens every job ad, and calls a callback after every page is done.
 
     root.addOperation(jobAds);       
 

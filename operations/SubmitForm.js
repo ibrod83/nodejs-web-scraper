@@ -1,190 +1,182 @@
-// const InterneticOperation = require('./InterneticOperation');
-// const axios = require('axios');
-// var cheerio = require('cheerio');
-// var cheerioAdv = require('cheerio-advanced-selectors');
-// cheerio = cheerioAdv.wrap(cheerio);
-// const FormData = require('form-data');
-// const URL = require('url').URL;
+const InterneticOperation = require('./InterneticOperation');
+const axios = require('axios');
+var cheerio = require('cheerio');
+var cheerioAdv = require('cheerio-advanced-selectors');
+cheerio = cheerioAdv.wrap(cheerio);
+const FormData = require('form-data');
+const URL = require('url').URL;
 
 
 
 
 
-// class SubmitForm extends InterneticOperation {
+class SubmitForm extends InterneticOperation {
 
-//     constructor(querySelector, config) {
-//         super(config);
-//         this.querySelector = querySelector;
-//         // this.validateOperationArguments();
+    constructor(querySelector, config) {
+        super(config);
+        this.querySelector = querySelector;
+        // this.validateOperationArguments();
 
 
-//     }
+    }
 
-//     async scrape(responseObjectFromParent) {
-//         // debugger;
-//         // console.log('address',responseObjectFromParent.request.res.responseUrl)
+    async scrape(responseObjectFromParent) {
+        // debugger;
+        // console.log('address',responseObjectFromParent.request.res.responseUrl)
 
-//         const currentWrapper = this.createWrapper(responseObjectFromParent.request.res.responseUrl);
+        const currentWrapper = this.createWrapper(responseObjectFromParent.request.res.responseUrl);
 
-//         var $ = cheerio.load(responseObjectFromParent.data);
+        var $ = cheerio.load(responseObjectFromParent.data);
 
-//         const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
+        const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
 
-//         const elementList = this.createElementList($);
-//         const actions = []
-//         for (let element of elementList) {
-//             // debugger;
-//             const action = element[0].attribs.action;
+        const elementList = this.createElementList($);
+        const actions = []
+        for (let element of elementList) {
+            // debugger;
+            const action = element[0].attribs.action;
 
-//             const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, action);
+            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, action);
 
-//             actions.push(absoluteUrl)
+            actions.push(absoluteUrl)
 
-//             // await this.submit(absoluteUrl);
-//         }
+            // await this.submit(absoluteUrl);
+        }
 
-//         const scrapingObjects = this.createScrapingObjectsFromRefs(actions);
+        const scrapingObjects = this.createScrapingObjectsFromRefs(actions);
 
-//         await this.executeScrapingObjects(scrapingObjects);
+        await this.executeScrapingObjects(scrapingObjects);
 
 
-//         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+        currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
 
-//         this.data.push(currentWrapper);
+        this.data.push(currentWrapper);
 
-//         return this.createMinimalData(currentWrapper);
+        return this.createMinimalData(currentWrapper);
 
-//         $ = null;
+        $ = null;
 
 
 
-//     }
+    }
 
-//     async processOneScrapingObject(scrapingObject) {
+    async processOneScrapingObject(scrapingObject) {
 
-//         delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
-//         const action = scrapingObject.address;
+        delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
+        const action = scrapingObject.address;
 
-//         // debugger;
+        // debugger;
 
-//         try {
+        try {
 
 
-//             const response = await this.submit(action);
-//             // debugger;
-//             if(this.getSubmissionResponse)
-//                 await this.getSubmissionResponse(response)
+            const response = await this.submit(action);
+            // debugger;
+            if (this.getSubmissionResponse)
+                await this.getSubmissionResponse(response)
 
-//             scrapingObject.successful = true;
+            scrapingObject.successful = true;
 
-//         } catch (error) {
-//             // debugger;
-//             // error.code
-//             const errorCode = error.code
-//             const errorString = `There was an error submitting form:, ${action}, ${error}`
-//             this.errors.push(errorString);
-//             this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
+        } catch (error) {
+            // debugger;
+            // error.code
+            const errorCode = error.code
+            const errorString = `There was an error submitting form:, ${action}, ${error}`
+            this.errors.push(errorString);
+            this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
 
-//             return;
+            return;
 
 
-//         }
+        }
 
-//     }
+    }
 
-//     async submit(url) {
+    createFormData(obj) {
+        var form = new FormData();
+        for (let field in obj) {
 
-//         const isHttps = url.includes('https');
+            form.append(field, obj[field])
+        }
+        // debugger;
+        return form;
+    }
 
-//         const urlObject = new URL(url);
+    async submit(url) {
 
-//         const host = urlObject.host;
+        const promiseFactory = async () => {
 
-//         const path = urlObject.pathname;
-       
-//         var form = new FormData();
-//         for (let field in this.fields) {
+            const form = this.createFormData(this.fields);
 
-//             form.append(field, this.fields[field])
-//         }
+            await this.beforePromiseFactory('Submitting form:' + url);
 
-//         const promiseFactory = async () => {
+            const headers = { ...form.getHeaders(), ...this.scraper.config.headers };
 
-//             await this.beforePromiseFactory('Submitting form:' + url);
-//             // this.scraper.state.currentlyRunning++;
-//             // console.log('fetching file:', url)
-//             // console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
-//             // await this.createDelay()
-//             // this.scraper.state.numRequests++
-//             // console.log('overall requests', this.scraper.state.numRequests)
-//             const headers = {...form.getHeaders(),...this.scraper.config.headers};
-           
-           
-//             try {
-//                 var resp = await axios({
-//                     url,
-//                     method:'post',
-//                     headers,
-//                     data:form
-//                 })
-//                 debugger;
-//                 console.log(resp)
-//                 // var resp="";
-//                 // await new Promise((resolve, reject) => {
-//                 //     const config = {
-//                 //         method: 'post',
-//                 //         host,
-//                 //         path,
-//                 //         headers: form.getHeaders()
-//                 //     }
+            try {
+                // debugger;
+                var resp = await axios({
+                    url: this.customUrl || url,
+                    method: 'post',
+                    headers,
+                    data: form
+                })
+                debugger;
+                console.log(resp)
 
-//                 //     var request = isHttps ? https.request(config) : http.request(config);
+            } catch (error) {
+                throw error;
+            }
 
-//                 //     form.pipe(request);                
+            finally {
+                this.afterPromiseFactory();            
+            }
+            return resp;
 
-//                 //     request.on('response', function (res) {
-//                 //         res.on('data',(chunk)=>{
-//                 //             resp+=chunk
-//                 //             // debugger;  
-//                 //         })
-//                 //         res.on('end', function () {
-//                 //             // debugger;
-//                 //             // console.log(body);
-//                 //             resolve()
-//                 //           });
-                     
-//                 //     });
+        }
+        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
 
-//                 //     request.on('error', function (e) {
-//                 //         reject(e)
-//                 //     });
-//                 // })
 
-//             } catch (error) {
-//                 throw error;
-//             }
 
-//             finally {
-//                 this.afterPromiseFactory();
-//                 // this.scraper.state.currentlyRunning--;
-//                 // console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
-//             }
-//             return resp;
+    }
 
-//         }
-//         return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
 
 
 
-//     }
 
 
 
+}
 
+module.exports = SubmitForm;
 
 
+                // var resp="";
+                // await new Promise((resolve, reject) => {
+                //     const config = {
+                //         method: 'post',
+                //         host,
+                //         path,
+                //         headers: form.getHeaders()
+                //     }
 
-// }
+                //     var request = isHttps ? https.request(config) : http.request(config);
 
-// module.exports = SubmitForm;
+                //     form.pipe(request);                
 
+                //     request.on('response', function (res) {
+                //         res.on('data',(chunk)=>{
+                //             resp+=chunk
+                //             // debugger;  
+                //         })
+                //         res.on('end', function () {
+                //             // debugger;
+                //             // console.log(body);
+                //             resolve()
+                //           });
+
+                //     });
+
+                //     request.on('error', function (e) {
+                //         reject(e)
+                //     });
+                // })

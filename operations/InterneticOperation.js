@@ -29,7 +29,7 @@ class InterneticOperation extends Operation {//Base class for all operations tha
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
-
+    // debugger;
         const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
         // debugger;
         if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
