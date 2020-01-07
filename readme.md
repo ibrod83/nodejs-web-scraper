@@ -82,9 +82,7 @@ const fs = require('fs');
 
     //All done. We specified a 'logPath', so now also the default JSON files were automatically created.
 
-})();
-
-    
+})();    
 
 ```
 This basically means: "go to www.nytimes.com; Open every category; Then open every article in each category page; Then collect the title, story and image href, and download all images on that page".
@@ -104,7 +102,6 @@ const fs = require('fs');
 (async () => {
 
     const ads = [];
-
 
     const logAd = async ({ data }) => {
         const ad = {
@@ -140,9 +137,6 @@ const fs = require('fs');
     fs.writeFile('./myAds.json', JSON.stringify(ads), () => { });//Doing something with the array we created from the callbacks...
 })()
 
-
-
-
 ```
 Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect the title and phone of each ad."
 
@@ -152,7 +146,7 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
 ```javascript
 
-  const sanitize = require('sanitize-filename');//Using this npm module to sanitize file names.
+const sanitize = require('sanitize-filename');//Using this npm module to sanitize file names.
 const fs = require('fs');
 const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
@@ -185,7 +179,6 @@ const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
     await scraper.scrape(root);
 })() 
-
 
 ```
 Description: "Go to https://www.profesia.sk/praca/; Paginate 100 pages from the root; Open every job ad; Save every job ad page as an html file;
@@ -263,7 +256,6 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
         posts.addOperation(myDiv)   
 
    await scraper.scrape(root);
-
     
 ```
 Description: "Go to https://www.nice-site/some-section; Open every article link; Collect each .myDiv; Call getElementContent()".
