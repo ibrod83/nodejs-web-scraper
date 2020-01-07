@@ -1,5 +1,5 @@
-Nodejs-web-scraper is a simple, yet powerful tool for Node programmers who want to quickly setup a complex scraping job of server-side rendered web sites.
-It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc.
+nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
+It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Was tested on Node 10 and 12.
 
 ## Installation
 
@@ -23,76 +23,99 @@ $ npm install nodejs-web-scraper
 
 ## Basic example
 
-#### Nodejs-web-scraper has a semantic API:
 ```javascript
-const { Scraper, Root, DownloadContent, OpenLinks, CollectContent, Inquiry } =  require('nodejs-web-scraper');    
+const { Scraper, Root, DownloadContent, OpenLinks, CollectContent } = require('nodejs-web-scraper');
+const fs = require('fs');
 
-(async()=>{
+(async () => {
     const config = {
         baseSiteUrl: `https://www.nytimes.com/`,
         startUrl: `https://www.nytimes.com/`,
-        concurrency: 10,     
+        concurrency: 10,
         maxRetries: 3,//The scraper will try to repeat a failed request few times(excluding 404)
         cloneImages: true,//Will create a new image file with a modified name, if the name already exists.	  
         filePath: './images/',
         logPath: './logs/'//Highly recommended: Creates a friendly JSON for each operation object, with all the relevant data. 
-    }  
+    }
 
-    const scraper =  new Scraper(config);//Create a new Scraper instance, and pass config to it.
+    const articles = [];
+
+    const getPageData = async ({ data }) => {//This callback function will be used by each article page opened.
+
+        //This will construct an object with the title, story and image href for each article.
+        const article = {
+            title: data.filter(operation => operation.name === 'title')[0].data[0],
+            story: data.filter(operation => operation.name === 'story')[0].data[0],
+            image: data.filter(operation => operation.name === 'image')[0].data[0].address,
+
+        }
+
+        articles.push(article)
+    }
+
+    const scraper = new Scraper(config);//Create a new Scraper instance, and pass config to it.
 
     //Now we create the "operations" we need:
 
-    const root =  new Root();//The root object fetches the startUrl, and starts the process.  
+    const root = new Root();//The root object fetches the startUrl, and starts the process.  
 
-    const categories =  new OpenLinks('.css-1wjnrbv');//Opens each category page.
+    const category = new OpenLinks('.css-1wjnrbv');//Opens each category page.
 
-    const articles =  new OpenLinks('article a');//Opens each article page
+    const article = new OpenLinks('article a', { getPageData });//Opens each article page, and call the getPageData callback.
 
-    const images =  new DownloadContent('img');//Downloads every image from a given page.  
+    const image = new DownloadContent('img', { name: 'image' });//Downloads images.  
 
-    const titles =  new CollectContent('h1');//"Collects" the text from each H1 element.
+    const title = new CollectContent('h1', { name: 'title' });//"Collects" the text from each H1 element.
 
+    const story = new CollectContent('section.meteredContent', { name: 'story' });//"Collects" the text from each H1 element.
 
-    root.addOperation(categories);//Then we create a scraping "tree":
-        categories.addOperation(articles);
-            articles.addOperation(images);
-            articles.addOperation(titles);
-            
+    root.addOperation(category);//Then we create a scraping "tree":
+      category.addOperation(article);
+       article.addOperation(image);
+       article.addOperation(title);
+       article.addOperation(story);
+
     await scraper.scrape(root);//Pass the root object to the Scraper.scrape method, and the work begins.
 
-    //All done. We specified a 'logPath', so now JSON files were automatically created.   
+    fs.writeFile('./articles.json', JSON.stringify(articles), () => { })
+    //Now checkout articles.json file in your root directory.
 
-    //You can also manually get the data of each operation object, by calling the getData() method, for example:
+    //All done. We specified a 'logPath', so now also the default JSON files were automatically created.
 
-    const allArticles = articles.getData();
-    const allTitles = titles.getData();
+})();
 
-    //Do something with that data...
-
-    })();
     
 
 ```
-This basically means: "go to www.nytimes.com; Open every category; Then open every article in each category page; Then collect the h1 tags in each article, and download all images on that page".
+This basically means: "go to www.nytimes.com; Open every category; Then open every article in each category page; Then collect the title, story and image href, and download all images on that page".
 
 &nbsp;
 
 
 ## Advanced Examples
 
-#### Pagination and a getPageData callback.
+#### Pagination
 
 ```javascript
 
-(async()=>{
+const { Scraper, Root, OpenLinks, CollectContent } = require('nodejs-web-scraper');
+const fs = require('fs');
 
-    const ads=[];
+(async () => {
 
-    const getPageData = async (dataFromAd) => {
-      ads.push(dataFromAd)
-    }//This is passed as a callback to "getPageData", in the jobAd object .Receives formatted data as an argument. 
+    const ads = [];
 
-    config = {        
+
+    const logAd = async ({ data }) => {
+        const ad = {
+            title: data.filter(operation => operation.name === 'Ad title')[0].data[0],
+            phone: data.filter(operation => operation.name === 'Ad phone')[0].data[0]
+        }
+
+        ads.push(ad)
+    }
+
+    config = {
         baseSiteUrl: `https://www.profesia.sk`,
         startUrl: `https://www.profesia.sk/praca/`,
         filePath: './images/',
@@ -102,29 +125,26 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
 
-    const jobAds = new OpenLinks('.list-row a', {  getPageData });//Opens every job ad, and calls a callback after every page is done, with the collected data.
+    const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageData: logAd });//Opens every job ad, and calls a callback after every page is done, with the collected data.
 
-    const images = new DownloadContent('img:first', { name: 'Good Image' });//Notice that you can give each operation a name, for clarity in the logs.
+    const phones = new CollectContent('.details-desc a.tel', { name: 'Ad phone' })
 
-    const spans = new CollectContent('span');
-    
-    const titles = new CollectContent('h4,h2');
+    const titles = new CollectContent('h1', { name: 'Ad title' });
 
     root.addOperation(jobAds);
-        jobAds.addOperation(spans);
-        jobAds.addOperation(titles);    
-        jobAds.addOperation(images);    
-    root.addOperation(titles);//Notice that i use the same "titles" object object as a child of two different objects. This means, the data will be collected both from the root, and from each job ad page. You can compose your scraping as you wish.
+      jobAds.addOperation(titles);
+      jobAds.addOperation(phones);
 
     await scraper.scrape(root);
 
-    fs.writeFile('./myAds.json', JSON.stringify(ads));//Doing something with the array we created from the callbacks...
+    fs.writeFile('./myAds.json', JSON.stringify(ads), () => { });//Doing something with the array we created from the callbacks...
 })()
 
 
 
+
 ```
-Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect span,h2,h4 elements and download the first image; Call getPageData callback with each page; Also collect h2,h4 in the root(each pagination)."
+Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect the title and phone of each ad."
 
 &nbsp;
 
@@ -133,28 +153,39 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 ```javascript
 
   const sanitize = require('sanitize-filename');//Using this npm module to sanitize file names.
+const fs = require('fs');
+const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
-
-  config = {        
+(async () => {
+    config = {
         baseSiteUrl: `https://www.profesia.sk`,
         startUrl: `https://www.profesia.sk/praca/`,
         removeStyleAndScriptTags: false//Telling the scraper NOT to remove style and script tags, cause i want it in my html files, for this example.        
     }
 
-  const getHtml = (html,pageAddress) => {//Saving the HTML file, using the page address as a name.
-      const name = sanitize(pageAddress)
-      fs.writeFile(`./html/${name}.html`,html,()=>{})
-   }   
+    let directoryExists;
+
+    const getHtml = (html, pageAddress) => {//Saving the HTML file, using the page address as a name.
+
+        if(!directoryExists){
+            fs.mkdirSync('./html');
+            directoryExists = true;
+        }
+        const name = sanitize(pageAddress)
+        fs.writeFile(`./html/${name}.html`, html, () => { })
+    }
 
     const scraper = new Scraper(config);
 
-     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 100 } });
+    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 100 } });
 
-    const jobAds = new OpenLinks('.list-row a', { getHtml });//Opens every job ad, and calls a callback after every page is done.
+    const jobAds = new OpenLinks('.list-row h2 a', { getHtml });//Opens every job ad, and calls a callback after every page is done.
 
-    root.addOperation(jobAds);       
+    root.addOperation(jobAds);
 
     await scraper.scrape(root);
+})() 
+
 
 ```
 Description: "Go to https://www.profesia.sk/praca/; Paginate 100 pages from the root; Open every job ad; Save every job ad page as an html file;
