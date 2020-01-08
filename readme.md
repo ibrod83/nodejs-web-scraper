@@ -85,7 +85,7 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 ```javascript
 
-const { Scraper, Root, OpenLinks, CollectContent } = require('nodejs-web-scraper');
+const { Scraper, Root, OpenLinks, CollectContent, DownloadContent } = require('nodejs-web-scraper');
 const fs = require('fs');
 
 (async () => {
