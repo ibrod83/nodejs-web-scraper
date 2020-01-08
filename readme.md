@@ -67,7 +67,7 @@ const fs = require('fs');
     article.addOperation(title);
     article.addOperation(story);
 
-    await scraper.scrape();
+    await scraper.scrape(root);
 
     fs.writeFile('./articles.json', JSON.stringify(articles), () => { })//Will produce a formatted JSON containing all article pages and their selected data.
 
@@ -120,7 +120,7 @@ const fs = require('fs');
     jobAds.addOperation(phones);
     jobAds.addOperation(images);
 
-    await scraper.scrape();
+    await scraper.scrape(root);
     
     fs.writeFile('./pages.json', JSON.stringify(pages), () => { });//Produces a formatted JSON with all job ads.
 })()
