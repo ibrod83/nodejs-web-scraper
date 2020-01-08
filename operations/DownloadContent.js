@@ -54,7 +54,6 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         elementList.forEach((element) => {
             var src;
             src = element.attr(this.contentType === 'image' ? 'src' : 'href')
-
             if (!src || src.startsWith("data:image")) {
                 const alternativeAttrib = this.alternativeSrc && this.getAlternativeAttrib(element[0].attribs);
                 if (alternativeAttrib) {
@@ -75,6 +74,8 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
             const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, src);
             fileRefs.push(absoluteUrl);
+            // currentWrapper.data.push(absoluteUrl);
+
 
 
         })
@@ -87,12 +88,14 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         }
 
         const scrapingObjects = this.createScrapingObjectsFromRefs(fileRefs);
-
+      
         await this.executeScrapingObjects(scrapingObjects);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+        
 
         this.data.push(currentWrapper);
+        // this.data.push(currentWrapper.data);
 
         if (this.afterScrape) {
             await this.afterScrape(currentWrapper);

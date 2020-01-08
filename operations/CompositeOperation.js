@@ -129,6 +129,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
             // debugger;
             callback = this.getPageData || this.afterOneLinkScrape;//For backward compatibility. 
             if (callback) {
+                // debugger;
                 if (typeof callback !== 'function')
                     throw  "callback must be a function";
 
@@ -144,6 +145,27 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                 })
                 await callback(cleanData);
             }
+
+            if(this.getPageObject){
+                
+                
+                const tree = {}
+                for(let child of dataFromChildren){                    
+                    debugger;
+                    if(child.type === 'DownloadContent'){
+                        const data = child.data.map(d=>d.address);
+                        
+                        tree[child.name] = data.length <= 1  ? data[0] : data     
+                        continue;
+                    }
+                    // const type = typeof child
+                    // console.log(type)
+                    tree[child.name] = child.data.length <= 1  ? child.data[0] : child.data
+                }
+                this.getPageObject(tree)
+            }
+
+            
             scrapingObject.data = [...dataFromChildren];
         } catch (error) {
             console.error(error);

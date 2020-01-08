@@ -9,7 +9,7 @@ $ npm install nodejs-web-scraper
 # Table of Contents
 - [Basic example](#basic-example) 
 - [Advanced](#advanced-examples) 
-  * [Pagination and a getPageData callback](#pagination-and-a-getpagedata-callback)  
+  * [Pagination](#pagination)  
   * [Get an entire HTML file](#get-an-entire-html-file)  
   * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
   * [getElementContent callback and a getPageResponse callback.](#getelementcontent-callback-and-a-getpageresponse-callback)  
@@ -28,7 +28,8 @@ const { Scraper, Root, DownloadContent, OpenLinks, CollectContent } = require('n
 const fs = require('fs');
 
 (async () => {
-    const config = {
+
+    var config = {
         baseSiteUrl: `https://www.nytimes.com/`,
         startUrl: `https://www.nytimes.com/`,
         concurrency: 10,
@@ -38,49 +39,37 @@ const fs = require('fs');
         logPath: './logs/'//Highly recommended: Creates a friendly JSON for each operation object, with all the relevant data. 
     }
 
-    const articles = [];
+    var articles = [];
 
-    const getPageData = async ({ data }) => {//This callback function will be used by each article page opened.
-
-        //This will construct an object with the title, story and image href for each article.
-        const article = {
-            title: data.filter(operation => operation.name === 'title')[0].data[0],
-            story: data.filter(operation => operation.name === 'story')[0].data[0],
-            image: data.filter(operation => operation.name === 'image')[0].data[0].address,
-
-        }
-
-        articles.push(article)
+    var getPageObject = (pageObject) => {//This will create an object for each page, with "title", "story" and "image" properties(The names we chose for our scraping operations below)
+        articles.push(pageObject)
     }
 
-    const scraper = new Scraper(config);//Create a new Scraper instance, and pass config to it.
+    var scraper = new Scraper(config);//Create a new Scraper instance, and pass config to it.
 
     //Now we create the "operations" we need:
 
-    const root = new Root();//The root object fetches the startUrl, and starts the process.  
+    var root = new Root();//The root object fetches the startUrl, and starts the process.  
 
-    const category = new OpenLinks('.css-1wjnrbv');//Opens each category page.
+    var category = new OpenLinks('.css-1wjnrbv',{name:'category'});//Opens each category page.
 
-    const article = new OpenLinks('article a', { getPageData });//Opens each article page, and call the getPageData callback.
+    var article = new OpenLinks('article a', {name:'article', getPageObject });//Opens each article page, and calls the getPageObject callback.
+    var image = new DownloadContent('img', { name: 'image' });//Downloads images. *It's important to choose a name, for the
+    //getPageObject callback to produce the expected results.*  
 
-    const image = new DownloadContent('img', { name: 'image' });//Downloads images.  
+    var title = new CollectContent('h1', { name: 'title' });//"Collects" the text from each H1 element.
 
-    const title = new CollectContent('h1', { name: 'title' });//"Collects" the text from each H1 element.
-
-    const story = new CollectContent('section.meteredContent', { name: 'story' });//"Collects" the text from each H1 element.
+    var story = new CollectContent('section.meteredContent', { name: 'story' });//"Collects" the the article body.
 
     root.addOperation(category);//Then we create a scraping "tree":
-      category.addOperation(article);
-       article.addOperation(image);
-       article.addOperation(title);
-       article.addOperation(story);
+    category.addOperation(article);
+    article.addOperation(image);
+    article.addOperation(title);
+    article.addOperation(story);
 
-    await scraper.scrape(root);//Pass the root object to the Scraper.scrape method, and the work begins.
+    await scraper.scrape();
 
-    fs.writeFile('./articles.json', JSON.stringify(articles), () => { })
-    //Now checkout articles.json file in your root directory.
-
-    //All done. We specified a 'logPath', so now also the default JSON files were automatically created.
+    fs.writeFile('./articles.json', JSON.stringify(articles), () => { })//Will produce a formatted JSON containing all article pages and their selected data.
 
 })();    
 
@@ -101,16 +90,12 @@ const fs = require('fs');
 
 (async () => {
 
-    const ads = [];
+    const pages = [];
 
-    const logAd = async ({ data }) => {
-        const ad = {
-            title: data.filter(operation => operation.name === 'Ad title')[0].data[0],
-            phone: data.filter(operation => operation.name === 'Ad phone')[0].data[0]
-        }
-
-        ads.push(ad)
+    const getPageObject = (pageObject) => {                  
+        pages.push(pageObject)
     }
+
 
     config = {
         baseSiteUrl: `https://www.profesia.sk`,
@@ -118,23 +103,26 @@ const fs = require('fs');
         filePath: './images/',
         logPath: './logs/'
     }
-    const scraper = new Scraper(config);
+    var scraper = new Scraper(config);
 
-    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+    var root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 2 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
 
-    const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageData: logAd });//Opens every job ad, and calls a callback after every page is done, with the collected data.
+    var jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
 
-    const phones = new CollectContent('.details-desc a.tel', { name: 'Ad phone' })
+    var phones = new CollectContent('.details-desc a.tel', { name: 'phone' })
 
-    const titles = new CollectContent('h1', { name: 'Ad title' });
+    var images = new DownloadContent('img', { name: 'images' })
+
+    var titles = new CollectContent('h1', { name: 'title' });
 
     root.addOperation(jobAds);
-      jobAds.addOperation(titles);
-      jobAds.addOperation(phones);
+    jobAds.addOperation(titles);
+    jobAds.addOperation(phones);
+    jobAds.addOperation(images);
 
-    await scraper.scrape(root);
-
-    fs.writeFile('./myAds.json', JSON.stringify(ads), () => { });//Doing something with the array we created from the callbacks...
+    await scraper.scrape();
+    
+    fs.writeFile('./pages.json', JSON.stringify(pages), () => { });//Produces a formatted JSON with all job ads.
 })()
 
 ```
@@ -328,6 +316,7 @@ The optional config can have these properties:
 {
     name:'some name',//Like every operation object, you can specify a name, for better clarity in the logs.
     pagination:{},//Look at the pagination API for more details.
+    getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
     getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
