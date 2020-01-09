@@ -1,5 +1,5 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
-It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Was tested on Node 10 and 12.
+It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Was tested on Node 10 and 12(Windows).
 
 ## Installation
 
@@ -23,6 +23,9 @@ $ npm install nodejs-web-scraper
 
 ## Basic example
 
+Let's say we want to get every article(from every category), from a news site. We want each item to contain the title,
+story and image link(or links).
+
 ```javascript
 const { Scraper, Root, DownloadContent, OpenLinks, CollectContent } = require('nodejs-web-scraper');
 const fs = require('fs');
@@ -39,7 +42,7 @@ const fs = require('fs');
         logPath: './logs/'//Highly recommended: Creates a friendly JSON for each operation object, with all the relevant data. 
     }
 
-    var articles = [];
+    var articles = [];//Holds all article objects.
 
     var getPageObject = (pageObject) => {//This will create an object for each page, with "title", "story" and "image" properties(The names we chose for our scraping operations below)
         articles.push(pageObject)
@@ -62,10 +65,10 @@ const fs = require('fs');
     var story = new CollectContent('section.meteredContent', { name: 'story' });//"Collects" the the article body.
 
     root.addOperation(category);//Then we create a scraping "tree":
-    category.addOperation(article);
-    article.addOperation(image);
-    article.addOperation(title);
-    article.addOperation(story);
+      category.addOperation(article);
+       article.addOperation(image);
+       article.addOperation(title);
+       article.addOperation(story);
 
     await scraper.scrape(root);
 
@@ -83,6 +86,8 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 #### Pagination
 
+Get every job ad from a job-offering site. Each job object will contain a title, a phone and image hrefs. Being that the site is paginated, use the pagination feature.
+
 ```javascript
 
 const { Scraper, Root, OpenLinks, CollectContent, DownloadContent } = require('nodejs-web-scraper');
@@ -90,12 +95,12 @@ const fs = require('fs');
 
 (async () => {
 
-    const pages = [];
+    const pages = [];//All ad pages.
 
+    //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
     const getPageObject = (pageObject) => {                  
         pages.push(pageObject)
     }
-
 
     config = {
         baseSiteUrl: `https://www.profesia.sk`,
@@ -103,22 +108,23 @@ const fs = require('fs');
         filePath: './images/',
         logPath: './logs/'
     }
+
     var scraper = new Scraper(config);
 
-    var root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 2 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+    var root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
 
     var jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
 
-    var phones = new CollectContent('.details-desc a.tel', { name: 'phone' })
+    var phones = new CollectContent('.details-desc a.tel', { name: 'phone' })//Important to choose a name, for the getPageObject to produce the expected results.
 
     var images = new DownloadContent('img', { name: 'images' })
 
     var titles = new CollectContent('h1', { name: 'title' });
 
     root.addOperation(jobAds);
-    jobAds.addOperation(titles);
-    jobAds.addOperation(phones);
-    jobAds.addOperation(images);
+     jobAds.addOperation(titles);
+     jobAds.addOperation(phones);
+     jobAds.addOperation(images);
 
     await scraper.scrape(root);
     
@@ -126,7 +132,7 @@ const fs = require('fs');
 })()
 
 ```
-Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect the title and phone of each ad."
+Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect the title, phone and images of each ad."
 
 &nbsp;
 
