@@ -14,7 +14,7 @@ let scraperInstance;//Will hold a reference to the Scraper object.
 
 class Scraper {
     constructor(globalConfig) {
-
+        // global.counter=0;
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             removeStyleAndScriptTags:true,
@@ -63,6 +63,10 @@ class Scraper {
 
     }
 
+    destroy(){
+        scraperInstance = null;
+    }
+
     static getScraperInstance() {
 
         return scraperInstance;
@@ -89,8 +93,8 @@ class Scraper {
     }
 
     async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root operation.
-        if (rootObject.constructor.name !== 'Root' || !rootObject)
-            throw 'Scraper.scrape() expects a root object as an argument!';
+        if (!rootObject || rootObject.constructor.name !== 'Root' )
+            throw 'Scraper.scrape() expects a Root object as an argument!';
 
         this.referenceToRoot = rootObject;
         await rootObject.scrape();
@@ -107,6 +111,7 @@ class Scraper {
                 console.error('Error creating logs', error)
             }
         }
+        // console.log('global.counter of alternative src ',global.counter)
         console.log('overall images: ', this.state.downloadedImages)
 
 

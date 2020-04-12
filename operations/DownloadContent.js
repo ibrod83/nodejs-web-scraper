@@ -2,11 +2,13 @@ const InterneticOperation = require('./InterneticOperation');
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
+const fs = require('fs');
 const file_downloader = require('../file_downloader')
-
+const FileProcessor = require('../file_downloader/file_processor');
+const crypto = require('crypto')
 // const YoyoTrait = require('../YoyoTrait');
 
-
+let counter=0
 // console.log(DownloadContent)
 
 class DownloadContent extends InterneticOperation {//Responsible for downloading files and images from a given page.
@@ -18,7 +20,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         // this.special = special
         // this.useTrait(YoyoTrait);
         // this.yoyo('chuj ci w dupsko!',this);
-    //    debugger;
+        //    debugger;
 
         this.querySelector = querySelector;
         this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
@@ -28,19 +30,16 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         }
         // debugger;
         this.validateOperationArguments();
-       
+
         // this.yoyo();
-        
+
 
 
     }
-      
+
 
     async scrape(responseObjectFromParent) {
-        // debugger;
-        // console.log('dependency:',this._)
-        // console.log('now from dependency injected _:', this._.now())
-        // console.log(this.prototype)
+      
         const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
 
         this.contentType = this.contentType || 'image';
@@ -49,17 +48,27 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
 
         const elementList = this.createElementList($);
-
+        // debugger;
         const fileRefs = [];
         elementList.forEach((element) => {
+           
+            // debugger;
+            // const normalSrcString = element.attr('src')
             var src;
             src = element.attr(this.contentType === 'image' ? 'src' : 'href')
-            if (!src || src.startsWith("data:image")) {
+            // if(src.startsWith('data:image')){
+            //     debugger;
+            //     global.counter++;
+            //     console.log('counter',global.counter)
+            // }
+            // if (!src || src.startsWith("data:image")) {
+            if (!src) {//If the element doesn't have an "src" tag(in case on content type image)
+                // debugger;
                 const alternativeAttrib = this.alternativeSrc && this.getAlternativeAttrib(element[0].attribs);
                 if (alternativeAttrib) {
-
+                    
                     src = element.attr(alternativeAttrib);
-                    console.log('alternative src result', src)
+                    // console.log('alternative src result', src)
                 } else {
                     // console.log('page of image error:', responseObjectFromParent.request.res.responseUrl)
 
@@ -69,9 +78,13 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                     return;
                 }
             }
+            // debugger;
+            // else if(src.startsWith("data:image")){
+
+            // }
 
             // src = this.processRelativeSrc(src);
-
+            // debugger;
             const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, src);
             fileRefs.push(absoluteUrl);
             // currentWrapper.data.push(absoluteUrl);
@@ -88,11 +101,11 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         }
 
         const scrapingObjects = this.createScrapingObjectsFromRefs(fileRefs);
-      
+        // debugger;
         await this.executeScrapingObjects(scrapingObjects);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
-        
+
 
         this.data.push(currentWrapper);
         // this.data.push(currentWrapper.data);
@@ -119,9 +132,55 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         }
     }
 
+    getDataUrlExtension(dataurl) {
+        return dataurl.split('/')[1].split(';')[0]
+    }
+
+    saveDataUrlPromiseFactory(url) {
+        return () => {
+            return new Promise((resolve, reject) => {
+                console.log('Src is base64. Creating a file form it, with a hashed name.')
+                
+                const extension = this.getDataUrlExtension(url);
+                const split = url.split(';base64,');
+                // debugger;
+                // console.log('split',split)
+                // var base64Data = url.split(';base64,').pop();
+                var base64Data = split[1]
+                let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
+
+                // debugger;
+                const fileProcessor = new FileProcessor({ fileName:`${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath});
+                if ( this.scraper.config.cloneImages) {
+
+                    fileName = fileProcessor.getAvailableFileName();
+                }else{
+                    fileName = fileName+'.'+extension;
+                }
+                this.scraper.verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+                // console.log('rejecting')
+                // return reject('yoyo');
+                // debugger;
+                // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${u}.${this.getDataUrlExtension(url)}`, base64Data, 'base64', function (err) {
+                fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64', function (err) {
+                    // console.log(err);
+                    if (err) {
+                        reject(err);
+                    } else {
+                        counter++
+                        // console.log('NUMBER OF DATAURL FILES CREATED ',counter)
+                        resolve();
+                    }
+                });
+            })
+        }
+
+
+    }
+
     async getFile(url) {
         // debugger;
-        
+
         if (this.processUrl) {
             try {
                 url = await this.processUrl(url)
@@ -146,49 +205,55 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
         }
 
-        const options = {
-            url,
-            dest: this.filePath || this.scraper.config.filePath,
-            clone: this.scraper.config.cloneImages,
-            flag: this.fileFlag || this.scraper.config.fileFlag,
-            responseType,
-            auth: this.scraper.config.auth,
-            timeout: this.scraper.config.timeout,
-            headers: this.scraper.config.headers
-        }
-
-        this.scraper.verifyDirectoryExists(options.dest);
-
-
-
-        const promiseFactory = async () => {
-
-            await this.beforePromiseFactory('Fetching file:'+url);
-
-            try {
-                const fileDownloader = new file_downloader(options);
-                //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
-                await fileDownloader.download();             
-                if (!this.scraper.config.mockImages){
-                    await fileDownloader.save();
-                    this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages)
-                }
-                    
-            } catch (err) {
-
-                if (err.code === 'EEXIST') {
-                    console.log('File already exists in the directory, NOT overwriting it:', url);
-                } else {
-                    throw err;
-                }
+        if (url.startsWith("data:image")) {
+            var promiseFactory = this.saveDataUrlPromiseFactory(url);
+        } else {
+            const options = {
+                url,
+                dest: this.filePath || this.scraper.config.filePath,
+                clone: this.scraper.config.cloneImages,
+                flag: this.fileFlag || this.scraper.config.fileFlag,
+                responseType,
+                auth: this.scraper.config.auth,
+                timeout: this.scraper.config.timeout,
+                headers: this.scraper.config.headers
             }
 
-            finally {
-                this.afterPromiseFactory();    
-            }
-            // return resp;
+            this.scraper.verifyDirectoryExists(options.dest);
 
+
+
+            var promiseFactory = async () => {
+
+                await this.beforePromiseFactory('Fetching file:' + url);
+
+                try {
+                    const fileDownloader = new file_downloader(options);
+                    //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
+                    await fileDownloader.download();
+                    if (!this.scraper.config.mockImages) {
+                        await fileDownloader.save();
+                        this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages)
+                    }
+
+                } catch (err) {
+
+                    if (err.code === 'EEXIST') {
+                        console.log('File already exists in the directory, NOT overwriting it:', url);
+                    } else {
+                        throw err;
+                    }
+                }
+
+                finally {
+                    this.afterPromiseFactory();
+                }
+                // return resp;
+
+            }
         }
+
+
 
         return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
 
@@ -216,7 +281,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
             const errorCode = error.code
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
-            this.handleFailedScrapingObject(scrapingObject, errorString,errorCode);
+            this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
 
             return;
 

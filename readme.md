@@ -7,7 +7,9 @@ It supports features like automatic retries of failed requests, concurrency limi
 $ npm install nodejs-web-scraper
 ```
 # Table of Contents
-- [Basic example](#basic-example) 
+- [Basic examples](#basic-examples)   
+  * [Download images](#download-all-images-in-a-page)  
+  * [Collect articles from a news site](#collect-articles-from-a-news-site)  
 - [Advanced](#advanced-examples) 
   * [Pagination](#pagination)  
   * [Get an entire HTML file](#get-an-entire-html-file)  
@@ -21,7 +23,43 @@ $ npm install nodejs-web-scraper
 - [Concurrency](#concurrency) 
 
 
-## Basic example
+## Basic examples
+#### Download all images in a page
+
+A simple task to download all images in a page(including base64)
+
+```javascript
+const { Scraper, Root, DownloadContent } = require('nodejs-web-scraper');
+
+(async () => {
+
+   var config = {
+        baseSiteUrl: `https://spectator.sme.sk`,//Important to provide the base url, which is the same as the starting url, in this example.
+        startUrl: `https://spectator.sme.sk/`,
+        filePath: './images/',
+        cloneImages: true,//Will create a new image file with an appended name, if the name already exists. Default is false.	  
+        concurrency: 10,//Maximum concurrent jobs. More than 10 is not recommended.Default is 3.
+        maxRetries: 3,//The scraper will try to repeat a failed request few times(excluding 404). Default is 5.
+       }
+
+    var scraper = new Scraper(config);
+
+    var root = new Root();//Root corresponds to the config.startUrl. This object starts the entire process
+
+    var images = new DownloadContent('img')//Create an operation that downloads all image tags in a given page(any Cheerio selector can be passed).
+
+    root.addOperation(images);//We want to download the images from the root page, we need to Pass the "images" operation to the root.
+
+    await scraper.scrape(root);//Pass the Root to the Scraper.scrape() and you're done.
+
+})();    
+
+```
+When done, you will have an "images" folder with all downloaded files.
+
+&nbsp;
+
+#### Collect articles from a news site
 
 Let's say we want to get every article(from every category), from a news site. We want each item to contain the title,
 story and image link(or links).
@@ -35,9 +73,6 @@ const fs = require('fs');
     var config = {
         baseSiteUrl: `https://www.nytimes.com/`,
         startUrl: `https://www.nytimes.com/`,
-        concurrency: 10,
-        maxRetries: 3,//The scraper will try to repeat a failed request few times(excluding 404)
-        cloneImages: true,//Will create a new image file with a modified name, if the name already exists.	  
         filePath: './images/',
         logPath: './logs/'//Highly recommended: Creates a friendly JSON for each operation object, with all the relevant data. 
     }
@@ -80,6 +115,8 @@ const fs = require('fs');
 This basically means: "go to www.nytimes.com; Open every category; Then open every article in each category page; Then collect the title, story and image href, and download all images on that page".
 
 &nbsp;
+
+
 
 
 ## Advanced Examples

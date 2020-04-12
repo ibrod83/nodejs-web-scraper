@@ -22,6 +22,7 @@ class FileDownloader {
     }
 
     async download() {
+        // debugger;
         try {
             const response = await axios({
                 method: 'GET',

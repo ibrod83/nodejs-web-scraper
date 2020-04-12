@@ -151,7 +151,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                 
                 const tree = {}
                 for(let child of dataFromChildren){                    
-                    debugger;
+                    // debugger;
                     if(child.type === 'DownloadContent'){
                         const data = child.data.map(d=>d.address);
                         
