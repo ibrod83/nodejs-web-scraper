@@ -193,8 +193,10 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
         let responseType;
         // debugger;
+        let useContentDisposition=false;
         if (this.contentType === 'file') {
             responseType = 'stream';
+            useContentDisposition=true;
         } else {
 
             if (this.imageResponseType) {
@@ -210,6 +212,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         } else {
             const options = {
                 url,
+                useContentDisposition,
                 dest: this.filePath || this.scraper.config.filePath,
                 clone: this.scraper.config.cloneImages,
                 flag: this.fileFlag || this.scraper.config.fileFlag,

@@ -10,11 +10,12 @@ var mime = require('mime-types')
 
 
 class FileDownloader {
-    constructor({ url, dest, clone, flag, responseType, auth, timeout, headers }) {
+    constructor({ url, useContentDisposition = false, dest, clone, flag, responseType, auth, timeout, headers }) {
         this.url = url;
         this.dest = dest;
         this.clone = clone;
         this.flag = flag;
+        this.useContentDisposition = useContentDisposition;
         this.responseType = responseType
         this.auth = auth;
         this.timeout = timeout;
@@ -37,6 +38,7 @@ class FileDownloader {
             //     return
             // console.log(response.data)
             this.response = response;
+            // return response;
         } catch (error) {
 
 
@@ -46,16 +48,31 @@ class FileDownloader {
 
     }
 
-    getFileName() {
-        // 'bin'
+    /**
+     * @return {string} Rturns the filename, or an empty string.
+     */
+    getFileNameFromHeaders() {
+        const headers = this.response.headers;
+        const contentDisposition = headers['content-disposition'] || headers['Content-Disposition'];
+        if (!contentDisposition || !contentDisposition.includes('filename=')) {
+            return "";
+        }
 
-        // const extension  =  path.extname(this.url)//Gets the url.
-        // const extensionWithoutDot = extension.substr(1);
-        //Checks if the extension length makes sense. Pure hack..I did it because some "extensions" might not be an actual one.
-        // const urlEndsWithValidExtension =extensionWithoutDot.length >=2  && extensionWithoutDot.length <=4 ?  true : false;
-        // debugger;
-        // console.log('extension', path.extname(this.url))
-        let fileName = "";
+        let filename = "";
+        var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        var matches = filenameRegex.exec(contentDisposition);
+        if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+        }
+
+        return filename;
+
+
+
+    }
+
+    deduceFileNameFromUrl() {
+        let fileName = ""
         if (!this.response.headers['content-type'] || path.extname(this.url) === '.jpg') {//If it makes sense, i treat it normally.
             const baseName = path.basename(this.url);
             fileName = sanitize(baseName);
@@ -75,6 +92,31 @@ class FileDownloader {
 
 
         }
+        return fileName;
+    }
+
+    getFileName() {
+        
+        // debugger;
+        let fileName = "";
+        // if(this.getFileNameFromHeaders()){
+        //     console.log('filenamefromheaders: true')
+        // }else{
+        //     console.log('filenamefromheaders: false')
+        // }
+        if (this.useContentDisposition) {
+            const fileNameFromHeaders = this.getFileNameFromHeaders()
+            
+            if (fileNameFromHeaders) {
+                
+                fileName = fileNameFromHeaders
+            } else {
+                fileName = this.deduceFileNameFromUrl();
+            }
+        } else {
+            fileName = this.deduceFileNameFromUrl();
+        }
+
         // debugger;
         const fileProcessor = new FileProcessor({ fileName, path: this.dest });
         if (this.clone) {
@@ -104,6 +146,7 @@ class FileDownloader {
     }
 
     async save() {
+        // debugger;
         try {
             if (this.responseType === 'arraybuffer') {
 
@@ -120,12 +163,13 @@ class FileDownloader {
 
     saveFromStream() {
         // const possibleExtensions = ['.jpg', '.jpeg', '.bmp', '.png', '.svg', '.gif'];
+
         const fileName = this.getFileName();
         // console.log('flag of stream:', this.flag);
 
 
         return new Promise((resolve, reject) => {
-            const writeStream = fs.createWriteStream(path.join(this.dest,fileName), { encoding: 'binary', flags: this.flag })
+            const writeStream = fs.createWriteStream(path.join(this.dest, fileName), { encoding: 'binary', flags: this.flag })
             writeStream.on('open', () => {
                 this.response.data.pipe(writeStream)
 
