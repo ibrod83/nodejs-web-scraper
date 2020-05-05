@@ -147,9 +147,11 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
             }
 
             if(this.getPageObject){
+                // debugger;
                 
-                
-                const tree = {}
+                const tree = {
+                    address:scrapingObject.address
+                }
                 for(let child of dataFromChildren){                    
                     // debugger;
                     if(child.type === 'DownloadContent'){
