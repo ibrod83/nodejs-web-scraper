@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "nodejs",
     "node"
   ],
-  "author": "",
+  "author": "ibrod83",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.18.1",
@@ -28,7 +28,7 @@
     "qyu": "^0.3.0",
     "sanitize-filename": "^1.6.1"
   },
-  "homepage": "https://github.com/ibrod83/nodejs-web-scraper",
+  "homepage": "https://nodejs-web-scraper.ibrod83.com",
   "bugs": {
     "url": "https://github.com/ibrod83/nodejs-web-scraper/issues"
   }

@@ -1,1 +1,4 @@
 node_modules/
+website/node_modules
+website/build
+website/seo.js
