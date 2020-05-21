@@ -104,8 +104,10 @@ class SubmitForm extends InterneticOperation {
 
     async submit(url) {
 
-        const promiseFactory = async () => {
+        // debugger;
 
+        const promiseFactory = async () => {
+            // debugger;
             const form = this.createFormData(this.fields);
 
             await this.beforePromiseFactory('Submitting form:' + url);

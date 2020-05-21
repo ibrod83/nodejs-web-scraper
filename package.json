@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "2.4.5",
+  "version": "2.4.6",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
@@ -33,7 +33,7 @@
     "url": "https://github.com/ibrod83/nodejs-web-scraper/issues"
   },
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/ibrod83/nodejs-web-scraper.git"
+    "type": "git",
+    "url": "https://github.com/ibrod83/nodejs-web-scraper.git"
   }
 }

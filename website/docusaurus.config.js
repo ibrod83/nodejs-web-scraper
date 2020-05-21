@@ -1,8 +1,5 @@
 require('dotenv').config();
-// const path = require('path');
 
-// __dirname+ '/plugins/seo.js',
-// console.log('env',process.env.GOOGLE_ANALYTICS)
 module.exports = {
   plugins: ['@docusaurus/plugin-google-analytics'],
   title: 'Nodejs Web Scraper',
@@ -49,7 +46,7 @@ module.exports = {
       style: 'dark',
       links: [
         {
-          title: 'Links',
+          title: 'Info',
           items: [
             // {
             //   label: 'Documentation',
@@ -76,6 +73,41 @@ module.exports = {
               title: 'Npm',
               href: 'https://www.npmjs.com/package/nodejs-web-scraper',
             },
+
+            // {
+            //   label: 'Second Doc',
+            //   to: 'docs/doc2',
+            // },
+          ],
+        },
+        {
+          title: 'Resources',
+          items: [
+            // {
+            //   label: 'Documentation',
+            //   title:"Documentation",
+            //   to: 'docs/doc1',
+            // },
+            {
+              label: 'More from the author',
+              title: 'More from the author',
+              to: 'more-from-the-author'
+            },
+            // {
+            //   label: 'Disclaimer',
+            //   title: 'Disclaimer',
+            //   to: 'disclaimer'
+            // },
+            // {
+            //   label: 'GitHub',
+            //   title: 'GitHub',
+            //   href: 'https://github.com/ibrod83/nodejs-web-scraper',
+            // },
+            // {
+            //   label: 'Npm',
+            //   title: 'Npm',
+            //   href: 'https://www.npmjs.com/package/nodejs-web-scraper',
+            // },
 
             // {
             //   label: 'Second Doc',

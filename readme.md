@@ -1,6 +1,9 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
 It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Was tested on Node 10 and 12(Windows).
 
+For any questions or suggestions, please open a Github issue or contact me via https://nodejs-web-scraper.ibrod83.com/about
+
+
 ## Installation
 
 ```sh
