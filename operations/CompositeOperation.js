@@ -52,7 +52,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                     timeout: this.scraper.config.timeout,
                     auth: this.scraper.config.auth,
                     headers: this.scraper.config.headers,
-
+                    proxy:this.scraper.config.proxy
                 })         
 
                 if (this.scraper.config.removeStyleAndScriptTags) {
