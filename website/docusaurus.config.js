@@ -1,4 +1,10 @@
+require('dotenv').config();
+// const path = require('path');
+
+// __dirname+ '/plugins/seo.js',
+// console.log('env',process.env.GOOGLE_ANALYTICS)
 module.exports = {
+  plugins: ['@docusaurus/plugin-google-analytics'],
   title: 'Nodejs Web Scraper',
   tagline: 'A simplified web scraper for Nodejs',
   url: 'https://nodejs-web-scraper.ibrod83.com',
@@ -7,6 +13,11 @@ module.exports = {
   organizationName: 'ibrod83', // Usually your GitHub org/user name.
   projectName: 'nodejs-web-scraper', // Usually your repo name.
   themeConfig: {
+    googleAnalytics: {
+      trackingID: process.env.GOOGLE_ANALYTICS,
+      // Optional fields.
+      anonymizeIP: true, // Should IPs be anonymized?
+    },
     navbar: {
       title: 'Nodejs Web Scraper',
       logo: {
@@ -20,12 +31,18 @@ module.exports = {
           label: 'Docs',
           position: 'left',
         },
+        { to: 'blog', label: 'Blog', position: 'left' },
         // {to: 'blog', label: 'Blog', position: 'left'},
-        {
-          href: 'https://github.com/ibrod83/nodejs-web-scraper',
-          label: 'GitHub',
-          position: 'right',
-        },
+        // {
+        //   href: 'https://github.com/ibrod83/nodejs-web-scraper',
+        //   label: 'GitHub',
+        //   position: 'left',
+        // },
+        // {
+        //   href: 'https://www.npmjs.com/package/nodejs-web-scraper',
+        //   label: 'Npm',
+        //   position: 'left',
+        // },
       ],
     },
     footer: {
@@ -34,14 +51,32 @@ module.exports = {
         {
           title: 'Links',
           items: [
+            // {
+            //   label: 'Documentation',
+            //   title:"Documentation",
+            //   to: 'docs/doc1',
+            // },
             {
-              label: 'Documentation',
-              to: 'docs/doc1',
+              label: 'About',
+              title: 'About',
+              to: 'about'
+            },
+            {
+              label: 'Disclaimer',
+              title: 'Disclaimer',
+              to: 'disclaimer'
             },
             {
               label: 'GitHub',
+              title: 'GitHub',
               href: 'https://github.com/ibrod83/nodejs-web-scraper',
             },
+            {
+              label: 'Npm',
+              title: 'Npm',
+              href: 'https://www.npmjs.com/package/nodejs-web-scraper',
+            },
+
             // {
             //   label: 'Second Doc',
             //   to: 'docs/doc2',
@@ -95,8 +130,7 @@ module.exports = {
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
-          editUrl:
-            'https://github.com/facebook/docusaurus/edit/master/website/blog/',
+          // editUrl: 'https://github.com/facebook/docusaurus/edit/master/website/blog/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "seo":"node seo.js",
+    "seo": "node seo.js",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@docusaurus/core": "^2.0.0-alpha.54",
+    "@docusaurus/plugin-google-analytics": "^2.0.0-alpha.37",
     "@docusaurus/preset-classic": "^2.0.0-alpha.54",
     "classnames": "^2.2.6",
     "react": "^16.8.4",
@@ -28,5 +29,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "dotenv": "^8.2.0"
   }
 }

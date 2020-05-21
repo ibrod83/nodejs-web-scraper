@@ -1,7 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import Layout from '@theme/Layout';
-import { FaBeer,FaDownload,FaSitemap,FaNetworkWired,FaExclamationTriangle,FaStream } from 'react-icons/fa';
+import { FaBeer,FaDownload,FaSitemap,FaNetworkWired,FaExclamationTriangle,FaStream,FaDatabase } from 'react-icons/fa';
 
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -29,32 +29,43 @@ const features = [
     ),
   },
   {
+    title: <>Data collection</>,
+    icon: <FaDatabase color={iconColor}  size={iconSize}/>, 
+    imageUrl: 'img/undraw_docusaurus_react.svg',
+    description: (
+      <>
+        Hook into various steps of the scraping/crawling tree and collect the data.
+      </>
+    ),
+  },
+  {
+    title: <>File & image downloading</>,
+    icon: <FaDownload color={iconColor} size={iconSize}/>,  
+    imageUrl: 'img/undraw_docusaurus_tree.svg',
+    description: (
+      <>
+        Download files & images, without dealing with streams, paths, content-type and duplicate file names.
+      </>
+    ),
+  },
+  {
     title: <>Pagination</>,
     icon:<FaNetworkWired color={iconColor} size={iconSize}/>,
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        Simple api for paginated webpages.
+        Simple api for setting up scraping jobs for paginated webpages.
       </>
     ),
   },
-  {
-    title: <>Download files</>,
-    icon: <FaDownload color={iconColor} size={iconSize}/>,  
-    imageUrl: 'img/undraw_docusaurus_tree.svg',
-    description: (
-      <>
-        Download files & images, without dealing with streams, paths and file names.
-      </>
-    ),
-  },
+  
   {
     title: <>Automatic error handling</>,
     icon: <FaExclamationTriangle color={iconColor} size={iconSize}/>,  
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        Nodejs Web Scraper automatically retries failed network requests.
+        The program automatically retries failed network requests.
       </>
     ),
   },
@@ -68,6 +79,7 @@ const features = [
       </>
     ),
   },
+  
   
 ];
 
@@ -94,23 +106,25 @@ function Home() {
   console.log(siteConfig)
   return (
     <Layout
-      title={`Home`}
-      description="Nodejs Web Scraper - A simplified web scraper for Nodejs">
+      title={`Home Page`}
+      description="Nodejs Web Scraper - A simplified web scraper/crawler for Nodejs">
       <header className={classnames('hero hero--primary', styles.heroBanner)}>
         <div className="container">
           <h1 className="hero__title">{siteConfig.title}</h1>
-          <p className="hero__subtitle">{siteConfig.tagline}</p>
+          <h2 style={{fontWeight:'normal'}} className="hero__subtitle">{siteConfig.tagline}</h2>
           <div className={styles.buttons}>
             <Link
+            title="Get started"
             style={{marginLeft:'10px'}}
               className={classnames(
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
               )}
               to={useBaseUrl('docs/doc1')}>
-              Documentation
+              Get started
             </Link>
-            <Link
+            {/* <Link
+             title="npm"
               className={classnames(
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
@@ -120,6 +134,7 @@ function Home() {
               npm
             </Link>
             <Link
+             title="github"
               className={classnames(
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
@@ -127,7 +142,7 @@ function Home() {
               style={{marginLeft:'10px'}}
               to={'https://github.com/ibrod83/nodejs-web-scraper'}>
               Github
-            </Link>
+            </Link> */}
             
           </div>
           
@@ -135,6 +150,7 @@ function Home() {
       </header>
       <main>
         {features && features.length && (
+          
           <section className={styles.features}>
             <div className="container">
               <div className="row">
@@ -144,7 +160,21 @@ function Home() {
               </div>
             </div>
           </section>
+          
+          
         )}
+        {/* <section  className={styles.features}>
+          <div className="container">
+            <h2 className="text--center">The gist</h2>
+            <div className="row">
+              <div className="col col--6"><img class="example-image"  src="img/example1.png" alt="example1"/></div>
+              <div className="col col--6"> <img class="example-image"  src="img/example2.png" alt="example2"/></div>
+              
+             
+            </div>
+          </div>
+        </section> */}
+        
       </main>
     </Layout>
   );
