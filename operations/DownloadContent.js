@@ -219,7 +219,9 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                 responseType,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
-                headers: this.scraper.config.headers
+                headers: this.scraper.config.headers,
+                proxy: this.scraper.config.proxy,
+
             }
 
             this.scraper.verifyDirectoryExists(options.dest);

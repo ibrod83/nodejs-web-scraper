@@ -10,7 +10,7 @@ var mime = require('mime-types')
 
 
 class FileDownloader {
-    constructor({ url, useContentDisposition = false, dest, clone, flag, responseType, auth, timeout, headers }) {
+    constructor({ url, useContentDisposition = false, dest, clone, flag, responseType, auth, timeout, headers,proxy }) {
         this.url = url;
         this.dest = dest;
         this.clone = clone;
@@ -20,6 +20,7 @@ class FileDownloader {
         this.auth = auth;
         this.timeout = timeout;
         this.headers = headers;
+        this.proxy  = proxy
     }
 
     async download() {
@@ -31,7 +32,8 @@ class FileDownloader {
                 timeout: this.timeout,
                 responseType: this.responseType,
                 auth: this.auth,
-                headers: this.headers
+                headers: this.headers,
+                proxy:this.proxy
 
             })
             // if (this.mockImages)
