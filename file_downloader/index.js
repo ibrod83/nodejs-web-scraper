@@ -32,7 +32,8 @@ class FileDownloader {
                 timeout: this.timeout,
                 responseType: this.responseType,
                 auth: this.auth,
-                headers: this.headers
+                headers: this.headers,
+                proxy:this.proxy
 
             })
             // if (this.mockImages)
