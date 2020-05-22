@@ -322,7 +322,8 @@ const config ={
             timeout: 5000,
             filePath: null,//Needs to be provided only if a "downloadContent" operation is created.
             auth: null,//Can provide basic auth credentials(no clue what sites actually use it).
-            headers: null//Provide custom headers for the requests.
+            headers: null,//Provide custom headers for the requests.
+            proxy:null//Connect using a proxy(refer to Axios docs). This option was not tested.
         }
 ```
 Public methods:
