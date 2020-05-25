@@ -59,7 +59,7 @@ const fs = require('fs');
 
     var root = new Root();//The root object fetches the startUrl, and starts the process.  
  
-    //Any valid Cheerio selector can be passed. For further reference: https://cheerio.js.org/
+    //Any valid cheerio-advanced-selectors selector can be passed. For further reference: https://cheerio.js.org/
     var category = new OpenLinks('.css-1wjnrbv',{name:'category'});//Opens each category page.
 
     var article = new OpenLinks('article a', {name:'article', getPageObject });//Opens each article page, and calls the getPageObject callback.

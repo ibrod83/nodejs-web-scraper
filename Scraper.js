@@ -13,6 +13,7 @@ let scraperInstance;//Will hold a reference to the Scraper object.
 
 
 class Scraper {
+    
     constructor(globalConfig) {
         // global.counter=0;
         this.config = {
