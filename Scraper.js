@@ -4,7 +4,11 @@ const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
 
-// const Root = require('./operations/Root');
+
+const {Root} = require('./');//For jsdoc
+
+
+
 
 
 
@@ -12,13 +16,32 @@ const path = require('path');
 let scraperInstance;//Will hold a reference to the Scraper object.
 
 
+
 class Scraper {
-    
+
+    /**
+     * 
+     * @param {Object} globalConfig 
+     * @param {string} globalConfig.startUrl 
+     * @param {string} globalConfig.baseSiteUrl 
+     * @param {boolean} [globalConfig.cloneImages = true ]
+     * @param {boolean} [globalConfig.removeStyleAndScriptTags = true ]
+     * @param {string} [globalConfig.fileFlag = 'w'] 
+     * @param {number} [globalConfig.concurrency = 3] 
+     * @param {number} [globalConfig.maxRetries = 5] 
+     * @param {string} [globalConfig.imageResponseType = 'arraybuffer']      
+     * @param {number} [globalConfig.delay = 100] 
+     * @param {number} [globalConfig.timeout = 5000] 
+     * @param {string} [globalConfig.filePath= null] 
+     * @param {Object} [globalConfig.auth = null] 
+     * @param {Object} [globalConfig.headers = null] 
+     * @param {Object} [globalConfig.proxy = null] 
+     */
     constructor(globalConfig) {
         // global.counter=0;
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-            removeStyleAndScriptTags:true,
+            removeStyleAndScriptTags: true,
             fileFlag: 'w',//The flag provided to the file saving function. 
             concurrency: 3,//Maximum concurrent requests.
             maxRetries: 5,//Maximum number of retries of a failed request.
@@ -30,7 +53,7 @@ class Scraper {
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,
             headers: null,
-            proxy:null         
+            proxy: null
         }
 
         this.state = {
@@ -40,7 +63,7 @@ class Scraper {
             currentlyRunning: 0,
             registeredOperations: [],//Holds a reference to each created operation.
             numRequests: 0,
-            repetitionCycles:0,
+            repetitionCycles: 0,
             scrapingObjects: []//for debugging
         }
 
@@ -53,7 +76,7 @@ class Scraper {
         }
 
         this.config.fakeErrors = false;
-        this.config.errorCodesToSkip = [404,403,400];     
+        this.config.errorCodesToSkip = [404, 403, 400];
         this.config.useQyu = true;
         this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
@@ -61,11 +84,11 @@ class Scraper {
         if (scraperInstance)
             throw 'Scraper can have only one instance.'
         scraperInstance = this;
-        this.referenceToRoot=null;
+        this.referenceToRoot = null;
 
     }
 
-    destroy(){
+    destroy() {
         scraperInstance = null;
     }
 
@@ -94,8 +117,17 @@ class Scraper {
 
     }
 
+
+   
+   
+
+
+    /**
+     * 
+     * @param {Root} rootObject 
+     */
     async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root operation.
-        if (!rootObject || rootObject.constructor.name !== 'Root' )
+        if (!rootObject || rootObject.constructor.name !== 'Root')
             throw 'Scraper.scrape() expects a Root object as an argument!';
 
         this.referenceToRoot = rootObject;
@@ -172,7 +204,7 @@ class Scraper {
 
     async repeatAllFailedRequests(numCycles = 1) {
         let cycleCounter = 0;
-        
+
         while (cycleCounter < numCycles) {
             // debugger;
             if (this.areThereRepeatableErrors()) {
@@ -195,7 +227,7 @@ class Scraper {
         // debugger;
         // console.log('Beginning a cycle of repetition');
         this.state.repetitionCycles++
-        console.log('Repetition cycle number:',this.state.repetitionCycles);
+        console.log('Repetition cycle number:', this.state.repetitionCycles);
         console.log('Number of failed objects before repetition cycle:', this.state.failedScrapingObjects.length)
 
         await Promise.all(

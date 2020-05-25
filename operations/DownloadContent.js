@@ -11,10 +11,25 @@ const crypto = require('crypto')
 let counter=0
 // console.log(DownloadContent)
 
+
+
 class DownloadContent extends InterneticOperation {//Responsible for downloading files and images from a given page.
 
-    constructor(querySelector, objectConfig) {
-        super(objectConfig);
+    /**
+     * 
+     * @param {string} querySelector cheerio-advanced-selectors selector 
+     * @param {Object} [config]
+     * @param {string} [config.name = 'Default DownloadContent name'] 
+     * @param {string[]} [config.alternativeSrc = null] 
+     * @param {string} [config.filePath = null] 
+     * @param {string} [config.fileFlag = 'wx'] 
+     * @param {string} [config.imageResponseType = 'arraybuffer'] 
+     * @param {number[]} [config.slice = null]
+     * @param {Function} [config.getElementList = null] Receives an elementList array
+     * @param {Function} [config.afterScrape = null] Receives a data object
+     */
+    constructor(querySelector, config) {
+        super(config);
         // debugger;
         // this.lodash=_;
         // this.special = special
@@ -24,9 +39,9 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
         this.querySelector = querySelector;
         this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
-        for (let prop in objectConfig) {
+        for (let prop in config) {
             if (this.overridableProps.includes(prop))
-                this[prop] = objectConfig[prop];
+                this[prop] = config[prop];
         }
         // debugger;
         this.validateOperationArguments();

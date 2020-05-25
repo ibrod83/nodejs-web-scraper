@@ -5,6 +5,21 @@ cheerio = cheerioAdv.wrap(cheerio);
 
 class OpenLinks extends CompositeOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
 
+    
+    /**
+     * 
+     * @param {string} querySelector cheerio-advanced-selectors selector 
+     * @param {Object} [config]
+     * @param {string} [config.name = 'Default OpenLinks name']   
+     * @param {Object} [config.pagination = null] Look at the pagination API for more details.  
+     * @param {number[]} [config.slice = null]
+     * @param {Function} [config.getElementList = null] Receives an elementList array
+     * @param {Function} [config.afterScrape = null] Receives a data object
+     * @param {Function} [config.getPageData = null] Receives a cleanData object
+     * @param {Function} [config.getPageObject = null] Receives a pageObject object
+     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
+     * @param {Function} [config.getHtml = null] Receives htmlString and pageAddress
+     */
     constructor(querySelector, config) {
         super(config);
 
@@ -15,10 +30,10 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
     }
 
     async scrape(responseObjectFromParent) {
-       
-        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);       
+
+        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
         // debugger
-        var scrapingObjects = [];       
+        var scrapingObjects = [];
 
         const refs = await this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
@@ -42,7 +57,7 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
     async createLinkList(responseObjectFromParent) {
         var $ = cheerio.load(responseObjectFromParent.data);
         // const nodeList = await this.createNodeList($);
-        const elementList =  this.createElementList($);
+        const elementList = this.createElementList($);
         // debugger;
         const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
         // debugger;

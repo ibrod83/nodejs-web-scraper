@@ -11,7 +11,7 @@ class Operation {//Base class for all operations.
         this.scraper = Scraper.getScraperInstance();//Reference to the scraper main object.
       
         this.handleNewOperationCreation(this);
-
+        // debugger;
         if (objectConfig) {
             for (let i in objectConfig) {
                 this[i] = objectConfig[i];

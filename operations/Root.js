@@ -2,8 +2,19 @@ const CompositeOperation = require('./CompositeOperation');
 
 class Root extends CompositeOperation {//Fetches the initial page, and starts the scraping process.
 
-    constructor(objectConfig){
-        super(objectConfig)
+    /**
+     * 
+     * @param {string} querySelector cheerio-advanced-selectors selector 
+     * @param {Object} [config]    
+     * @param {Object} [config.pagination = null] Look at the pagination API for more details.      
+     * @param {Function} [config.getElementList = null] Receives an elementList array    
+     * @param {Function} [config.getPageData = null] Receives a cleanData object
+     * @param {Function} [config.getPageObject = null] Receives a pageObject object
+     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
+     * @param {Function} [config.getHtml = null] Receives htmlString and pageAddress
+     */
+    constructor(config){
+        super(config)
     }
     
     async scrape() {

@@ -6,7 +6,24 @@ cheerio = cheerioAdv.wrap(cheerio)
 
 
 class CollectContent extends Operation {
+    
+   
+   
 
+    /**
+     * 
+     * @param {string} querySelector cheerio-advanced-selectors selector 
+     * @param {Object} [config] 
+     * @param {string} [config.name = 'Default CollectContent name']
+     * @param {string} [config.contentType = 'text']
+     * @param {number[]} [config.slice = null]
+     * @param {boolean} [config.shouldTrim = true] Will trim the string, if "shouldTrim" is true.
+     * @param {Function} [config.getElementList = null] Receives an elementList array
+     * @param {Function} [config.getElementContent = null] Receives elementContentString and pageAddress
+     * @param {Function} [config.afterScrape = null] Receives a data object
+     * @param {Function} [config.getElementList = null] Receives
+     
+     */
     constructor(querySelector, config) {
         super(config);
         this.querySelector = querySelector;
