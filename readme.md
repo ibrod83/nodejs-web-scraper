@@ -1,6 +1,8 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
 It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Was tested on Node 10 and 12(Windows).
 
+The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
+
 For any questions or suggestions, please open a Github issue or contact me via https://nodejs-web-scraper.ibrod83.com/about
 
 
@@ -301,7 +303,7 @@ Description: "Go to https://www.nice-site/some-section; Open every article link;
 
 ## API
 
-## class Scraper(config)
+#### class Scraper(config)
 
 The main nodejs-web-scraper object. Starts the entire scraping process via Scraper.scrape(Root). Holds the configuration and global state.
 
@@ -337,7 +339,7 @@ Public methods:
 
  
 
-## class Root([config])
+#### class Root([config])
 
 Root is responsible for fetching the first page, and then scrape the children. It can also be paginated, hence the optional config. For instance:
 ```javascript
@@ -354,7 +356,7 @@ Public methods:
 
 &nbsp;
 
-## class OpenLinks(querySelector,[config])
+#### class OpenLinks(querySelector,[config])
 
 Responsible for "opening links" in a given page. Basically it just creates a nodelist of anchor elements, fetches their html, and continues the process of scraping, in those pages - according to the user-defined scraping tree.
 
@@ -383,7 +385,7 @@ Public methods:
 
 &nbsp;
 
-## class CollectContent(querySelector,[config])
+#### class CollectContent(querySelector,[config])
 Responsible for simply collecting text/html from a given page.
 The optional config can receive these properties:
 ```javascript
@@ -406,7 +408,7 @@ Public methods:
 
 &nbsp;
 
-## class DownloadContent(querySelector,[config])
+#### class DownloadContent(querySelector,[config])
 Responsible downloading files/images from a given page.
 The optional config can receive these properties:
 ```javascript
@@ -435,7 +437,7 @@ Public methods:
 
 &nbsp;
 
-## class Inquiry(conditionFunction)
+#### class Inquiry(conditionFunction)
 Allows you to perform a simple inquiry on a page, to see if it meets your conditions. Accepts a function, that should return true if the condition is met. Example:
 ```javascript
 
@@ -487,11 +489,11 @@ nodejs-web-scraper covers most scenarios of pagination(assuming it's server-side
 
 ## Error Handling
 
-### Repeating failed requests on the fly
+#### Repeating failed requests on the fly
 
 nodejs-web-scraper will automatically repeat every failed request(except 404,400,403 and invalid images). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped, and an object representing it will be pushed into a "failedRequests" array. After the entire scraping process is complete, all failed objects will be printed as a JSON into a file called **"failedRepeatableRequests.json"**(assuming you provided a logPath). 
 
-### Repeating all failedRepeatableRequests again, after scraping process has ended
+#### Repeating all failedRepeatableRequests again, after scraping process has ended
 After Scraper.scrape() has has come to an end, You can call the Scraper.repeatAllFailedRequests(numCycles), to retry those requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. At the end of this process, log files will be overwritten, with the fresh situation. 
 
 ## Automatic logs
@@ -504,16 +506,3 @@ In scraping jobs that require the "opening" of many large HTML pages at the same
 ## Concurrency
 
 nodejs-web-scraper uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most.
-
-
-
-
-
-
-
-
-
-
-
-
-

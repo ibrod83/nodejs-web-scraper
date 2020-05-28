@@ -56,6 +56,7 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
 
     async createLinkList(responseObjectFromParent) {
         var $ = cheerio.load(responseObjectFromParent.data);
+        // debugger;
         // const nodeList = await this.createNodeList($);
         const elementList = this.createElementList($);
         // debugger;

@@ -1,9 +1,11 @@
 import React from 'react';
 import Layout from '@theme/Layout';
+import SEO from '../SEO'
 
 function About() {
     return (
         <Layout title="About">
+          <SEO/>
             {/* <div
         style={{
           display: 'flex',

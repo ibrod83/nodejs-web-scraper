@@ -1,9 +1,11 @@
 import React from 'react';
 import Layout from '@theme/Layout';
+import SEO from '../SEO'
 
 function More() {
     return (
         <Layout title="More">
+            <SEO/>
             {/* <div
         style={{
           display: 'flex',
