@@ -302,7 +302,7 @@ Description: "Go to https://www.nice-site/some-section; Open every article link;
 
 #### Use the condition hook.
 
-In some cases, using the cheerio-advanced-selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false
+In some cases, using the cheerio-advanced-selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false.
 
 ```javascript  
 
@@ -312,7 +312,11 @@ In some cases, using the cheerio-advanced-selectors isn't enough to properly fil
         startUrl: `https://www.nice-site/some-section`,       
        }
 
-    const condition = (cheerioNode) => {               
+    /**
+     * Will be called for each node collected by cheerio, in the given operation(OpenLinks or DownloadContent)      
+     */
+   const condition = (cheerioNode) => {      
+         //Note that cheerioNode contains other useful methods, like html(), hasClass(), parent(), attr() and more.           
         const text = cheerioNode.text().trim();//Get the innerText of the <a> tag.
         if(text === 'some text i am looking for'){//Even though many links might fit the querySelector, Only those that have this innerText,
         // will be "opened".
