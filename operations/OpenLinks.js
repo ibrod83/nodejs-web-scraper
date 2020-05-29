@@ -13,11 +13,12 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
      * @param {string} [config.name = 'Default OpenLinks name']   
      * @param {Object} [config.pagination = null] Look at the pagination API for more details.  
      * @param {number[]} [config.slice = null]
+     * @param {Function} [config.condition = null] Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
      * @param {Function} [config.getElementList = null] Receives an elementList array
      * @param {Function} [config.afterScrape = null] Receives a data object
      * @param {Function} [config.getPageData = null] Receives a cleanData object
      * @param {Function} [config.getPageObject = null] Receives a pageObject object
-     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
+     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
      * @param {Function} [config.getHtml = null] Receives htmlString and pageAddress
      */
     constructor(querySelector, config) {
@@ -58,7 +59,7 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
         var $ = cheerio.load(responseObjectFromParent.data);
         // debugger;
         // const nodeList = await this.createNodeList($);
-        const elementList = this.createElementList($);
+        const elementList = await this.createElementList($);
         // debugger;
         const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
         // debugger;

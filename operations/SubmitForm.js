@@ -30,7 +30,7 @@ class SubmitForm extends InterneticOperation {
 
         const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
 
-        const elementList = this.createElementList($);
+        const elementList = await this.createElementList($);
         const actions = []
         for (let element of elementList) {
             // debugger;

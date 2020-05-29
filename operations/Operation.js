@@ -5,11 +5,11 @@ const Scraper = require('../Scraper.js');
 class Operation {//Base class for all operations.
 
     constructor(objectConfig) {
-      
+
         // debugger;
         // console.log(arguments)
         this.scraper = Scraper.getScraperInstance();//Reference to the scraper main object.
-      
+
         this.handleNewOperationCreation(this);
         // debugger;
         if (objectConfig) {
@@ -20,6 +20,12 @@ class Operation {//Base class for all operations.
         if (!this.name)
             this.name = `Default ${this.constructor.name} name`;
 
+        if(this.condition){
+            const type = typeof this.condition; 
+                if(type !== 'function'){
+                    throw new Error(`"condition" hook must receive a function, got: ${type}`)
+                }
+        }    
         this.data = [];
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
@@ -28,7 +34,7 @@ class Operation {//Base class for all operations.
 
     }
 
-    
+
 
 
 
@@ -61,24 +67,40 @@ class Operation {//Base class for all operations.
         }
     }
 
-  
+
 
     handleNewOperationCreation(Operation) {
         this.scraper.state.registeredOperations.push(Operation);
     }
 
 
-    createElementList($) {
-        const nodeList = this.createNodeList($);
+    async createElementList($) {
+        const nodeList = Array.from(this.createNodeList($));
         const elementList = [];
-        nodeList.each((index, node) => {
+        for (let node of nodeList) {
+            const nodeFromCheerio = $(node);
+            // debugger;
+            if (this.condition) {
+                // const type = typeof this.condition; 
+                // if(type !== 'function'){
+                //     throw new Error(`"condition" hook must receive a function, got: ${type}`)
+                // }
+                const shouldBeIncluded = await this.condition(nodeFromCheerio);
+                // console.log(shouldBeIncluded)
+                if (shouldBeIncluded) {
+                    // debugger;
+                    elementList.push(nodeFromCheerio)
+                }
 
-            elementList.push($(node))
-
-        })
+            } else {
+                elementList.push(nodeFromCheerio)
+            }
+        }
+        
         if (this.getElementList) {
             this.getElementList(elementList);
         }
+        // debugger;
         return elementList;
     }
 
@@ -105,7 +127,7 @@ class Operation {//Base class for all operations.
         return this;
     }
 
-   
+
     getData() {
         return this.data;
     }
@@ -119,7 +141,7 @@ class Operation {//Base class for all operations.
     getErrors() {//gets overall errors of the operation, in all "contexts".
         return this.errors;
     }
-  
+
 
 }
 

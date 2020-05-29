@@ -46,7 +46,7 @@ class CollectContent extends Operation {
         !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
 
         var $ = cheerio.load(responseObjectFromParent.data);
-        const elementList = this.createElementList($);
+        const elementList = await this.createElementList($);
 
 
         elementList.forEach((element) => {

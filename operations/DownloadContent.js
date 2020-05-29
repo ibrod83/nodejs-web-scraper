@@ -25,7 +25,8 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
      * @param {string} [config.fileFlag = 'wx'] 
      * @param {string} [config.imageResponseType = 'arraybuffer'] 
      * @param {number[]} [config.slice = null]
-     * @param {Function} [config.getElementList = null] Receives an elementList array
+     * @param {Function} [config.condition = null] Receives a Cheerio node. Use this hook to decide if this node should be included in the scraping. Return true or false
+     * @param {Function} [config.getElementList = null] Receives an elementList array     
      * @param {Function} [config.afterScrape = null] Receives a data object
      */
     constructor(querySelector, config) {
@@ -62,7 +63,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         // debugger;
         const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
 
-        const elementList = this.createElementList($);
+        const elementList = await this.createElementList($);
         // debugger;
         const fileRefs = [];
         elementList.forEach((element) => {
