@@ -318,7 +318,8 @@ In some cases, using the cheerio-advanced-selectors isn't enough to properly fil
         startUrl: `https://www.nice-site/some-section`,       
        }
 
-    const condition = (cheerioNode) => {               
+    const condition = (cheerioNode) => {      
+         //Note that cheerioNode contains other useful methods, like html(), hasClass(), parent(), attr() and more.           
         const text = cheerioNode.text().trim();//Get the innerText of the <a> tag.
         if(text === 'some text i am looking for'){//Even though many links might fit the querySelector, Only those that have this innerText,
         // will be "opened".

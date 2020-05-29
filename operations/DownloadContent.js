@@ -19,6 +19,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
      * 
      * @param {string} querySelector cheerio-advanced-selectors selector 
      * @param {Object} [config]
+     * @param {string} [config.contentType = 'image'] Either "image" or "file"(then the href is used, not the src)
      * @param {string} [config.name = 'Default DownloadContent name'] 
      * @param {string[]} [config.alternativeSrc = null] 
      * @param {string} [config.filePath = null] 
