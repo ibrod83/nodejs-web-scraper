@@ -3,6 +3,9 @@ It supports features like automatic retries of failed requests, concurrency limi
 
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
+For any questions or suggestions, please open a Github issue or contact me via https://nodejs-web-scraper.ibrod83.com/about
+
+
 
 ## Installation
 
