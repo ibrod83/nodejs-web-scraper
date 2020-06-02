@@ -30,7 +30,7 @@ class Scraper {
      * @param {number} [globalConfig.concurrency = 3] 
      * @param {number} [globalConfig.maxRetries = 5] 
      * @param {string} [globalConfig.imageResponseType = 'arraybuffer']      
-     * @param {number} [globalConfig.delay = 100] 
+     * @param {number} [globalConfig.delay = 200] 
      * @param {number} [globalConfig.timeout = 5000] 
      * @param {string} [globalConfig.filePath= null] 
      * @param {Object} [globalConfig.auth = null] 
@@ -48,7 +48,7 @@ class Scraper {
             imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
             startUrl: '',
             baseSiteUrl: '',
-            delay: 100,
+            delay: 200,
             timeout: 5000,
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,

@@ -362,7 +362,7 @@ const config ={
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
             maxRetries: 5,//Maximum number of retries of a failed request.            
             imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
-            delay: 100,
+            delay: 200,
             timeout: 5000,
             filePath: null,//Needs to be provided only if a "downloadContent" operation is created.
             auth: null,//Can provide basic auth credentials(no clue what sites actually use it).
