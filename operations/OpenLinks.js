@@ -32,6 +32,7 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
 
     async scrape(responseObjectFromParent) {
 
+        // debugger;
         const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
         // debugger
         var scrapingObjects = [];
@@ -65,9 +66,10 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
         // debugger;
         $ = null;
         const refs = [];
-
+        // debugger;
         elementList.forEach((link) => {
-            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, link[0].attribs.href)
+            // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, link[0].attribs.href)
+            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, link[0].attribs.href)
             refs.push(absoluteUrl)
 
         })

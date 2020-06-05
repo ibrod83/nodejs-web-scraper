@@ -24,7 +24,8 @@ class SubmitForm extends InterneticOperation {
         // debugger;
         // console.log('address',responseObjectFromParent.request.res.responseUrl)
 
-        const currentWrapper = this.createWrapper(responseObjectFromParent.request.res.responseUrl);
+        // const currentWrapper = this.createWrapper(responseObjectFromParent.request.res.responseUrl);
+        const currentWrapper = this.createWrapper(responseObjectFromParent.url);
 
         var $ = cheerio.load(responseObjectFromParent.data);
 
@@ -36,7 +37,8 @@ class SubmitForm extends InterneticOperation {
             // debugger;
             const action = element[0].attribs.action;
 
-            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, action);
+            // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, action);
+            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, action);
 
             actions.push(absoluteUrl)
 

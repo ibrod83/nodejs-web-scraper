@@ -1,7 +1,11 @@
 const axios = require('axios');
+const request = require('../request');
 const sanitize = require('sanitize-filename');
 const path = require('path');
 const FileProcessor = require('./file_processor');
+const util = require('util');
+const stream = require('stream');
+const pipeline = util.promisify(stream.pipeline);
 
 const Promise = require('bluebird');
 const fs = require('fs');
@@ -10,34 +14,47 @@ var mime = require('mime-types')
 
 
 class FileDownloader {
-    constructor({ url, useContentDisposition = false, dest, clone, flag, responseType, auth, timeout, headers,proxy }) {
+    constructor({ url, useContentDisposition = false, dest, clone, flag, auth, timeout, headers, proxy }) {
         this.url = url;
         this.dest = dest;
         this.clone = clone;
-        this.flag = flag;
+        // this.flag = flag;
         this.useContentDisposition = useContentDisposition;
-        this.responseType = responseType
+        // this.responseType = responseType
         this.auth = auth;
         this.timeout = timeout;
         this.headers = headers;
-        this.proxy  = proxy
+        this.proxy = proxy
     }
 
     async download() {
         // debugger;
         try {
-            const response = await axios({
+            // const response = await axios({
+            //     method: 'GET',
+            //     url: this.url,
+            //     timeout: this.timeout,
+            //     responseType: this.responseType,
+            //     auth: this.auth,
+            //     headers: this.headers,
+            //     proxy:this.proxy
+
+            // })
+            debugger;
+            const response = await request({
                 method: 'GET',
                 url: this.url,
                 timeout: this.timeout,
-                responseType: this.responseType,
+                responseType:'stream',
                 auth: this.auth,
                 headers: this.headers,
+                // proxy:this.proxy
                 proxy:this.proxy
+                // proxy:true
 
             })
-            // if (this.mockImages)
-            //     return
+            if (this.mockImages)
+                return
             // console.log(response.data)
             this.response = response;
             // return response;
@@ -98,7 +115,7 @@ class FileDownloader {
     }
 
     getFileName() {
-        
+
         // debugger;
         let fileName = "";
         // if(this.getFileNameFromHeaders()){
@@ -108,9 +125,9 @@ class FileDownloader {
         // }
         if (this.useContentDisposition) {
             const fileNameFromHeaders = this.getFileNameFromHeaders()
-            
+
             if (fileNameFromHeaders) {
-                
+
                 fileName = fileNameFromHeaders
             } else {
                 fileName = this.deduceFileNameFromUrl();
@@ -128,66 +145,31 @@ class FileDownloader {
         return fileName;
     }
 
-    async saveFromBuffer() {
-        // const possibleExtensions = ['.jpg', '.jpeg', '.bmp', '.png', '.svg', '.gif'];
-        const fileName = this.getFileName();
-        return new Promise((resolve, reject) => {
-
-            fs.writeFile(path.join(this.dest, fileName), this.response.data, { encoding: 'binary', flag: this.flag }, (err) => {
-
-                if (err) {
-
-                    reject(err);
-                } else {
-                    resolve();
-                }
-
-
-            })
-        })
-    }
+    
 
     async save() {
         // debugger;
         try {
-            if (this.responseType === 'arraybuffer') {
 
-                await this.saveFromBuffer();
-            } else {
-                await this.saveFromStream()
-            }
-        } catch (error) {
+
+            await this.saveFromStream(this.response.data)
+
+        } 
+        catch (error) {
 
             throw error
         }
 
     }
+    
 
-    saveFromStream() {
-        // const possibleExtensions = ['.jpg', '.jpeg', '.bmp', '.png', '.svg', '.gif'];
+    async saveFromStream(readableStream) {
 
         const fileName = this.getFileName();
         // console.log('flag of stream:', this.flag);
-
-
-        return new Promise((resolve, reject) => {
-            const writeStream = fs.createWriteStream(path.join(this.dest, fileName), { encoding: 'binary', flags: this.flag })
-            writeStream.on('open', () => {
-                this.response.data.pipe(writeStream)
-
-                this.response.data.on('end', () => {
-                    resolve()
-                })
-
-                this.response.data.on('error', (error) => {
-                    reject(error)
-                })
-            })
-            writeStream.on('error', (error) => {
-                reject(error);
-            })
-
-        })
+        const write = fs.createWriteStream(path.join(this.dest, fileName));
+        await pipeline(readableStream, write )
+       
     }
 }
 

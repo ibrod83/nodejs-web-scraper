@@ -25,11 +25,9 @@ class Scraper {
      * @param {string} globalConfig.startUrl 
      * @param {string} globalConfig.baseSiteUrl 
      * @param {boolean} [globalConfig.cloneImages = true ]
-     * @param {boolean} [globalConfig.removeStyleAndScriptTags = true ]
-     * @param {string} [globalConfig.fileFlag = 'w'] 
+     * @param {boolean} [globalConfig.removeStyleAndScriptTags = true ]     
      * @param {number} [globalConfig.concurrency = 3] 
-     * @param {number} [globalConfig.maxRetries = 5] 
-     * @param {string} [globalConfig.imageResponseType = 'arraybuffer']      
+     * @param {number} [globalConfig.maxRetries = 5]         
      * @param {number} [globalConfig.delay = 200] 
      * @param {number} [globalConfig.timeout = 5000] 
      * @param {string} [globalConfig.filePath= null] 
@@ -41,11 +39,9 @@ class Scraper {
         // global.counter=0;
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-            removeStyleAndScriptTags: true,
-            fileFlag: 'w',//The flag provided to the file saving function. 
+            removeStyleAndScriptTags: true,           
             concurrency: 3,//Maximum concurrent requests.
-            maxRetries: 5,//Maximum number of retries of a failed request.
-            imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
+            maxRetries: 5,//Maximum number of retries of a failed request.            
             startUrl: '',
             baseSiteUrl: '',
             delay: 200,

@@ -10,6 +10,8 @@ It supports features like automatic retries of failed requests, concurrency limi
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
 
+
+
 ## Installation
 
 ```sh
@@ -308,7 +310,7 @@ Description: "Go to https://www.nice-site/some-section; Open every article link;
 
 #### Use the condition hook.
 
-In some cases, using the cheerio-advanced-selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false
+In some cases, using the cheerio-advanced-selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false.
 
 ```javascript  
 
@@ -321,7 +323,7 @@ In some cases, using the cheerio-advanced-selectors isn't enough to properly fil
     /**
      * Will be called for each node collected by cheerio, in the given operation(OpenLinks or DownloadContent)      
      */
-    const condition = (cheerioNode) => {      
+   const condition = (cheerioNode) => {      
          //Note that cheerioNode contains other useful methods, like html(), hasClass(), parent(), attr() and more.           
         const text = cheerioNode.text().trim();//Get the innerText of the <a> tag.
         if(text === 'some text i am looking for'){//Even though many links might fit the querySelector, Only those that have this innerText,
@@ -360,17 +362,15 @@ const config ={
             startUrl: '',//Mandatory. The page from which the process begins.   
             logPath://Highly recommended.Will create a log for each scraping operation(object).               
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-            removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.
-            fileFlag: 'w',//The flag provided to the file saving function. 
+            removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
-            maxRetries: 5,//Maximum number of retries of a failed request.            
-            imageResponseType: 'arraybuffer',//Either 'stream' or 'arraybuffer'
+            maxRetries: 5,//Maximum number of retries of a failed request.      
             delay: 200,
-            timeout: 5000,
+            timeout: 6000,
             filePath: null,//Needs to be provided only if a "downloadContent" operation is created.
             auth: null,//Can provide basic auth credentials(no clue what sites actually use it).
             headers: null,//Provide custom headers for the requests.
-            proxy:null//Connect using a proxy(refer to Axios docs). This option was not tested.
+            proxy:null//Use a proxy. Pass a full proxy URL, including the protocol and the port.
         }
 ```
 Public methods:
@@ -416,7 +416,7 @@ The optional config can have these properties:
     getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
-    getPageResponse:(axiosResponse)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the axios response object. Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
+    getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
     afterScrape:(data)=>{},//Is called after all scraping associated with the current "OpenLinks" operation is completed(like opening 10 pages, and downloading all images form them). Notice that if this operation was added as a child(via "addOperation()") in more than one place, then this hook will be called multiple times, each time with its corresponding data.
     slice:[start,end]//You can define a certain range of elements from the node list.Also possible to pass just a number, instead of an array, if you only want to specify the start. This uses the Cheerio/Jquery slice method.
 }
@@ -465,9 +465,7 @@ The optional config can receive these properties:
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
     getElementList:(elementList)=>{},    
     afterScrape:(data)=>{},//In this case, it will just return a list of downloaded items.
-    filePath:'./somePath',//Overrides the global filePath passed to the Scraper config.
-    fileFlag:'wx',//Overrides the global fileFlag.
-    imageResponseType:'arraybuffer',//Overrides the global imageResponseType.Notice that this is relevant only for images. Other files are always of responseType stream.
+    filePath:'./somePath',//Overrides the global filePath passed to the Scraper config.  
     slice:[start,end]
 }
 

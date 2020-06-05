@@ -37,9 +37,10 @@ class CollectContent extends Operation {
     }
 
     async scrape(responseObjectFromParent) {
-        // debugger;
+        debugger;
         // console.log('address',responseObjectFromParent.request.res.responseUrl)
-        const parentAddress = responseObjectFromParent.request.res.responseUrl
+        // const parentAddress = responseObjectFromParent.request.res.responseUrl
+        const parentAddress = responseObjectFromParent.url
         const currentWrapper = this.createWrapper(parentAddress);
 
         this.contentType = this.contentType || 'text';

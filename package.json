@@ -19,12 +19,13 @@
   ],
   "author": "ibrod83",
   "license": "ISC",
-  "dependencies": {
-    "axios": "^0.18.1",
+  "dependencies": {    
     "bluebird": "^3.5.1",
     "cheerio": "^1.0.0-rc.2",
     "cheerio-advanced-selectors": "^2.0.1",
+    "https-proxy-agent": "^5.0.0",
     "mime-types": "^2.1.20",
+    "node-fetch": "^2.6.0",
     "qyu": "^0.3.0",
     "sanitize-filename": "^1.6.1"
   },

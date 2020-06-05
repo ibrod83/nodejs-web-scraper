@@ -1,5 +1,7 @@
 const InterneticOperation = require('./InterneticOperation');
 const axios = require('axios');
+const request = require('../request');
+
 
 class CompositeOperation extends InterneticOperation {//Base class for all operations that are composite, meaning they hold references to other Operations.
 
@@ -47,20 +49,32 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
 
             let resp;
             try {             
-                resp = await axios({
+                // resp = await axios({
+                //     method: 'get', url: href,
+                //     timeout: this.scraper.config.timeout,
+                //     auth: this.scraper.config.auth,
+                //     headers: this.scraper.config.headers,
+                //     proxy:this.scraper.config.proxy
+                // }) 
+                resp = await request({
                     method: 'get', url: href,
                     timeout: this.scraper.config.timeout,
                     auth: this.scraper.config.auth,
                     headers: this.scraper.config.headers,
                     proxy:this.scraper.config.proxy
-                })         
+                    // proxy:true
+                    
+                })   
+                
+                debugger;
 
                 if (this.scraper.config.removeStyleAndScriptTags) {
                     this.stripTags(resp);
                 }
 
                 if (this.getHtml) {
-                    await this.getHtml(resp.data, resp.request.res.responseUrl)
+                    // await this.getHtml(resp.data, resp.request.res.responseUrl)
+                    await this.getHtml(resp.data, resp.url)
                 }
                
             } catch (error) {
