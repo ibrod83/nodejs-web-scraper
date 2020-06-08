@@ -227,6 +227,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                 clone: this.scraper.config.cloneImages,
                 // flag: this.fileFlag || this.scraper.config.fileFlag,
                 // responseType:'stream',
+                // mockImages:true,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
                 headers: this.scraper.config.headers,
@@ -241,12 +242,13 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
             var promiseFactory = async () => {
 
                 await this.beforePromiseFactory('Fetching file:' + url);
-
+               
                 try {
                     const fileDownloader = new file_downloader(options);
                     //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
                     await fileDownloader.download();
                     if (!this.scraper.config.mockImages) {
+                    // if (false) {
                         await fileDownloader.save();
                         this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages)
                     }

@@ -45,7 +45,7 @@ class InterneticOperation extends Operation {//Base class for all operations tha
             return await promiseFactory();
         } catch (error) {
 
-
+            // debugger;
             const errorCode = error.response ? error.response.status : error
             // console.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
@@ -127,6 +127,7 @@ class InterneticOperation extends Operation {//Base class for all operations tha
 
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
         // console.log('overwriteConcurrency', overwriteConcurrency)
+        // debugger;
         await Promise.map(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject);
         }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })

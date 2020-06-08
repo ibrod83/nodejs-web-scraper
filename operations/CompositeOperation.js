@@ -66,7 +66,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                     
                 })   
                 
-                debugger;
+                // debugger;
 
                 if (this.scraper.config.removeStyleAndScriptTags) {
                     this.stripTags(resp);
@@ -78,6 +78,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
                 }
                
             } catch (error) {
+                // debugger;
                 throw error;
             }
             finally {
@@ -113,6 +114,7 @@ class CompositeOperation extends InterneticOperation {//Base class for all opera
             var response = await this.getPage(href);
             // debugger;
             if (this.getPageResponse) {//If a "getResponse" callback was provided, it will be called
+            // debugger;
                 if (typeof this.getPageResponse !== 'function')
                     throw "'getPageResponse' callback must be a function";
                 await this.getPageResponse(response);

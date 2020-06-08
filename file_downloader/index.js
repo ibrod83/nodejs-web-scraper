@@ -7,7 +7,7 @@ const util = require('util');
 const stream = require('stream');
 const pipeline = util.promisify(stream.pipeline);
 
-const Promise = require('bluebird');
+// const Promise = require('bluebird');
 const fs = require('fs');
 var mime = require('mime-types')
 
@@ -18,6 +18,7 @@ class FileDownloader {
         this.url = url;
         this.dest = dest;
         this.clone = clone;
+        // this.mockImages = mockImages
         // this.flag = flag;
         this.useContentDisposition = useContentDisposition;
         // this.responseType = responseType
@@ -40,7 +41,7 @@ class FileDownloader {
             //     proxy:this.proxy
 
             // })
-            debugger;
+            // debugger;
             const response = await request({
                 method: 'GET',
                 url: this.url,
@@ -53,10 +54,14 @@ class FileDownloader {
                 // proxy:true
 
             })
-            if (this.mockImages)
-                return
+            // debugger;
+            // response.abort();
+            // if (this.mockImages)
+            //     return
             // console.log(response.data)
             this.response = response;
+            // debugger;
+            // this.response.cancel();
             // return response;
         } catch (error) {
 
@@ -150,9 +155,11 @@ class FileDownloader {
     async save() {
         // debugger;
         try {
-
-
-            await this.saveFromStream(this.response.data)
+            // debugger;
+            // if(!this.response.isCanceled()){
+              await this.saveFromStream(this.response.data)  
+            // }
+            
 
         } 
         catch (error) {

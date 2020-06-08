@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "2.5.2",
+  "version": "3.0.0",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   ],
   "author": "ibrod83",
   "license": "ISC",
-  "dependencies": {    
+  "dependencies": {
     "bluebird": "^3.5.1",
     "cheerio": "^1.0.0-rc.2",
     "cheerio-advanced-selectors": "^2.0.1",
