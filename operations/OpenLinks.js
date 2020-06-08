@@ -20,6 +20,7 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
      * @param {Function} [config.getPageObject = null] Receives a pageObject object
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
      * @param {Function} [config.getHtml = null] Receives htmlString and pageAddress
+     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config) {
         super(config);

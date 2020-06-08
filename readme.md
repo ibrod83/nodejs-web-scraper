@@ -386,6 +386,20 @@ Root is responsible for fetching the first page, and then scrape the children. I
 const root= new Root({ pagination: { queryString: 'page', begin: 1, end: 100 }})
 
 ```
+The optional config takes these properties:
+```javascript
+{    
+    pagination:{},//In case your root page is paginated.    
+    getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
+    getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
+    getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
+    getPageData:(cleanData)=>{}//Called after all data was collected by the root and its children.
+    getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
+    getException:(error)=>{}//Get every exception thrown by Root.  
+    
+}
+
+```
 
 Public methods:
 
@@ -412,6 +426,7 @@ The optional config can have these properties:
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
+    getException:(error)=>{}//Get every exception throw by this openLinks operation, even if this was later repeated successfully.
     afterScrape:(data)=>{},//Is called after all scraping associated with the current "OpenLinks" operation is completed(like opening 10 pages, and downloading all images form them). Notice that if this operation was added as a child(via "addOperation()") in more than one place, then this hook will be called multiple times, each time with its corresponding data.
     slice:[start,end]//You can define a certain range of elements from the node list.Also possible to pass just a number, instead of an array, if you only want to specify the start. This uses the Cheerio/Jquery slice method.
 }
@@ -458,7 +473,8 @@ The optional config can receive these properties:
     contentType:'image',//Either 'image' or 'file'. Default is image.
     alternativeSrc:['first-alternative','second-alternative']//Some images might not have an actual "src", but a data:url. You can provide as many alternative src's as you wish. If the scraper doesn't find a valid src, it will try the alternatives.  
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
-    getElementList:(elementList)=>{},    
+    getElementList:(elementList)=>{},
+    getException:(error)=>{}//Get every exception throw by this downloadContent operation, even if this was later repeated successfully.    
     afterScrape:(data)=>{},//In this case, it will just return a list of downloaded items.
     filePath:'./somePath',//Overrides the global filePath passed to the Scraper config.  
     slice:[start,end]

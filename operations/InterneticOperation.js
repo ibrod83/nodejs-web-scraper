@@ -26,6 +26,11 @@ class InterneticOperation extends Operation {//Base class for all operations tha
         return scrapingObject;
     }
 
+    emitError(error){
+        if(this.getException)
+        this.getException(error);
+    }
+
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
@@ -44,6 +49,8 @@ class InterneticOperation extends Operation {//Base class for all operations tha
 
             return await promiseFactory();
         } catch (error) {
+
+            this.emitError(error)
 
             // debugger;
             const errorCode = error.response ? error.response.status : error

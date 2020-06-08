@@ -12,6 +12,8 @@ class Root extends CompositeOperation {//Fetches the initial page, and starts th
      * @param {Function} [config.getPageObject = null] Receives a pageObject object
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
      * @param {Function} [config.getHtml = null] Receives htmlString and pageAddress
+     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
+
      */
     constructor(config){
         super(config)

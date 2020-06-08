@@ -27,6 +27,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
      * @param {Function} [config.condition = null] Receives a Cheerio node. Use this hook to decide if this node should be included in the scraping. Return true or false
      * @param {Function} [config.getElementList = null] Receives an elementList array     
      * @param {Function} [config.afterScrape = null] Receives a data object
+     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config) {
         super(config);
