@@ -46,9 +46,10 @@ class CustomError extends Error {
 // module.exports = class Request {
 class Request {
 
-    originalResponse = null;//Original response object from fetch.
+   
 
     constructor(config) {
+        this.originalResponse = null;//Original response object from fetch.
         // debugger;
         // this.abortController = new AbortController()
         const defaultConfig = {
@@ -112,7 +113,7 @@ class Request {
         }
     }
 
-    createCustomResponseObjectFromFetchResponse = async (fetchResponse) => {
+    async createCustomResponseObjectFromFetchResponse (fetchResponse)  {
         let data;
         switch (this.config.responseType) {
             case 'text':
