@@ -1,4 +1,5 @@
-const fetch = require('node-fetch')
+// const fetch = require('node-fetch')
+const fetch = require('./fetch')
 var HttpsProxyAgent = require('https-proxy-agent');
 // import AbortController from 'abort-controller';
 
@@ -21,17 +22,20 @@ class CustomResponse {
         this.data = data
         this.status = status
         this.statusText = statusText
-        this.headers = headers
+        this.headers = headers,
+        this.canceled=false
     }
 
-    // cancel(){
-    //     // debugger;
-    //     this.originalResponse.body.destroy();
-    // }
+    cancel(){
+        // debugger;
+        // this.originalResponse.body.destroy();
+        this.originalResponse.abort();
+        this.canceled = true;
+    }
 
-    // isCanceled(){
-    //     return this.originalResponse.body.destroyed;
-    // }
+    isCanceled(){
+        return this.canceled
+    }
 }
 
 class CustomError extends Error {

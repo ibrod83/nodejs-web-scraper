@@ -54,8 +54,9 @@ class FileDownloader {
                 // proxy:true
 
             })
-            // debugger;
-            // response.abort();
+            // console.log('YOTYO')
+            debugger;
+            response.cancel();
             // if (this.mockImages)
             //     return
             // console.log(response.data)
@@ -65,7 +66,7 @@ class FileDownloader {
             // return response;
         } catch (error) {
 
-
+            debugger;
             throw error;
         }
 
@@ -153,12 +154,12 @@ class FileDownloader {
     
 
     async save() {
-        // debugger;
+        debugger;
         try {
             // debugger;
-            // if(!this.response.isCanceled()){
+            if(!this.response.isCanceled()){
               await this.saveFromStream(this.response.data)  
-            // }
+            }
             
 
         } 
