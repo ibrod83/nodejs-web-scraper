@@ -9,6 +9,7 @@ function createInstance(config) {
 }
 
 function request(config) {
+    // throw 'error from request.request';
     return createInstance(config).getFinalResponseObject();
 }
 
@@ -35,6 +36,7 @@ class CustomResponse {
 }
 
 class CustomError extends Error {
+    debugger;
     constructor({ code, response, message,errno }) {
         super(message)
         // this.config = config;//The config object of the failing request
@@ -49,6 +51,7 @@ class Request {
    
 
     constructor(config) {
+        // debugger;
         this.originalResponse = null;//Original response object from fetch.
         // debugger;
         // this.abortController = new AbortController()
@@ -162,13 +165,14 @@ class Request {
     }
 
     createCustomErrorFromFetchError(fetchError) {//Fetch errors are thrown only for network errors. There is no actual "response".
+    // debugger;
         const error = new CustomError({ errno:fetchError.errno,message: fetchError.message })
         return error;
 
     }
 
     async getFinalResponseObject() {
-
+        // throw 'error from request.getFinalResponseObject'
         // console.log(this.config)
         try {
             var response = await this.performRequest(this.config);
@@ -179,6 +183,7 @@ class Request {
         }
         //Will reach this stage only if there is no network request.
         const customResponse = await this.createCustomResponseObjectFromFetchResponse(response);
+        
 
         //Make every status of >=400 throw an error. handleStatusCodes throws an exception, which is not caught here.
         this.handleStatusCodes(customResponse)

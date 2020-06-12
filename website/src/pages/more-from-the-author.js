@@ -26,6 +26,7 @@ function More() {
                 <p>If you like tools that simplify the work with Node, you might want to check these out:</p>
 
                 <p><a href="https://www.npmjs.com/package/nodejs-file-downloader">nodejs-file-downloader</a></p>
+                <p><a href="https://www.npmjs.com/package/repeat-promise-until-resolved">repeat-promise-until-resolved</a></p>
                 <p><a href="https://socketio-playground.ibrod83.com/">Socket.IO Playground</a></p>
             </div>
         </Layout>

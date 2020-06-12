@@ -46,11 +46,11 @@ class FileDownloader {
                 method: 'GET',
                 url: this.url,
                 timeout: this.timeout,
-                responseType:'stream',
+                responseType: 'stream',
                 auth: this.auth,
                 headers: this.headers,
                 // proxy:this.proxy
-                proxy:this.proxy
+                proxy: this.proxy
                 // proxy:true
 
             })
@@ -119,10 +119,10 @@ class FileDownloader {
         return fileName;
     }
 
-    getFileName() {
+    getFileNameData() {
 
         // debugger;
-        let fileName = "";
+        let originalFileName = "";
         // if(this.getFileNameFromHeaders()){
         //     console.log('filenamefromheaders: true')
         // }else{
@@ -133,50 +133,74 @@ class FileDownloader {
 
             if (fileNameFromHeaders) {
 
-                fileName = fileNameFromHeaders
+                originalFileName = fileNameFromHeaders
             } else {
-                fileName = this.deduceFileNameFromUrl();
-            }
+                originalFileName = this.deduceFileNameFromUrl();
+            } originalFileName
         } else {
-            fileName = this.deduceFileNameFromUrl();
+            originalFileName = this.deduceFileNameFromUrl();
         }
 
         // debugger;
-        const fileProcessor = new FileProcessor({ fileName, path: this.dest });
+        let finalFileName;
+        const fileProcessor = new FileProcessor({ fileName:originalFileName, path: this.dest });
         if (this.clone) {
 
-            fileName = fileProcessor.getAvailableFileName();
+            finalFileName = fileProcessor.getAvailableFileName();
+        }else{
+            finalFileName = originalFileName;
         }
-        return fileName;
+        // debugger;
+        const initialFileNameExists = fileProcessor.initialFileNameExists;//Boolean property
+
+        return {//Return an object with both the "original"(deduced from the URL and headers) file name, and the final one
+            finalFileName,
+            originalFileName,
+            initialFileNameExists
+        };
     }
 
-    
+
 
     async save() {
         // debugger;
         try {
             // debugger;
-            // if(!this.response.isCanceled()){
-              await this.saveFromStream(this.response.data)  
-            // }
-            
+            const { originalFileName, finalFileName,initialFileNameExists } = this.getFileNameData();
+            // let newFileCreated = true;
+            // debugger;
 
-        } 
+            // if(!this.clone){
+            //     if(initialFileNameExists){
+            //         newFileCreated=false;
+            //     }
+            // }
+            // console.log('flag of stream:', this.flag);
+            const write = fs.createWriteStream(path.join(this.dest, finalFileName));
+            // if(!this.response.isCanceled()){
+            await this.saveFromStream(this.response.data, write)
+            // return {
+            //     newFileCreated
+            // }
+            // }
+
+
+        }
         catch (error) {
 
             throw error
         }
 
     }
-    
 
-    async saveFromStream(readableStream) {
 
-        const fileName = this.getFileName();
-        // console.log('flag of stream:', this.flag);
-        const write = fs.createWriteStream(path.join(this.dest, fileName));
-        await pipeline(readableStream, write )
-       
+    async saveFromStream(readableStream, writableStream) {
+
+        // const fileName = this.getFileName();
+        // // console.log('flag of stream:', this.flag);
+        // const write = fs.createWriteStream(path.join(this.dest, fileName));
+        await pipeline(readableStream, writableStream)
+
     }
 }
 
