@@ -156,6 +156,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
     }
 
     saveDataUrlPromiseFactory(url) {
+       
         return () => {
             return new Promise((resolve, reject) => {
                 console.log('Src is base64. Creating a file form it, with a hashed name.')
@@ -181,12 +182,15 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                 // return reject('yoyo');
                 // debugger;
                 // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${u}.${this.getDataUrlExtension(url)}`, base64Data, 'base64', function (err) {
-                fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64', function (err) {
+                fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64',  (err)=> {
                     // console.log(err);
                     if (err) {
                         reject(err);
                     } else {
-                        counter++
+                        // counter++
+                        this.scraper.state.downloadedImages++
+
+                        console.log('images:', this.scraper.state.downloadedImages)
                         // console.log('NUMBER OF DATAURL FILES CREATED ',counter)
                         resolve();
                     }
@@ -243,15 +247,20 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
             var promiseFactory = async () => {
 
                 await this.beforePromiseFactory('Fetching file:' + url);
-               
+
                 try {
                     const fileDownloader = new file_downloader(options);
                     //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
                     await fileDownloader.download();
                     if (!this.scraper.config.mockImages) {
-                    // if (false) {
+                        // if (false) {
+                        // const { newFileCreated } = await fileDownloader.save();
                         await fileDownloader.save();
-                        this.scraper.state.downloadedImages++; console.log('images:', this.scraper.state.downloadedImages)
+
+                        // newFileCreated && this.scraper.state.downloadedImages++;
+                        this.scraper.state.downloadedImages++
+
+                        console.log('images:', this.scraper.state.downloadedImages)
                     }
 
                 } catch (err) {
