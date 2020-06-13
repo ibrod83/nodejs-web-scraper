@@ -1,6 +1,6 @@
 const InterneticOperation = require('./InterneticOperation');
 // const axios = require('axios');
-const request = require('../request');
+const request = require('../request/request.js');
 
 
 class CompositeOperation extends InterneticOperation {//Base class for all operations that are composite, meaning they hold references to other Operations.

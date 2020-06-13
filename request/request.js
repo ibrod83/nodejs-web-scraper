@@ -1,8 +1,8 @@
 // const fetch = require('node-fetch')
-const fetch = require('./fetch')
+const fetch = require('./fetch.js')
 var HttpsProxyAgent = require('https-proxy-agent');
 // import AbortController from 'abort-controller';
-
+const Signal = require('./signal.js')
 
 function createInstance(config) {
 
@@ -24,23 +24,25 @@ class CustomResponse {
         this.status = status
         this.statusText = statusText
         this.headers = headers,
-        this.canceled=false
+        this.aborted=false
+        // this.signal = new Signal();
     }
 
-    cancel(){
+    abort(){
         // debugger;
         // this.originalResponse.body.destroy();
-        this.originalResponse.abort();
-        this.canceled = true;
+        // this.originalResponse.abort();
+        this.aborted = true;
+        this.config.signal.abort();
     }
 
-    isCanceled(){
-        return this.canceled
+    isAborted(){
+        return this.aborted
     }
 }
 
 class CustomError extends Error {
-    debugger;
+    // debugger;
     constructor({ code, response, message,errno }) {
         super(message)
         // this.config = config;//The config object of the failing request
@@ -63,6 +65,7 @@ class Request {
             method: 'GET',
             timeout: 6000,
             headers: null,
+            signal: new Signal(),
             proxy: null,//Proxy string
             responseType: 'text',//'text','json' or 'stream'. If 'stream' is chosen, the stream itself is returned.
             // Otherwise, the FINAL output of the request is returned.
@@ -181,6 +184,7 @@ class Request {
         try {
             var response = await this.performRequest(this.config);
         } catch (fetchError) {//Network error has ocurred.
+            // debugger;
             const error = this.createCustomErrorFromFetchError(fetchError)
             throw error;
 

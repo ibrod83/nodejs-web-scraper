@@ -1,5 +1,5 @@
 // const axios = require('axios');
-const request = require('../request');
+const request = require('../request/request.js');
 const sanitize = require('sanitize-filename');
 const path = require('path');
 const FileProcessor = require('./file_processor');
@@ -48,6 +48,7 @@ class FileDownloader {
                 timeout: this.timeout,
                 responseType: 'stream',
                 auth: this.auth,
+                // timeout:10,
                 headers: this.headers,
                 // proxy:this.proxy
                 proxy: this.proxy
@@ -55,8 +56,8 @@ class FileDownloader {
 
             })
             // console.log('YOTYO')
-            debugger;
-            response.cancel();
+            // debugger;
+            // response.abort();
             // if (this.mockImages)
             //     return
             // console.log(response.data)
@@ -65,8 +66,8 @@ class FileDownloader {
             // this.response.cancel();
             // return response;
         } catch (error) {
-
-            debugger;
+            // debugger;
+            // debugger;
             throw error;
         }
 
@@ -144,11 +145,11 @@ class FileDownloader {
 
         // debugger;
         let finalFileName;
-        const fileProcessor = new FileProcessor({ fileName:originalFileName, path: this.dest });
+        const fileProcessor = new FileProcessor({ fileName: originalFileName, path: this.dest });
         if (this.clone) {
 
             finalFileName = fileProcessor.getAvailableFileName();
-        }else{
+        } else {
             finalFileName = originalFileName;
         }
         // debugger;
@@ -164,22 +165,30 @@ class FileDownloader {
 
 
     async save() {
-        debugger;
+        // debugger;
         try {
             // debugger;
-            const { originalFileName, finalFileName,initialFileNameExists } = this.getFileNameData();
+            const { originalFileName, finalFileName, initialFileNameExists } = this.getFileNameData();
             // let newFileCreated = true;
             // debugger;
 
-            // if(!this.clone){
-            //     if(initialFileNameExists){
-            //         newFileCreated=false;
-            //     }
-            // }
+            if(!this.clone){
+                if(initialFileNameExists){
+                    // debugger;
+                    this.response.abort()
+                }
+            }
             // console.log('flag of stream:', this.flag);
-            const write = fs.createWriteStream(path.join(this.dest, finalFileName));
-            // if(!this.response.isCanceled()){
-            await this.saveFromStream(this.response.data, write)
+            // debugger;
+            if (!this.response.isAborted()){
+                const write = fs.createWriteStream(path.join(this.dest, finalFileName));
+                await this.saveFromStream(this.response.data, write)
+            }
+                
+
+          
+
+            
             // return {
             //     newFileCreated
             // }
@@ -188,7 +197,7 @@ class FileDownloader {
 
         }
         catch (error) {
-
+            // debugger;
             throw error
         }
 

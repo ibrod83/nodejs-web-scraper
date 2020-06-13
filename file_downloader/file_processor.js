@@ -10,7 +10,7 @@ class FileProcessor {
         this.fileExtension = path.extname(this.originalFileName);
         this.fileNameWithoutExtension = config.fileName.split('.').slice(0, -1).join('.')
         this.basePath = config.path[config.path.length - 1] === '/' ? config.path : config.path + '/';
-        debugger;
+        // debugger;
         this.initialFileNameExists = this.doesFileExist(this.basePath+this.originalFileName)
 
         // console.log(this);

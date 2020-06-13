@@ -29,7 +29,7 @@ class Scraper {
      * @param {number} [globalConfig.concurrency = 3] 
      * @param {number} [globalConfig.maxRetries = 5]         
      * @param {number} [globalConfig.delay = 200] 
-     * @param {number} [globalConfig.timeout = 5000] 
+     * @param {number} [globalConfig.timeout = 6000] 
      * @param {string} [globalConfig.filePath= null] 
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = null] 
@@ -45,7 +45,7 @@ class Scraper {
             startUrl: '',
             baseSiteUrl: '',
             delay: 200,
-            timeout: 5000,
+            timeout: 6000,
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,
             headers: null,

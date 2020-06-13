@@ -225,6 +225,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         if (url.startsWith("data:image")) {
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
+            debugger;
             const options = {
                 url,
                 useContentDisposition,

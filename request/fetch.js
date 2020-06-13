@@ -1153,8 +1153,9 @@ function isRequest(input) {
 }
 
 function isAbortSignal(signal) {
-	const proto = signal && typeof signal === 'object' && Object.getPrototypeOf(signal);
-	return !!(proto && proto.constructor.name === 'AbortSignal');
+	// const proto = signal && typeof signal === 'object' && Object.getPrototypeOf(signal);
+	// return !!(proto && proto.constructor.name === 'AbortSignal');
+	return true;
 }
 
 /**
@@ -1400,31 +1401,38 @@ function fetch(url, opts) {
 	// wrap http.request into fetch
 	return new fetch.Promise(function (resolve, reject) {
 		// build request object
+		// debugger;
+		// reject('chuj ci w dupe')
+		// throw new Error('yoyoyoyo')
 		const request = new Request(url, opts);
 		const options = getNodeRequestOptions(request);
 
 		const send = (options.protocol === 'https:' ? https : http).request;
+		// debugger;
 		const signal = request.signal;
 
 		let response = null;
 
 		const abort = function abort() {
-			let error = new AbortError('The user aborted a request.');
-			debugger;
-			reject(error);
+			// debugger;
+			// let error = new AbortError('The user aborted a request.');
+			// debugger;
+			// reject(error);
 			if (request.body && request.body instanceof Stream.Readable) {
 				request.body.destroy(error);
 			}
 			if (!response || !response.body) return;
-			response.body.emit('error', error);
+			// response.body.emit('error', error);
 		};
 
 		if (signal && signal.aborted) {
+			// debugger;
 			abort();
 			return;
 		}
 
 		const abortAndFinalize = function abortAndFinalize() {
+			// debugger;
 			abort();
 			finalize();
 		};
@@ -1569,7 +1577,7 @@ function fetch(url, opts) {
 			// 5. content not modified response (304)
 			if (!request.compress || request.method === 'HEAD' || codings === null || res.statusCode === 204 || res.statusCode === 304) {
 				response = new Response(body, response_options);
-				response.abort = abortAndFinalize;
+				// response.abort = abortAndFinalize;
 				resolve(response);
 				return;
 			}
@@ -1588,7 +1596,7 @@ function fetch(url, opts) {
 			if (codings == 'gzip' || codings == 'x-gzip') {
 				body = body.pipe(zlib.createGunzip(zlibOptions));
 				response = new Response(body, response_options);
-				response.abort = abortAndFinalize;
+				// response.abort = abortAndFinalize;
 				resolve(response);
 				return;
 			}
@@ -1606,7 +1614,7 @@ function fetch(url, opts) {
 						body = body.pipe(zlib.createInflateRaw());
 					}
 					response = new Response(body, response_options);
-					response.abort = abortAndFinalize;
+					// response.abort = abortAndFinalize;
 					resolve(response);
 				});
 				return;
@@ -1616,14 +1624,14 @@ function fetch(url, opts) {
 			if (codings == 'br' && typeof zlib.createBrotliDecompress === 'function') {
 				body = body.pipe(zlib.createBrotliDecompress());
 				response = new Response(body, response_options);
-				response.abort = abortAndFinalize;
+				// response.abort = abortAndFinalize;
 				resolve(response);
 				return;
 			}
 
 			// otherwise, use response as-is
 			response = new Response(body, response_options);
-			response.abort = abortAndFinalize;
+			// response.abort = abortAndFinalize;
 			resolve(response);
 		});
 
