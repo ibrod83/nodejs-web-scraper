@@ -1377,7 +1377,7 @@ function AbortError(message) {
 AbortError.prototype = Object.create(Error.prototype);
 AbortError.prototype.constructor = AbortError;
 AbortError.prototype.name = 'AbortError';
-
+// let counter = 0;
 // fix an issue where "PassThrough", "resolve" aren't a named export for node <10
 const PassThrough$1 = Stream.PassThrough;
 const resolve_url = Url.resolve;
@@ -1420,6 +1420,14 @@ function fetch(url, opts) {
 			// reject(error);
 			if (request.body && request.body instanceof Stream.Readable) {
 				request.body.destroy(error);
+			}
+
+			if (response.body && response.body instanceof Stream.Readable) {
+				// counter++
+				// debugger;
+				// console.log('DESTROYING STREAM',counter)
+				
+				response.body.destroy();
 			}
 			if (!response || !response.body) return;
 			// response.body.emit('error', error);

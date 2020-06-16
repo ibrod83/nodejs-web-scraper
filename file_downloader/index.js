@@ -1,4 +1,5 @@
 // const axios = require('axios');
+// counter=0;
 const request = require('../request/request.js');
 const sanitize = require('sanitize-filename');
 const path = require('path');
@@ -154,6 +155,8 @@ class FileDownloader {
         }
         // debugger;
         const initialFileNameExists = fileProcessor.initialFileNameExists;//Boolean property
+        // if (initialFileNameExists) counter++
+        // console.log('initialFileNameExists',counter)
 
         return {//Return an object with both the "original"(deduced from the URL and headers) file name, and the final one
             finalFileName,
@@ -171,24 +174,27 @@ class FileDownloader {
             const { originalFileName, finalFileName, initialFileNameExists } = this.getFileNameData();
             // let newFileCreated = true;
             // debugger;
-
-            if(!this.clone){
-                if(initialFileNameExists){
+            // if(!initialFileNameExists){
+            //     console.log('NO')
+            //     debugger;
+            // }
+            if (!this.clone) {
+                if (initialFileNameExists) {
                     // debugger;
                     this.response.abort()
                 }
             }
             // console.log('flag of stream:', this.flag);
             // debugger;
-            if (!this.response.isAborted()){
+            if (!this.response.isAborted()) {
                 const write = fs.createWriteStream(path.join(this.dest, finalFileName));
                 await this.saveFromStream(this.response.data, write)
             }
-                
 
-          
 
-            
+
+
+
             // return {
             //     newFileCreated
             // }

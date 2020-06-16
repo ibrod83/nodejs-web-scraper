@@ -38,6 +38,7 @@ class FileProcessor {
 
     }
     doesFileExist(path) {
+        // debugger;
         if (fs.existsSync(path)) {
             // console.log(`file ${fileName} already exists!`);
             return true;

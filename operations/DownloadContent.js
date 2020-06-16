@@ -154,9 +154,10 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
     getDataUrlExtension(dataurl) {
         return dataurl.split('/')[1].split(';')[0]
     }
-
+    // counter = 0;
     saveDataUrlPromiseFactory(url) {
-       
+        // counter++;
+        // console.log('DATAURL ', counter)
         return () => {
             return new Promise((resolve, reject) => {
                 console.log('Src is base64. Creating a file form it, with a hashed name.')
@@ -225,7 +226,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         if (url.startsWith("data:image")) {
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
-            debugger;
+            // debugger;
             const options = {
                 url,
                 useContentDisposition,
