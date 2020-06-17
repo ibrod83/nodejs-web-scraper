@@ -22,7 +22,7 @@ $ npm install nodejs-web-scraper
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling) 
-- [Having more than one Scraper instance](#having-more-than-one-Scraper-instance) 
+- [Having more than one Scraper instance](#having-more-than-one-scraper-instance) 
 - [Automatic Logs](#automatic-logs) 
 - [Memory consumption](#memory-consumption) 
 - [Concurrency](#concurrency) 

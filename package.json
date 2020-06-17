@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
