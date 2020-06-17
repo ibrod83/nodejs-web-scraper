@@ -78,7 +78,8 @@ class Scraper {
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
         if (scraperInstance)
-            throw 'Scraper can have only one instance.'
+            throw 'Scraper can have only one instance. Call scraper.destroy() on the existing instance, before creating a new one.'
+
         scraperInstance = this;
         this.referenceToRoot = null;
 
@@ -91,6 +92,8 @@ class Scraper {
     static getScraperInstance() {
 
         return scraperInstance;
+        // debugger;
+        // return this;
     }
 
 

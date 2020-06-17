@@ -1,5 +1,5 @@
 // const axios = require('axios');
-// counter=0;
+counter=0;
 const request = require('../request/request.js');
 const sanitize = require('sanitize-filename');
 const path = require('path');
@@ -154,8 +154,9 @@ class FileDownloader {
             finalFileName = originalFileName;
         }
         // debugger;
-        const initialFileNameExists = fileProcessor.initialFileNameExists;//Boolean property
-        // if (initialFileNameExists) counter++
+        const initialFileNameExists = fileProcessor.didInitialFileNameExist();
+        // const initialFileNameExists = fileProcessor.doesFileExist(this.dest+'/'+originalFileName);//Boolean 
+        if (initialFileNameExists) counter++
         // console.log('initialFileNameExists',counter)
 
         return {//Return an object with both the "original"(deduced from the URL and headers) file name, and the final one

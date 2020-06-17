@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
@@ -24,8 +24,7 @@
     "cheerio": "^1.0.0-rc.2",
     "cheerio-advanced-selectors": "^2.0.1",
     "https-proxy-agent": "^5.0.0",
-    "mime-types": "^2.1.20",
-    "node-fetch": "^2.6.0",
+    "mime-types": "^2.1.20",    
     "qyu": "^0.3.0",
     "sanitize-filename": "^1.6.1"
   },

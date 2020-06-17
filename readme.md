@@ -1,5 +1,5 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
-It supports features like automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Was tested on Node 10 and 12(Windows).
+It supports features like recursive scraping, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Mint).
 
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
@@ -21,13 +21,15 @@ $ npm install nodejs-web-scraper
   * [Get an entire HTML file](#get-an-entire-html-file)  
   * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
   * [getElementContent and getPageResponse hooks](#getelementcontent-and-getpageresponse-hooks)  
-  * [Use the condition hook](#use-the-condition-hook)  
+  * [Add additional conditions](#Add-additional-conditions)  
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling) 
+- [Having more than one Scraper instance](#having-more-than-one-Scraper-instance) 
 - [Automatic Logs](#automatic-logs) 
 - [Memory consumption](#memory-consumption) 
 - [Concurrency](#concurrency) 
+- [Disclaimer](#disclaimer) 
 
 
 ## Basic examples
@@ -181,7 +183,7 @@ Let's describe again in words, what's going on here: "Go to https://www.profesia
 
 &nbsp;
 
-#### Get an entire HTML file.
+#### Get an entire HTML file
 
 ```javascript
 
@@ -225,7 +227,7 @@ Description: "Go to https://www.profesia.sk/praca/; Paginate 100 pages from the 
 
 &nbsp;
 
-#### Downloading a file that is not an image.
+#### Downloading a file that is not an image
 
 
 
@@ -259,7 +261,7 @@ Description: "Go to https://www.some-content-site.com; Download every video; Col
 
 &nbsp;
 
-#### getElementContent and getPageResponse hooks.
+#### getElementContent and getPageResponse hooks
 
 ```javascript
 
@@ -303,7 +305,7 @@ Description: "Go to https://www.nice-site/some-section; Open every article link;
 
 &nbsp;
 
-#### Use the condition hook.
+#### Add additional conditions
 
 In some cases, using the cheerio-advanced-selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false.
 
@@ -355,7 +357,7 @@ These are the available options for the scraper, with their default values:
 const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
-            logPath://Highly recommended.Will create a log for each scraping operation(object).               
+            logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
@@ -372,7 +374,8 @@ Public methods:
 
 | Name                                     | Description                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object                                                                                                                                                                                                      |
+| async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object 
+| destroy()                       | Call this method, before creating a new Scraper instance(Scraper can only have one instance at a time)                                                                                                                                                                                          |
 | async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen. |
 
 &nbsp;
@@ -405,6 +408,7 @@ Public methods:
 
 | Name        | Description                                                                                               |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
+| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent)                                       |
 | getData()   | Gets all data collected by this operation. In the case of root, it will just be the entire scraping tree. |
 | getErrors() | In the case of root, it will show all errors in every operation.                                          |
 
@@ -436,6 +440,7 @@ Public methods:
 
 | Name        | Description                                                  |
 | ----------- | ------------------------------------------------------------ |
+| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent) |
 | getData()   | Will get the data from all pages processed by this operation |
 | getErrors() | Gets all errors encountered by this operation.               |
 
@@ -552,6 +557,51 @@ nodejs-web-scraper will automatically repeat every failed request(except 404,400
 #### Repeating all failedRepeatableRequests again, after scraping process has ended
 After Scraper.scrape() has has come to an end, You can call the Scraper.repeatAllFailedRequests(numCycles), to retry those requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. At the end of this process, log files will be overwritten, with the fresh situation. 
 
+## Having more than one Scraper instance
+
+Due to the way the internals of the application are structured, you cannot have more than one scraper instance at a time.
+If you need to perform multiple scraping jobs in a Node process, this can easily be achieved by using Scraper.destroy()
+
+```javascript
+
+var config = {    
+    baseSiteUrl: `http://site1.com/`,
+    startUrl: `http://site1.com/`,
+    logPath: "./logs",
+    filePath: "./images",    
+}
+
+//Create the first instance
+var scraper1 = new Scraper(config);
+
+var root = new Root();
+
+//...Some operations
+
+await scraper1.scrape(root);
+
+//Now call scraper1.destroy
+scraper1.destroy();
+
+
+var config = {    
+    baseSiteUrl: `http://site2.com/`,
+    startUrl: `http://site2.com/`,      
+}
+
+//Create a new instance
+
+var scraper2 = new Scraper(config);
+
+var root = new Root();
+
+//...Some operations
+
+await scraper2.scrape(root);
+
+//All done
+```
+
 ## Automatic logs
 If a logPath was provided, the scraper will create a log for each operation object you create, and also the following ones: "log.json"(summary of the entire scraping tree), "allErrors.json"(an array of all errors encountered) and "failedRepeatableRequests.json"(an array of all errors that can be repeated). I really recommend using this feature, along side your own hooks and data handling.
 
@@ -561,4 +611,10 @@ In scraping jobs that require the "opening" of many large HTML pages at the same
 
 ## Concurrency
 
-nodejs-web-scraper uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most.
+The program uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most.
+
+## Disclaimer
+
+Nodejs Web Scraper uses ISC License https://opensource.org/licenses/ISC
+
+The author doesn't condone the usage of the program or a part of it, for any illegal activity, and will not be held responsible for actions taken by the user. Please use it with discretion, and in accordance with international/your local law.

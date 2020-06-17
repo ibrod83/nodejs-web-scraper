@@ -21,6 +21,13 @@ class FileProcessor {
         return this.createNewFileName(this.originalFileName);
     }
 
+    /**
+     * @return {boolean}
+     */
+    didInitialFileNameExist(){
+        return this.initialFileNameExists;
+    }
+
     
 
     createNewFileName(fileName, counter = 1) {
