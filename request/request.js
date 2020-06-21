@@ -1,8 +1,8 @@
-// const fetch = require('node-fetch')
-const fetch = require('./fetch.js')
+const fetch = require('node-fetch')
+// const fetch = require('./fetch.js')
 var HttpsProxyAgent = require('https-proxy-agent');
 // import AbortController from 'abort-controller';
-const Signal = require('./signal.js')
+// const Signal = require('./signal.js')
 
 function createInstance(config) {
 
@@ -23,30 +23,30 @@ class CustomResponse {
         this.data = data
         this.status = status
         this.statusText = statusText
-        this.headers = headers,
-        this.aborted=false
+        this.headers = headers
+        // this.aborted = false
         // this.signal = new Signal();
     }
 
-    abort(){
-        // debugger;
-        // this.originalResponse.body.destroy();
-        // this.originalResponse.abort();
-        this.aborted = true;
-        this.config.signal.abort();
-    }
+    // abort() {
+    //     // debugger;
+    //     // this.originalResponse.body.destroy();
+    //     // this.originalResponse.abort();
+    //     this.aborted = true;
+    //     this.config.signal.abort();
+    // }
 
-    isAborted(){
-        return this.aborted
-    }
+    // isAborted() {
+    //     return this.aborted
+    // }
 }
 
 class CustomError extends Error {
     // debugger;
-    constructor({ code, response, message,errno }) {
+    constructor({ code, response, message, errno }) {
         super(message)
         // this.config = config;//The config object of the failing request
-        this.errno=errno//Error constant. Will be set Only in the case of network errors.
+        this.errno = errno//Error constant. Will be set Only in the case of network errors.
         this.code = code;//http code.Null if network error
         this.response = response//Reference to the customResponse. Will not be set in network errors.
     }
@@ -54,7 +54,7 @@ class CustomError extends Error {
 // module.exports = class Request {
 class Request {
 
-   
+
 
     constructor(config) {
         // debugger;
@@ -65,7 +65,7 @@ class Request {
             method: 'GET',
             timeout: 6000,
             headers: null,
-            signal: new Signal(),
+            // signal: new Signal(),
             proxy: null,//Proxy string
             responseType: 'text',//'text','json' or 'stream'. If 'stream' is chosen, the stream itself is returned.
             // Otherwise, the FINAL output of the request is returned.
@@ -97,7 +97,7 @@ class Request {
     // abort = ()=>{
     //     this.response.body.destroy();
     // }
-    async  performRequest(config) {
+    async performRequest(config) {
 
         // controller.abort()
         const url = config.url;
@@ -123,12 +123,18 @@ class Request {
         }
     }
 
-    async createCustomResponseObjectFromFetchResponse (fetchResponse)  {
+    async createCustomResponseObjectFromFetchResponse(fetchResponse) {
         let data;
         switch (this.config.responseType) {
             case 'text':
                 // debugger;
                 data = await fetchResponse.text();
+
+                break;
+
+            case 'buffer':
+                // debugger;
+                data = await fetchResponse.buffer();
 
                 break;
             case 'json':
@@ -172,8 +178,8 @@ class Request {
     }
 
     createCustomErrorFromFetchError(fetchError) {//Fetch errors are thrown only for network errors. There is no actual "response".
-    // debugger;
-        const error = new CustomError({ errno:fetchError.errno,message: fetchError.message })
+        // debugger;
+        const error = new CustomError({ errno: fetchError.errno, message: fetchError.message })
         return error;
 
     }
@@ -191,11 +197,11 @@ class Request {
         }
         //Will reach this stage only if there is no network request.
         const customResponse = await this.createCustomResponseObjectFromFetchResponse(response);
-        
+
 
         //Make every status of >=400 throw an error. handleStatusCodes throws an exception, which is not caught here.
         this.handleStatusCodes(customResponse)
-        
+
         return customResponse;
 
 
