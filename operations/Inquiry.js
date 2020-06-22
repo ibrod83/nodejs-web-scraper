@@ -5,7 +5,7 @@ class Inquiry extends Operation {//This operation checks if a given HTML page me
     constructor(conditionFunction) {
         super({});
         this.condition = conditionFunction;
-        this.validateOperationArguments();
+        // this.validateOperationArguments();
     }
 
     async scrape(responseObjectFromParent) {

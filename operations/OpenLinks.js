@@ -1,9 +1,9 @@
-const CompositeOperation = require('./CompositeOperation');
+const HttpOperation = require('./HttpOperation');
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 
-class OpenLinks extends CompositeOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
+class OpenLinks extends HttpOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
 
     
     /**
@@ -27,7 +27,7 @@ class OpenLinks extends CompositeOperation {//This operation is responsible for 
 
         this.querySelector = querySelector;
         // debugger;
-        this.validateOperationArguments();
+        // this.validateOperationArguments();
 
     }
 

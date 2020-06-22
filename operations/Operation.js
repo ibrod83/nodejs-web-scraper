@@ -8,9 +8,9 @@ class Operation {//Base class for all operations.
 
         // debugger;
         // console.log(arguments)
-        this.scraper = Scraper.getScraperInstance();//Reference to the scraper main object.
+        // this.scraper = Scraper.getScraperInstance();//Reference to the scraper main object.
 
-        this.handleNewOperationCreation(this);
+        // this.handleNewOperationCreation(this);
         // debugger;
         if (objectConfig) {
             for (let i in objectConfig) {
@@ -35,37 +35,54 @@ class Operation {//Base class for all operations.
     }
 
 
-
-
-
-    validateOperationArguments() {
-
-        // debugger;
-        const operationClassName = this.constructor.name;
-        switch (operationClassName) {
-
-            case 'Inquiry':
-                if (typeof this.condition !== 'function')
-                    throw 'Inquiry operation must be provided with a condition function.';
-                break;
-
-            case 'DownloadContent':
-                if (!this.scraper.config.filePath && !this.filePath)
-                    throw `DownloadContent operation Must be provided with a filePath, either locally or globally.`;
-                if (!this.querySelector || typeof this.querySelector !== 'string')
-                    throw `DownloadContent operation must be provided with a querySelector.`;
-                break;
-
-            case 'OpenLinks':
-            case 'CollectContent':
-                if (!this.querySelector || typeof this.querySelector !== 'string')
-                    throw `${operationClassName} operation must be provided with a querySelector.`;
-                break;
-
-            default:
-                break;
+    injectScraper(ScraperInstance){
+        debugger;
+        this.scraper = ScraperInstance;
+        
+        for(let operation of this.operations){
+            operation.injectScraper(ScraperInstance);
         }
     }
+
+    // initOperationWithScraperInstance(ScraperInstance){
+    //     this.scraper = ScraperInstance;
+    //     this.handleNewOperationCreation(this)
+    //     for(let operation of this.operations){
+    //         operation.injectScraper(ScraperInstance);
+    //     }
+    // }
+
+
+
+
+    // validateOperationArguments() {
+
+    //     // debugger;
+    //     const operationClassName = this.constructor.name;
+    //     switch (operationClassName) {
+
+    //         case 'Inquiry':
+    //             if (typeof this.condition !== 'function')
+    //                 throw 'Inquiry operation must be provided with a condition function.';
+    //             break;
+
+    //         case 'DownloadContent':
+    //             if (!this.scraper.config.filePath && !this.filePath)
+    //                 throw `DownloadContent operation Must be provided with a filePath, either locally or globally.`;
+    //             if (!this.querySelector || typeof this.querySelector !== 'string')
+    //                 throw `DownloadContent operation must be provided with a querySelector.`;
+    //             break;
+
+    //         case 'OpenLinks':
+    //         case 'CollectContent':
+    //             if (!this.querySelector || typeof this.querySelector !== 'string')
+    //                 throw `${operationClassName} operation must be provided with a querySelector.`;
+    //             break;
+
+    //         default:
+    //             break;
+    //     }
+    // }
 
 
 

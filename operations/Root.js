@@ -1,6 +1,6 @@
-const CompositeOperation = require('./CompositeOperation');
+const HttpOperation = require('./HttpOperation');
 
-class Root extends CompositeOperation {//Fetches the initial page, and starts the scraping process.
+class Root extends HttpOperation {//Fetches the initial page, and starts the scraping process.
 
     /**
      * 
@@ -17,6 +17,14 @@ class Root extends CompositeOperation {//Fetches the initial page, and starts th
      */
     constructor(config){
         super(config)
+    }
+
+    initRootWithScraperInstance(ScraperInstance){
+        this.scraper = ScraperInstance;
+        this.handleNewOperationCreation(this)
+        for(let operation of this.operations){
+            operation.injectScraper(ScraperInstance);
+        }
     }
     
     async scrape() {

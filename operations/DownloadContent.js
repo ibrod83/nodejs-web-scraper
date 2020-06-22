@@ -1,4 +1,4 @@
-const InterneticOperation = require('./InterneticOperation');
+const HttpOperation = require('./HttpOperation');
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
@@ -6,6 +6,7 @@ const fs = require('fs');
 const file_downloader = require('../file_downloader')
 const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
+const {verifyDirectoryExists} = require('../utils/files')
 // const YoyoTrait = require('../YoyoTrait');
 
 let counter = 0
@@ -13,7 +14,7 @@ let counter = 0
 
 
 
-class DownloadContent extends InterneticOperation {//Responsible for downloading files and images from a given page.
+class DownloadContent extends HttpOperation {//Responsible for downloading files and images from a given page.
 
     /**
      * 
@@ -46,7 +47,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                 this[prop] = config[prop];
         }
         // debugger;
-        this.validateOperationArguments();
+        // this.validateOperationArguments();
 
         // this.yoyo();
 
@@ -159,7 +160,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
         // counter++;
         // console.log('DATAURL ', counter)
         return () => {
-            return new Promise((resolve, reject) => {
+            return new Promise(async(resolve, reject) => {
                 console.log('Src is base64. Creating a file form it, with a hashed name.')
 
                 const extension = this.getDataUrlExtension(url);
@@ -178,7 +179,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
                 } else {
                     fileName = fileName + '.' + extension;
                 }
-                this.scraper.verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+               await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
                 // console.log('rejecting')
                 // return reject('yoyo');
                 // debugger;
@@ -242,7 +243,7 @@ class DownloadContent extends InterneticOperation {//Responsible for downloading
 
             }
 
-            this.scraper.verifyDirectoryExists(options.dest);
+            await verifyDirectoryExists(options.dest);
 
 
 

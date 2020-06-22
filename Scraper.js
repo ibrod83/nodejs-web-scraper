@@ -3,8 +3,8 @@ const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
-
-
+const {verifyDirectoryExists} = require('./utils/files')
+const State = require('./State')
 const {Root} = require('./');//For jsdoc
 
 
@@ -13,7 +13,7 @@ const {Root} = require('./');//For jsdoc
 
 
 //*********************** */
-let scraperInstance;//Will hold a reference to the Scraper object.
+// let scraperInstance;//Will hold a reference to the Scraper object.
 
 
 
@@ -36,6 +36,7 @@ class Scraper {
      * @param {Object} [globalConfig.proxy = null] 
      */
     constructor(globalConfig) {
+        debugger;
         // global.counter=0;
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
@@ -51,17 +52,17 @@ class Scraper {
             headers: null,
             proxy: null
         }
-
-        this.state = {
-            existingUserFileDirectories: [],
-            failedScrapingObjects: [],
-            downloadedImages: 0,
-            currentlyRunning: 0,
-            registeredOperations: [],//Holds a reference to each created operation.
-            numRequests: 0,
-            repetitionCycles: 0,
-            scrapingObjects: []//for debugging
-        }
+        this.state = new State();
+        // this.state = {
+        //     existingUserFileDirectories: [],
+        //     failedScrapingObjects: [],
+        //     downloadedImages: 0,
+        //     currentlyRunning: 0,
+        //     registeredOperations: [],//Holds a reference to each created operation.
+        //     numRequests: 0,
+        //     repetitionCycles: 0,
+        //     scrapingObjects: []//for debugging
+        // }
 
 
 
@@ -77,24 +78,24 @@ class Scraper {
         this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
-        if (scraperInstance)
-            throw 'Scraper can have only one instance. Call scraper.destroy() on the existing instance, before creating a new one.'
+        // if (scraperInstance)
+            // throw 'Scraper can have only one instance. Call scraper.destroy() on the existing instance, before creating a new one.'
 
-        scraperInstance = this;
+        // scraperInstance = this;
         this.referenceToRoot = null;
 
     }
 
     destroy() {
-        scraperInstance = null;
+        // scraperInstance = null;
     }
 
-    static getScraperInstance() {
+    // static getScraperInstance() {
 
-        return scraperInstance;
-        // debugger;
-        // return this;
-    }
+    //     return scraperInstance;
+    //     // debugger;
+    //     // return this;
+    // }
 
 
     validateGlobalConfig(conf) {
@@ -104,17 +105,17 @@ class Scraper {
             throw 'Please provide both baseSiteUrl and startUrl';
     }
 
-    verifyDirectoryExists(path) {//Will make sure the target directory exists.
-        if (!this.state.existingUserFileDirectories.includes(path)) {
-            console.log('checking if dir exists:', path)
-            if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
-                console.log('creating dir:', path)
-                fs.mkdirSync(path);
-            }
-            this.state.existingUserFileDirectories.push(path);
-        }
+    // verifyDirectoryExists(path) {//Will make sure the target directory exists.
+    //     if (!this.state.existingUserFileDirectories.includes(path)) {
+    //         console.log('checking if dir exists:', path)
+    //         if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
+    //             console.log('creating dir:', path)
+    //             fs.mkdirSync(path);
+    //         }
+    //         this.state.existingUserFileDirectories.push(path);
+    //     }
 
-    }
+    // }
 
 
    
@@ -130,6 +131,9 @@ class Scraper {
             throw 'Scraper.scrape() expects a Root object as an argument!';
 
         this.referenceToRoot = rootObject;
+        debugger;
+        // rootObject.injectScraper(this)
+        rootObject.initRootWithScraperInstance(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
             console.error('Number of repeatable failed requests: ', this.state.failedScrapingObjects.length);
@@ -166,7 +170,7 @@ class Scraper {
 
 
     saveFile(obj) {
-        this.verifyDirectoryExists(this.config.logPath);
+        verifyDirectoryExists(this.config.logPath);
         return new Promise((resolve, reject) => {
             console.log('saving file')
             fs.writeFile(path.join(this.config.logPath, `${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
@@ -249,87 +253,6 @@ class Scraper {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const init = {
-//     type: 'root',
-//     config: {
-//         baseSiteUrl: `https://www.profesia.sk`,
-//         startUrl: `https://www.profesia.sk/praca/`
-//     },
-//     children: [
-//         {
-//             type: 'page',
-//             config: { querySelector: '.list-row a.title', name: 'link' },
-//             children: [
-//                 {
-//                     type: 'image',
-//                     config: { querySelector: 'img', name: 'image' }
-//                 }
-//             ]
-
-//         }
-
-//     ]
-// }
-
-
-
-
-
-// function createObjectsFromTree(object) {
-//     let Class = getClassMap()[object.type];
-//     const instance = new Class(object.config || {});
-
-//     if (object.children && object.children.length > 0) {
-//         object.children.forEach((child) => {
-//             console.log('child object');
-//             instance.addSelector(createObjectsFromTree(child));
-//         })
-//     }
-
-//     return instance
-
-// }
-
-// if (this.pagination && this.pagination.nextButton) {
-//     var paginationSelectors = [];
-//     for (let i = 0; i < this.pagination.numPages; i++) {
-//         const paginationSelector = this.state.createSelector('page', this.pagination.nextButton);
-//         paginationSelector.operations = this.operations;
-//         paginationSelectors.push(paginationSelector);
-//     }
-//     // for(let paginationSelector of paginationSelectors){
-//     //    this.addSelector(paginationSelector);  
-//     // }
-//     paginationSelectors.map(paginationSelector => this.operations = [...this.operations, paginationSelector])
-
-// }
-
-
-
-// module.exports = {
-//     Scraper,
-//     Root,
-//     DownloadContent,
-//     Inquiry,
-//     OpenLinks,
-//     CollectContent
-// };
 
 
 module.exports = Scraper;

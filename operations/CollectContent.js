@@ -27,7 +27,7 @@ class CollectContent extends Operation {
     constructor(querySelector, config) {
         super(config);
         this.querySelector = querySelector;
-        this.validateOperationArguments();
+        // this.validateOperationArguments();
         if (typeof this.shouldTrim !== 'undefined') {//Checks if the user passed a "shouldTrim" property.
             this.shouldTrim = this.shouldTrim;
         } else {
