@@ -44,6 +44,14 @@ class Operation {//Base class for all operations.
         }
     }
 
+    initWithScraperInstance(ScraperInstance){
+        this.scraper = ScraperInstance;
+        this.handleNewOperationCreation(this)
+        for(let operation of this.operations){
+            operation.initWithScraperInstance(ScraperInstance);
+        }
+    }
+
     // initOperationWithScraperInstance(ScraperInstance){
     //     this.scraper = ScraperInstance;
     //     this.handleNewOperationCreation(this)

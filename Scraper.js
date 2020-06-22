@@ -133,7 +133,7 @@ class Scraper {
         this.referenceToRoot = rootObject;
         debugger;
         // rootObject.injectScraper(this)
-        rootObject.initRootWithScraperInstance(this)
+        rootObject.initWithScraperInstance(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
             console.error('Number of repeatable failed requests: ', this.state.failedScrapingObjects.length);
