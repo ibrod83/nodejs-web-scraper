@@ -11,8 +11,6 @@ const {Root} = require('./');//For jsdoc
 
 
 
-//*********************** */
-// let scraperInstance;//Will hold a reference to the Scraper object.
 
 
 
@@ -77,25 +75,16 @@ class Scraper {
         this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
-        // if (scraperInstance)
-            // throw 'Scraper can have only one instance. Call scraper.destroy() on the existing instance, before creating a new one.'
-
-        // scraperInstance = this;
+        
         this.referenceToRoot = null;
 
     }
 
     destroy() {
-        // scraperInstance = null;
+        console.error('Scraper.destroy() is deprecated. You can now have multiple instances, without calling this method.')
     }
 
-    // static getScraperInstance() {
-
-    //     return scraperInstance;
-    //     // debugger;
-    //     // return this;
-    // }
-
+    
 
     validateGlobalConfig(conf) {
         if (!conf || typeof conf !== 'object')
@@ -104,20 +93,7 @@ class Scraper {
             throw 'Please provide both baseSiteUrl and startUrl';
     }
 
-    // verifyDirectoryExists(path) {//Will make sure the target directory exists.
-    //     if (!this.state.existingUserFileDirectories.includes(path)) {
-    //         console.log('checking if dir exists:', path)
-    //         if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
-    //             console.log('creating dir:', path)
-    //             fs.mkdirSync(path);
-    //         }
-    //         this.state.existingUserFileDirectories.push(path);
-    //     }
-
-    // }
-
-
-   
+     
    
 
 

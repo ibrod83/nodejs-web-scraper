@@ -1,4 +1,3 @@
-// const axios = require('axios');
 counter = 0;
 const request = require('../request/request.js');
 const sanitize = require('sanitize-filename');
@@ -9,7 +8,6 @@ const stream = require('stream');
 const pipeline = util.promisify(stream.pipeline);
 const fs = require('fs');
 const writeFile = util.promisify(fs.writeFile)
-// const Promise = require('bluebird');
 
 var mime = require('mime-types')
 
@@ -35,17 +33,7 @@ class FileDownloader {
     async download() {
         // debugger;
         try {
-            // const response = await axios({
-            //     method: 'GET',
-            //     url: this.url,
-            //     timeout: this.timeout,
-            //     responseType: this.responseType,
-            //     auth: this.auth,
-            //     headers: this.headers,
-            //     proxy:this.proxy
-
-            // })
-            // debugger;
+            
             const response = await request({
                 method: 'GET',
                 url: this.url,
@@ -232,42 +220,18 @@ class FileDownloader {
     }
 
     async saveFromStream(readableStream, writableStream) {
-        // debugger;
-        // const fileName = this.getFileName();
-        // // console.log('flag of stream:', this.flag);
-        // const write = fs.createWriteStream(path.join(this.dest, fileName));
+     
         await pipeline(readableStream, writableStream)
-        // debugger;
 
     }
 
     async saveFromBuffer(path, buffer) {
-        
-        // console.log('saving from buffer!')
-        // const fileName = this.getFileName();
-        // // console.log('flag of stream:', this.flag);
+ 
         await writeFile(path, buffer)
 
     }
 
-    // saveFromBuffer(path, buffer) {
-    //     return new Promise((resolve, reject) => {
-    //         console.log('saving from buffer!')
-    //         // const fileName = this.getFileName();
-    //         // // console.log('flag of stream:', this.flag);
-    //         fs.writeFile(path, buffer, (err) => {
-    //             if (err) {
-    //                 reject(err);
-    //             } else {
-    //                 resolve()
-    //             }
-
-
-    //         })
-    //     })
-
-
-    // }
+   
 }
 
 module.exports = FileDownloader;

@@ -4,6 +4,7 @@ It supports features like recursive scraping, automatic retries of failed reques
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
 
+
 ## Installation
 
 ```sh
@@ -21,8 +22,7 @@ $ npm install nodejs-web-scraper
   * [Add additional conditions](#Add-additional-conditions)  
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
-- [Error Handling](#error-handling) 
-- [Having more than one Scraper instance](#having-more-than-one-scraper-instance) 
+- [Error Handling](#error-handling)  
 - [Automatic Logs](#automatic-logs) 
 - [Memory consumption](#memory-consumption) 
 - [Concurrency](#concurrency) 
@@ -554,50 +554,6 @@ nodejs-web-scraper will automatically repeat every failed request(except 404,400
 #### Repeating all failedRepeatableRequests again, after scraping process has ended
 After Scraper.scrape() has has come to an end, You can call the Scraper.repeatAllFailedRequests(numCycles), to retry those requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. At the end of this process, log files will be overwritten, with the fresh situation. 
 
-## Having more than one Scraper instance
-
-Due to the way the internals of the application are structured, you cannot have more than one scraper instance at a time.
-If you need to perform multiple scraping jobs in a Node process, this can easily be achieved by using Scraper.destroy()
-
-```javascript
-
-var config = {    
-    baseSiteUrl: `http://site1.com/`,
-    startUrl: `http://site1.com/`,
-    logPath: "./logs",
-    filePath: "./images",    
-}
-
-//Create the first instance
-var scraper1 = new Scraper(config);
-
-var root = new Root();
-
-//...Some operations
-
-await scraper1.scrape(root);
-
-//Now call scraper1.destroy
-scraper1.destroy();
-
-
-var config = {    
-    baseSiteUrl: `http://site2.com/`,
-    startUrl: `http://site2.com/`,      
-}
-
-//Create a new instance
-
-var scraper2 = new Scraper(config);
-
-var root = new Root();
-
-//...Some operations
-
-await scraper2.scrape(root);
-
-//All done
-```
 
 ## Automatic logs
 If a logPath was provided, the scraper will create a log for each operation object you create, and also the following ones: "log.json"(summary of the entire scraping tree), "allErrors.json"(an array of all errors encountered) and "failedRepeatableRequests.json"(an array of all errors that can be repeated). I really recommend using this feature, along side your own hooks and data handling.
