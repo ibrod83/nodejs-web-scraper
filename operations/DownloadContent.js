@@ -229,6 +229,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         if (url.startsWith("data:image")) {
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
+            console.log(this.contentType)
             // debugger;
             const options = {
                 url,
@@ -237,6 +238,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 clone: this.scraper.config.cloneImages,
                 // flag: this.fileFlag || this.scraper.config.fileFlag,
                 // responseType:'stream',
+                shouldBufferResponse:this.contentType === 'image' ? true: false,
                 // mockImages:true,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
