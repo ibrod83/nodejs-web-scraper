@@ -1,6 +1,6 @@
 const fs = require('fs')
 function verifyDirectoryExists(path) {//Will make sure the target directory exists.   
-    if (!fs.existsSync(path)) {//Will run ONLY ONCE, so no worries about blocking the main thread.
+    if (!fs.existsSync(path)) {
         console.log('creating dir:', path)
         fs.mkdirSync(path);
     }
