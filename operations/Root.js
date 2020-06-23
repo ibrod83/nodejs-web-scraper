@@ -19,11 +19,11 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
         super(config)
     }
 
-    // initWithScraperInstance(ScraperInstance){
+    // init(ScraperInstance){
     //     this.scraper = ScraperInstance;
     //     this.handleNewOperationCreation(this)
     //     for(let operation of this.operations){
-    //         operation.initWithScraperInstance(ScraperInstance);
+    //         operation.init(ScraperInstance);
     //     }
     // }
     

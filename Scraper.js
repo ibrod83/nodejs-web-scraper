@@ -4,7 +4,6 @@ const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
-const State = require('./State')
 const {Root} = require('./');//For jsdoc
 
 
@@ -36,7 +35,7 @@ class Scraper {
      * @param {Object} [globalConfig.proxy = null] 
      */
     constructor(globalConfig) {
-        debugger;
+        // debugger;
         // global.counter=0;
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
@@ -52,17 +51,17 @@ class Scraper {
             headers: null,
             proxy: null
         }
-        this.state = new State();
-        // this.state = {
-        //     existingUserFileDirectories: [],
-        //     failedScrapingObjects: [],
-        //     downloadedImages: 0,
-        //     currentlyRunning: 0,
-        //     registeredOperations: [],//Holds a reference to each created operation.
-        //     numRequests: 0,
-        //     repetitionCycles: 0,
-        //     scrapingObjects: []//for debugging
-        // }
+        // this.state = new State();
+        this.state = {
+            existingUserFileDirectories: [],
+            failedScrapingObjects: [],
+            downloadedImages: 0,
+            currentlyRunning: 0,
+            registeredOperations: [],//Holds a reference to each created operation.
+            numRequests: 0,
+            repetitionCycles: 0,
+            scrapingObjects: []//for debugging
+        }
 
 
 
@@ -131,9 +130,9 @@ class Scraper {
             throw 'Scraper.scrape() expects a Root object as an argument!';
 
         this.referenceToRoot = rootObject;
-        debugger;
+        // debugger;
         // rootObject.injectScraper(this)
-        rootObject.initWithScraperInstance(this)
+        rootObject.init(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
             console.error('Number of repeatable failed requests: ', this.state.failedScrapingObjects.length);

@@ -31,7 +31,9 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config) {
+        debugger;
         super(config);
+        // debugger;
         // debugger;
         // this.lodash=_;
         // this.special = special

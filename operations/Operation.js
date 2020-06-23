@@ -20,18 +20,25 @@ class Operation {//Base class for all operations.
         if (!this.name)
             this.name = `Default ${this.constructor.name} name`;
 
-        if(this.condition){
-            const type = typeof this.condition; 
-                if(type !== 'function'){
-                    throw new Error(`"condition" hook must receive a function, got: ${type}`)
-                }
-        }    
+        // if(this.condition){
+        //     const type = typeof this.condition; 
+        //         if(type !== 'function'){
+        //             throw new Error(`"condition" hook must receive a function, got: ${type}`)
+        //         }
+        // }    
         this.data = [];
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
 
 
+    }
+
+    reset(){
+        // const name = this.constructor.name;
+        // debugger;
+        this.data = [];
+        this.errors = [];
     }
 
 
@@ -44,12 +51,16 @@ class Operation {//Base class for all operations.
         }
     }
 
-    initWithScraperInstance(ScraperInstance){
+    init(ScraperInstance){
+        // this.reset()
         this.scraper = ScraperInstance;
         this.handleNewOperationCreation(this)
         for(let operation of this.operations){
-            operation.initWithScraperInstance(ScraperInstance);
+            operation.init(ScraperInstance);
         }
+
+        this.validateOperationArguments();
+        
     }
 
     // initOperationWithScraperInstance(ScraperInstance){
@@ -63,34 +74,35 @@ class Operation {//Base class for all operations.
 
 
 
-    // validateOperationArguments() {
+    validateOperationArguments() {
 
-    //     // debugger;
-    //     const operationClassName = this.constructor.name;
-    //     switch (operationClassName) {
+        // debugger;
+        // console.log('VALIDATING!', this.constructor.name)
+        const operationClassName = this.constructor.name;
+        switch (operationClassName) {
 
-    //         case 'Inquiry':
-    //             if (typeof this.condition !== 'function')
-    //                 throw 'Inquiry operation must be provided with a condition function.';
-    //             break;
+            case 'Inquiry':
+                if (typeof this.condition !== 'function')
+                    throw 'Inquiry operation must be provided with a condition function.';
+                break;
 
-    //         case 'DownloadContent':
-    //             if (!this.scraper.config.filePath && !this.filePath)
-    //                 throw `DownloadContent operation Must be provided with a filePath, either locally or globally.`;
-    //             if (!this.querySelector || typeof this.querySelector !== 'string')
-    //                 throw `DownloadContent operation must be provided with a querySelector.`;
-    //             break;
+            case 'DownloadContent':
+                if (!this.scraper.config.filePath && !this.filePath)
+                    throw `DownloadContent operation Must be provided with a filePath, either locally or globally.`;
+                if (!this.querySelector || typeof this.querySelector !== 'string')
+                    throw `DownloadContent operation must be provided with a querySelector.`;
+                break;
 
-    //         case 'OpenLinks':
-    //         case 'CollectContent':
-    //             if (!this.querySelector || typeof this.querySelector !== 'string')
-    //                 throw `${operationClassName} operation must be provided with a querySelector.`;
-    //             break;
+            case 'OpenLinks':
+            case 'CollectContent':
+                if (!this.querySelector || typeof this.querySelector !== 'string')
+                    throw `${operationClassName} operation must be provided with a querySelector.`;
+                break;
 
-    //         default:
-    //             break;
-    //     }
-    // }
+            default:
+                break;
+        }
+    }
 
 
 

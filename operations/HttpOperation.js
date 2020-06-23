@@ -12,6 +12,16 @@ const request = require('../request/request.js');
 
 class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
 
+    constructor(config){
+        // debugger;
+        super(config)
+        if(this.condition){
+            const type = typeof this.condition; 
+                if(type !== 'function'){
+                    throw new Error(`"condition" hook must receive a function, got: ${type}`)
+                }
+        }
+    }
     
     createScrapingObject(href, type) {//Creates a scraping object, for all operations.
         const scrapingObject = {
