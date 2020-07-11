@@ -1,6 +1,6 @@
 counter = 0;
 const request = require('../request/request.js');
-const sanitize = require('sanitize-filename');
+// const sanitize = require('sanitize-filename');
 const path = require('path');
 const FileProcessor = require('./file_processor');
 const util = require('util');
@@ -8,19 +8,19 @@ const stream = require('stream');
 const pipeline = util.promisify(stream.pipeline);
 const fs = require('fs');
 const writeFile = util.promisify(fs.writeFile)
-
-var mime = require('mime-types')
+const getFileNameFromResponse = require('./fileNameFromResponse')
+// var mime = require('mime-types')
 
 
 
 class FileDownloader {
-    constructor({ url, useContentDisposition = false, shouldBufferResponse = false, dest, clone, flag, auth, timeout, headers, proxy }) {
+    constructor({ url,  shouldBufferResponse = false, dest, clone,  auth, timeout, headers, proxy }) {
         this.url = url;
         this.dest = dest;
         this.clone = clone;
         // this.mockImages = mockImages
 
-        this.useContentDisposition = useContentDisposition;
+        // this.useContentDisposition = useContentDisposition;
         this.shouldBufferResponse = shouldBufferResponse//Whether the readableStream should be cached in memory.
         // //If true, the readableStream will be assembled in a buffer, and only then streamed to the destination. 
 
@@ -33,7 +33,7 @@ class FileDownloader {
     async download() {
         // debugger;
         try {
-            
+
             const response = await request({
                 method: 'GET',
                 url: this.url,
@@ -69,74 +69,32 @@ class FileDownloader {
 
     }
 
-    /**
-     * @return {string} Rturns the filename, or an empty string.
-     */
-    getFileNameFromHeaders() {
-        const headers = this.response.headers;
-        const contentDisposition = headers['content-disposition'] || headers['Content-Disposition'];
-        if (!contentDisposition || !contentDisposition.includes('filename=')) {
-            return "";
-        }
+    
 
-        let filename = "";
-        var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-        var matches = filenameRegex.exec(contentDisposition);
-        if (matches != null && matches[1]) {
-            filename = matches[1].replace(/['"]/g, '');
-        }
-
-        return filename;
-
-
-
-    }
-
-    deduceFileNameFromUrl() {
-        let fileName = ""
-        if (!this.response.headers['content-type'] || path.extname(this.url) === '.jpg') {//If it makes sense, i treat it normally.
-            const baseName = path.basename(this.url);
-            fileName = sanitize(baseName);
-        }
-        else {//If not, i rely on the content type. 
-            var contentType = this.response.headers['content-type'];
-
-            let extension = mime.extension(contentType)
-
-
-            const baseName = path.basename(this.url, `.${extension}`);
-            if (extension === 'bin' && baseName.includes('.exe')) {
-                fileName = sanitize(baseName);
-            } else {
-                fileName = `${sanitize(baseName)}.${extension}`;
-            }
-
-
-        }
-        return fileName;
-    }
+   
 
     getFileNameData() {
 
-        // debugger;
-        let originalFileName = "";
+        // let originalFileName = "";
         // if(this.getFileNameFromHeaders()){
         //     console.log('filenamefromheaders: true')
         // }else{
         //     console.log('filenamefromheaders: false')
         // }
-        if (this.useContentDisposition) {
-            const fileNameFromHeaders = this.getFileNameFromHeaders()
+        // if (this.useContentDisposition) {
+        //     const fileNameFromHeaders = this.getFileNameFromHeaders()
 
-            if (fileNameFromHeaders) {
+        //     if (fileNameFromHeaders) {
 
-                originalFileName = fileNameFromHeaders
-            } else {
-                originalFileName = this.deduceFileNameFromUrl();
-            } originalFileName
-        } else {
-            originalFileName = this.deduceFileNameFromUrl();
-        }
+        //         originalFileName = fileNameFromHeaders
+        //     } else {
+        //         originalFileName = this.deduceFileNameFromUrl();
+        //     } originalFileName
+        // } else {
+        //     originalFileName = this.deduceFileNameFromUrl();
+        // }
+
+        const originalFileName = getFileNameFromResponse(this.url,this.response.headers);
 
         // debugger;
         let finalFileName;
@@ -184,7 +142,7 @@ class FileDownloader {
             // debugger;
             // if (!this.response.isAborted()) {
 
-            
+
             if (this.shouldBufferResponse) {
 
                 // const buffer = await this.createBufferFromReadableStream(this.response.data);
@@ -220,18 +178,18 @@ class FileDownloader {
     }
 
     async saveFromStream(readableStream, writableStream) {
-     
+
         await pipeline(readableStream, writableStream)
 
     }
 
     async saveFromBuffer(path, buffer) {
- 
+
         await writeFile(path, buffer)
 
     }
 
-   
+
 }
 
 module.exports = FileDownloader;

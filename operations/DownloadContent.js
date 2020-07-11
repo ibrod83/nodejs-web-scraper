@@ -3,10 +3,12 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const fs = require('fs');
+const { promisify } = require('util');
+const writeFile = promisify(fs.writeFile)
 const file_downloader = require('../file_downloader')
 const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
-const {verifyDirectoryExists} = require('../utils/files')
+const { verifyDirectoryExists } = require('../utils/files')
 // const YoyoTrait = require('../YoyoTrait');
 
 let counter = 0
@@ -31,7 +33,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config) {
-        debugger;
+        // debugger;
         super(config);
         // debugger;
         // debugger;
@@ -161,45 +163,50 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     saveDataUrlPromiseFactory(url) {
         // counter++;
         // console.log('DATAURL ', counter)
-        return () => {
-            return new Promise(async(resolve, reject) => {
-                console.log('Src is base64. Creating a file form it, with a hashed name.')
+        return async () => {
+            // return new Promise(async(resolve, reject) => {
+            console.log('Src is base64. Creating a file form it, with a hashed name.')
 
-                const extension = this.getDataUrlExtension(url);
-                const split = url.split(';base64,');
-                // debugger;
-                // console.log('split',split)
-                // var base64Data = url.split(';base64,').pop();
-                var base64Data = split[1]
-                let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
+            const extension = this.getDataUrlExtension(url);
+            const split = url.split(';base64,');
+            // debugger;
+            // console.log('split',split)
+            // var base64Data = url.split(';base64,').pop();
+            var base64Data = split[1]
+            let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-                // debugger;
-                const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
-                if (this.scraper.config.cloneImages) {
+            // debugger;
+            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
+            if (this.scraper.config.cloneImages) {
 
-                    fileName = fileProcessor.getAvailableFileName();
-                } else {
-                    fileName = fileName + '.' + extension;
-                }
-               await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
-                // console.log('rejecting')
-                // return reject('yoyo');
-                // debugger;
-                // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${u}.${this.getDataUrlExtension(url)}`, base64Data, 'base64', function (err) {
-                fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64',  (err)=> {
-                    // console.log(err);
-                    if (err) {
-                        reject(err);
-                    } else {
-                        // counter++
-                        this.scraper.state.downloadedImages++
+                fileName = fileProcessor.getAvailableFileName();
+            } else {
+                fileName = fileName + '.' + extension;
+            }
+            await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            // console.log('rejecting')
+            // return reject('yoyo');
+            // debugger;
+            // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${u}.${this.getDataUrlExtension(url)}`, base64Data, 'base64', function (err) {
+            // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64',  (err)=> {
+            //     // console.log(err);
+            //     if (err) {
+            //         reject(err);
+            //     } else {
+            //         // counter++
+            //         this.scraper.state.downloadedImages++
 
-                        console.log('images:', this.scraper.state.downloadedImages)
-                        // console.log('NUMBER OF DATAURL FILES CREATED ',counter)
-                        resolve();
-                    }
-                });
-            })
+            //         console.log('images:', this.scraper.state.downloadedImages)
+            //         // console.log('NUMBER OF DATAURL FILES CREATED ',counter)
+            //         resolve();
+            //     }
+            // });
+            await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
+            this.scraper.state.downloadedImages++
+
+            console.log('images:', this.scraper.state.downloadedImages)
+
+            // })
         }
 
 
@@ -219,26 +226,26 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         }
 
 
-        let useContentDisposition = false;
-        if (this.contentType === 'file') {
-            useContentDisposition = true;
-        }
+        // let useContentDisposition = false;
+        // if (this.contentType === 'file') {
+        //     useContentDisposition = true;
+        // }
 
 
 
         if (url.startsWith("data:image")) {
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
-            console.log(this.contentType)
+            // console.log(this.contentType)
             // debugger;
             const options = {
                 url,
-                useContentDisposition,
+                // useContentDisposition,
                 dest: this.filePath || this.scraper.config.filePath,
                 clone: this.scraper.config.cloneImages,
                 // flag: this.fileFlag || this.scraper.config.fileFlag,
                 // responseType:'stream',
-                shouldBufferResponse:this.contentType === 'image' ? true: false,
+                shouldBufferResponse: this.contentType === 'image' ? true : false,
                 // mockImages:true,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,

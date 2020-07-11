@@ -145,8 +145,9 @@ class Scraper {
 
 
     saveFile(obj) {
-        verifyDirectoryExists(this.config.logPath);
-        return new Promise((resolve, reject) => {
+        // verifyDirectoryExists(this.config.logPath);
+        return new Promise(async (resolve, reject) => {
+            await verifyDirectoryExists(this.config.logPath);
             console.log('saving file')
             fs.writeFile(path.join(this.config.logPath, `${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
                 if (error) {

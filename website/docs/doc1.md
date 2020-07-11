@@ -570,4 +570,4 @@ The program uses a rather complex concurrency management. Being that the memory 
 
 Nodejs Web Scraper uses ISC License https://opensource.org/licenses/ISC
 
-The author doesn't condone the usage of the program or a part of it, for any illegal activity, and will not be held responsible for actions taken by the user. Please use it with discretion, and in accordance with international/your local law.
+The author, ibrod83, doesn't condone the usage of the program or a part of it, for any illegal activity, and will not be held responsible for actions taken by the user. Please use it with discretion, and in accordance with international/your local law.
