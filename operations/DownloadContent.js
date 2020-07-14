@@ -50,6 +50,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             if (this.overridableProps.includes(prop))
                 this[prop] = config[prop];
         }
+
+        this.directoryVerified = false; 
         // debugger;
         // this.validateOperationArguments();
 
@@ -61,6 +63,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
 
     async scrape(responseObjectFromParent) {
+        if(!this.directoryVerified){
+            await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            this.directoryVerified = true;
+        }
 
         const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
 
@@ -161,6 +167,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
     // counter = 0;
     saveDataUrlPromiseFactory(url) {
+       
         // counter++;
         // console.log('DATAURL ', counter)
         return async () => {
@@ -183,7 +190,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             } else {
                 fileName = fileName + '.' + extension;
             }
-            await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            // await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
             // console.log('rejecting')
             // return reject('yoyo');
             // debugger;
@@ -254,7 +261,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
             }
 
-            await verifyDirectoryExists(options.dest);
+            // await verifyDirectoryExists(options.dest);
 
 
 
