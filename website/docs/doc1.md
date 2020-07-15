@@ -4,7 +4,6 @@ It supports features like recursive scraping, automatic retries of failed reques
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
 
-
 ## Installation
 
 ```sh
@@ -19,7 +18,8 @@ $ npm install nodejs-web-scraper
   * [Get an entire HTML file](#get-an-entire-html-file)  
   * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
   * [getElementContent and getPageResponse hooks](#getelementcontent-and-getpageresponse-hooks)  
-  * [Add additional conditions](#Add-additional-conditions)  
+  * [Add additional conditions](#add-additional-conditions)  
+  * [Scraping an auth protected site](#scraping-an-auth-protected-site)  
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling)  
@@ -339,6 +339,13 @@ In some cases, using the cheerio-advanced-selectors isn't enough to properly fil
    await scraper.scrape(root);
     
 ```
+
+&nbsp;
+
+#### Scraping an auth protected site
+
+Please refer to this guide: [https://nodejs-web-scraper.ibrod83.com/blog/2020/05/23/crawling-subscription-sites](https://nodejs-web-scraper.ibrod83.com/blog/2020/05/23/crawling-subscription-sites)
+
 
 &nbsp;
 

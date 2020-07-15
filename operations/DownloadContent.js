@@ -84,6 +84,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             // const normalSrcString = element.attr('src')
             var src;
             src = element.attr(this.contentType === 'image' ? 'src' : 'href')
+            // debugger;
             // if(src.startsWith('data:image')){
             //     debugger;
             //     global.counter++;
@@ -151,6 +152,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         for (let attrib in alternativeAttribs) {
             if (typeof this.alternativeSrc === 'object') {
                 if (this.alternativeSrc.includes(attrib)) {
+                    debugger;
                     // console.log('alternative attrib:')
                     return attrib;
                 }
