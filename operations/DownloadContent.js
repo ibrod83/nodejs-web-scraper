@@ -35,13 +35,6 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     constructor(querySelector, config) {
         // debugger;
         super(config);
-        // debugger;
-        // debugger;
-        // this.lodash=_;
-        // this.special = special
-        // this.useTrait(YoyoTrait);
-        // this.yoyo('chuj ci w dupsko!',this);
-        //    debugger;
 
         this.querySelector = querySelector;
         // this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
@@ -60,12 +53,6 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             'data-src-small',
 
         ]
-        // debugger;
-        // this.validateOperationArguments();
-
-        // this.yoyo();
-
-
 
     }
 
@@ -86,11 +73,6 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         const elementList = await this.createElementList($);
         // debugger;
         const fileRefs = [];
-
-        //check if src is valid, and is NOT base64.
-        //if so, make it the relevant src.
-        //if not, try alternative src's, if provided.
-        //if no alternative src is valid, go for the original base64.
 
         elementList.forEach((element) => {
 
@@ -200,24 +182,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             } else {
                 fileName = fileName + '.' + extension;
             }
-            // await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
-            // console.log('rejecting')
-            // return reject('yoyo');
-            // debugger;
-            // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${u}.${this.getDataUrlExtension(url)}`, base64Data, 'base64', function (err) {
-            // fs.writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64',  (err)=> {
-            //     // console.log(err);
-            //     if (err) {
-            //         reject(err);
-            //     } else {
-            //         // counter++
-            //         this.scraper.state.downloadedFiles++
-
-            //         console.log('images:', this.scraper.state.downloadedFiles)
-            //         // console.log('NUMBER OF DATAURL FILES CREATED ',counter)
-            //         resolve();
-            //     }
-            // });
+            
             await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
@@ -242,19 +207,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
         }
 
-
-        // let useContentDisposition = false;
-        // if (this.contentType === 'file') {
-        //     useContentDisposition = true;
-        // }
-
-
-
         if (url.startsWith("data:image")) {
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
-            // console.log(this.contentType)
-            // debugger;
+
             const options = {
                 url,
                 // useContentDisposition,
@@ -323,9 +279,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
         delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
         const fileHref = scrapingObject.address;
-        // if (!fileHref) {
-        //     throw 'Image href is invalid, skipping.';
-        // }
+
         try {
 
 
@@ -351,18 +305,5 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
 }
 
-
-
-// DownloadContent.useTrait(YoyoTrait,DownloadContent);
-// console.log(DownloadContent.prototype)
-// YoyoTrait.prototype = Object.create(DownloadContent.prototype);
-// Object.keys(YoyoTrait.prototype).forEach((prop) => {
-//     if (YoyoTrait.prototype.hasOwnProperty(prop)) {
-//         DownloadContent.prototype[prop] = DownloadContent.prototype[prop] || YoyoTrait.prototype[prop];
-//     }
-// })
-// debugger;
-// console.log(DownloadContent.prototype)
-// console.log(DownloadContent.__proto__)
 
 module.exports = DownloadContent;

@@ -1,5 +1,5 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
-It supports features like recursive scraping, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Mint).
+It supports features like recursive scraping, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Ubuntu).
 
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
