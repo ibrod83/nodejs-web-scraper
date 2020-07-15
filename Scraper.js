@@ -53,7 +53,7 @@ class Scraper {
         this.state = {
             existingUserFileDirectories: [],
             failedScrapingObjects: [],
-            downloadedImages: 0,
+            downloadedFiles: 0,
             currentlyRunning: 0,
             registeredOperations: [],//Holds a reference to each created operation.
             numRequests: 0,
@@ -124,7 +124,7 @@ class Scraper {
             }
         }
         // console.log('global.counter of alternative src ',global.counter)
-        console.log('overall images: ', this.state.downloadedImages)
+        console.log('overall files: ', this.state.downloadedFiles)
 
 
     }

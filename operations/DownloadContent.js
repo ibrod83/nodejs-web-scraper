@@ -51,7 +51,15 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 this[prop] = config[prop];
         }
 
-        this.directoryVerified = false; 
+        this.directoryVerified = false;
+
+        this.alternativeSrc = config.alternativeSrc || [
+            'data-src',
+            'data-src-large',
+            'data-src-medium',
+            'data-src-small',
+
+        ]
         // debugger;
         // this.validateOperationArguments();
 
@@ -63,7 +71,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
 
     async scrape(responseObjectFromParent) {
-        if(!this.directoryVerified){
+        if (!this.directoryVerified) {
             await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
             this.directoryVerified = true;
         }
@@ -78,56 +86,41 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         const elementList = await this.createElementList($);
         // debugger;
         const fileRefs = [];
+
+        //check if src is valid, and is NOT base64.
+        //if so, make it the relevant src.
+        //if not, try alternative src's, if provided.
+        //if no alternative src is valid, go for the original base64.
+
         elementList.forEach((element) => {
 
-            // debugger;
-            // const normalSrcString = element.attr('src')
             var src;
             src = element.attr(this.contentType === 'image' ? 'src' : 'href')
-            // debugger;
-            // if(src.startsWith('data:image')){
-            //     debugger;
-            //     global.counter++;
-            //     console.log('counter',global.counter)
-            // }
-            // if (!src || src.startsWith("data:image")) {
-            if (!src) {//If the element doesn't have an "src" tag(in case on content type image)
-                // debugger;
+            const isDataUrl = this.isDataUrl(src);//Give priority to non-base64 images.
+            if (!src || isDataUrl) {//If the element doesn't have an "src" tag(in case of content type image), or the src is base64, try getting an alternative.
                 const alternativeAttrib = this.alternativeSrc && this.getAlternativeAttrib(element[0].attribs);
                 if (alternativeAttrib) {
 
                     src = element.attr(alternativeAttrib);
-                    // console.log('alternative src result', src)
                 } else {
-                    // console.log('page of image error:', responseObjectFromParent.request.res.responseUrl)
+                    if (!src) {
+                        const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.url}, alternative srcs: ${this.alternativeSrc}`;
+                        console.error(errorString);
+                        this.errors.push(errorString);
+                        return;
+                    }
 
-                    // const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.request.res.responseUrl}, alternative srcs: ${this.alternativeSrc}`;
-                    const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.url}, alternative srcs: ${this.alternativeSrc}`;
-                    console.error(errorString);
-                    this.errors.push(errorString);
-                    return;
                 }
             }
-            // debugger;
-            // else if(src.startsWith("data:image")){
 
-            // }
-
-            // src = this.processRelativeSrc(src);
-            // debugger;
-            // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, src);
             const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
             fileRefs.push(absoluteUrl);
-            // currentWrapper.data.push(absoluteUrl);
-
-
 
         })
         $ = null;
 
         if (!fileRefs.length) {
-            // this.errors.push(`No images found by the query, in ${dataFromParent.address}`);
-            // overallErrors++
+
             return;
         }
 
@@ -148,11 +141,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         return this.createMinimalData(currentWrapper);
     }
 
+    /**
+     * 
+     * @param {string[] | string} alternativeAttribs 
+     * @return {string | undefined}  
+     */
     getAlternativeAttrib(alternativeAttribs) {
         for (let attrib in alternativeAttribs) {
             if (typeof this.alternativeSrc === 'object') {
                 if (this.alternativeSrc.includes(attrib)) {
-                    debugger;
+                    // debugger;
+
                     // console.log('alternative attrib:')
                     return attrib;
                 }
@@ -164,12 +163,21 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         }
     }
 
+
+
+    isDataUrl(url) {
+        if (!url || !url.startsWith("data:image"))
+            return false
+
+        return true;
+    }
+
     getDataUrlExtension(dataurl) {
         return dataurl.split('/')[1].split(';')[0]
     }
     // counter = 0;
     saveDataUrlPromiseFactory(url) {
-       
+
         // counter++;
         // console.log('DATAURL ', counter)
         return async () => {
@@ -203,17 +211,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             //         reject(err);
             //     } else {
             //         // counter++
-            //         this.scraper.state.downloadedImages++
+            //         this.scraper.state.downloadedFiles++
 
-            //         console.log('images:', this.scraper.state.downloadedImages)
+            //         console.log('images:', this.scraper.state.downloadedFiles)
             //         // console.log('NUMBER OF DATAURL FILES CREATED ',counter)
             //         resolve();
             //     }
             // });
             await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
-            this.scraper.state.downloadedImages++
+            this.scraper.state.downloadedFiles++
 
-            console.log('images:', this.scraper.state.downloadedImages)
+            console.log('images:', this.scraper.state.downloadedFiles)
 
             // })
         }
@@ -280,10 +288,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                         // const { newFileCreated } = await fileDownloader.save();
                         await fileDownloader.save();
 
-                        // newFileCreated && this.scraper.state.downloadedImages++;
-                        this.scraper.state.downloadedImages++
+                        // newFileCreated && this.scraper.state.downloadedFiles++;
+                        this.scraper.state.downloadedFiles++
 
-                        console.log('images:', this.scraper.state.downloadedImages)
+                        console.log('images:', this.scraper.state.downloadedFiles)
                     }
 
                 } catch (err) {

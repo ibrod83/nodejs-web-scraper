@@ -382,7 +382,6 @@ Public methods:
 | Name                                     | Description                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object 
-| destroy()                       | Call this method, before creating a new Scraper instance(Scraper can only have one instance at a time)                                                                                                                                                                                          |
 | async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen. |
 
 &nbsp;
@@ -483,7 +482,8 @@ The optional config can receive these properties:
 {
     name:'some name',
     contentType:'image',//Either 'image' or 'file'. Default is image.
-    alternativeSrc:['first-alternative','second-alternative']//Some images might not have an actual "src", but a data:url. You can provide as many alternative src's as you wish. If the scraper doesn't find a valid src, it will try the alternatives.  
+    alternativeSrc:['first-alternative','second-alternative']//Provide alternative attributes to be used as the src. Will only be invoked,
+    //If the "src" attribute is undefined or is a dataUrl. If no matching alternative is found, the dataUrl is used. 
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
     getElementList:(elementList)=>{},
     getException:(error)=>{}//Get every exception throw by this downloadContent operation, even if this was later repeated successfully.    
