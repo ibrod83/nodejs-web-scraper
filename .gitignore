@@ -1,6 +1,1 @@
 node_modules/
-website/node_modules
-website/build
-website/.env
-website/.docusaurus
-website/seo.js

@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
@@ -29,7 +29,7 @@
     "qyu": "^0.3.0",
     "sanitize-filename": "^1.6.1"
   },
-  "homepage": "https://nodejs-web-scraper.ibrod83.com",
+  "homepage": "https://nodejs-web-scraper.ibrod83.com/",
   "bugs": {
     "url": "https://github.com/ibrod83/nodejs-web-scraper/issues"
   },
