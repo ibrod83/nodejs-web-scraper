@@ -38,9 +38,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         return scrapingObject;
     }
 
-    emitError(error){
+    async emitError(error){
         if(this.getException)
-        this.getException(error);
+        await this.getException(error);
     }
 
 
@@ -62,7 +62,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             return await promiseFactory();
         } catch (error) {
 
-            this.emitError(error)
+            await this.emitError(error)
 
             // debugger;
             const errorCode = error.response ? error.response.status : error
@@ -405,7 +405,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                     // console.log(type)
                     tree[child.name] = child.data.length <= 1  ? child.data[0] : child.data
                 }
-                this.getPageObject(tree)
+               await this.getPageObject(tree)
             }
 
             

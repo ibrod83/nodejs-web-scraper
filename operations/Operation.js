@@ -135,7 +135,7 @@ class Operation {//Base class for all operations.
         }
         
         if (this.getElementList) {
-            this.getElementList(elementList);
+            await this.getElementList(elementList);
         }
         // debugger;
         return elementList;

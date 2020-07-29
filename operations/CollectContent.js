@@ -50,15 +50,24 @@ class CollectContent extends Operation {
         const elementList = await this.createElementList($);
 
 
-        elementList.forEach((element) => {
+        for(let element of elementList){
             let content = this.getNodeContent(element);
             if (this.getElementContent) {
-                const contentFromCallback = this.getElementContent(content,parentAddress)
+                const contentFromCallback = await this.getElementContent(content,parentAddress)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
             // debugger;
             currentWrapper.data.push(content);
-        })
+        }
+        // elementList.forEach(async(element) => {
+        //     let content = this.getNodeContent(element);
+        //     if (this.getElementContent) {
+        //         const contentFromCallback = await this.getElementContent(content,parentAddress)
+        //         content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
+        //     }
+        //     // debugger;
+        //     currentWrapper.data.push(content);
+        // })
         $ = null;
 
         if (this.afterScrape) {

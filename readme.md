@@ -16,13 +16,14 @@ $ npm install nodejs-web-scraper
 - [Basic examples](#basic-examples)     
   * [Collect articles from a news site](#collect-articles-from-a-news-site)  
   * [Download images](#download-all-images-in-a-page)  
+  * [Use multiple selectors](#use-multiple-selectors)  
 - [Advanced](#advanced-examples) 
   * [Pagination](#pagination)  
   * [Get an entire HTML file](#get-an-entire-html-file)  
   * [Downloading a file that is not an image](#downloading-a-file-that-is-not-an-image)  
   * [getElementContent and getPageResponse hooks](#getelementcontent-and-getpageresponse-hooks)  
   * [Add additional conditions](#add-additional-conditions)  
-  * [Scraping an auth protected site](#scraping-an-auth-protected-site)  
+  * [Scraping an auth protected site](#scraping-an-auth-protected-site)    
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling)  
@@ -55,7 +56,11 @@ const fs = require('fs');
 
     const articles = [];//Holds all article objects.
 
-    const getPageObject = (pageObject) => {//This will create an object for each page, with "title", "story" and "image" properties(The names we chose for our scraping operations below)
+    const getPageObject =async (pageObject) => {//This will create an object for each page, with "title", "story" and "image" properties(The names we chose for our scraping operations below)
+
+        //Every hook supports async operations
+        await Promise.resolve()//Just demonstrating..
+
         articles.push(pageObject)
     }
 
@@ -126,7 +131,40 @@ When done, you will have an "images" folder with all downloaded files.
 
 &nbsp;
 
+#### Use multiple selectors
 
+If you need to select elements from different possible classes("or" operator), just pass comma separated classes.
+This is part of the Jquery specification(which Cheerio implemets), and has nothing to do with the scraper.
+
+```javascript
+const { Scraper, Root, CollectContent } = require('nodejs-web-scraper');
+
+(async () => {
+
+   const config = {
+        baseSiteUrl: `https://spectator.sme.sk`,
+        startUrl: `https://spectator.sme.sk/`,           
+       }
+
+    function getElementContent(element){
+        // Do something...
+    }   
+
+    const scraper = new Scraper(config);
+
+    const root = new Root();
+
+    const title = new CollectContent('.first_class, .second_class',{getElementContent});//Any of these will fit.
+
+    root.addOperation(title);
+
+    await scraper.scrape(root);
+
+})();    
+
+```
+
+&nbsp;
 
 
 ## Advanced Examples
@@ -344,6 +382,7 @@ In some cases, using the cheerio-advanced-selectors isn't enough to properly fil
 ```
 
 &nbsp;
+
 
 #### Scraping an auth protected site
 
