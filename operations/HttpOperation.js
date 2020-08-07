@@ -398,15 +398,8 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
 
         } catch (error) {
-<<<<<<< HEAD
             debugger;
             // console.log(error)
-=======
-            // if(error.message.includes('type')){
-            //     debugger;
-            // }
-            // debugger;
->>>>>>> master
             const errorCode = error.code
             const errorString = `There was an error opening page ${href}, ${error}`;
             this.errors.push(errorString);
@@ -451,17 +444,10 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 }
                 for (let child of dataFromChildren) {
                     // debugger;
-<<<<<<< HEAD
                     if (child.type === 'DownloadContent') {
                         const data = child.data.map(d => d.address);
 
                         tree[child.name] = data.length <= 1 ? data[0] : data
-=======
-                    if(child.type === 'DownloadContent'){//Type is sometimes undefined!
-                        const data = child.data.map(d=>d.address);
-                        
-                        tree[child.name] = data.length <= 1  ? data[0] : data     
->>>>>>> master
                         continue;
                     }
                     // const type = typeof child
