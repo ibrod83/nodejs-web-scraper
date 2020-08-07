@@ -101,10 +101,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         })
         $ = null;
 
-        if (!fileRefs.length) {
+        // if (!fileRefs.length) {//problem, this resolves the promise with undefined, if no images are found.
 
-            return;
-        }
+        //     return;
+        // }
 
         const scrapingObjects = this.createScrapingObjectsFromRefs(fileRefs);
         // debugger;
