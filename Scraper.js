@@ -1,5 +1,5 @@
 
-const Promise = require('bluebird');
+// const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');

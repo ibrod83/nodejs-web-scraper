@@ -1,5 +1,6 @@
 const Operation = require('./Operation');
 var cheerio = require('cheerio');
+const { Qyu } = require('qyu');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const URL = require('url').URL;
@@ -12,17 +13,17 @@ const request = require('../request/request.js');
 
 class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
 
-    constructor(config){
+    constructor(config) {
         // debugger;
         super(config)
-        if(this.condition){
-            const type = typeof this.condition; 
-                if(type !== 'function'){
-                    throw new Error(`"condition" hook must receive a function, got: ${type}`)
-                }
+        if (this.condition) {
+            const type = typeof this.condition;
+            if (type !== 'function') {
+                throw new Error(`"condition" hook must receive a function, got: ${type}`)
+            }
         }
     }
-    
+
     createScrapingObject(href, type) {//Creates a scraping object, for all operations.
         const scrapingObject = {
             address: href,//The image href            
@@ -38,19 +39,19 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         return scrapingObject;
     }
 
-    async emitError(error){
-        if(this.getException)
-        await this.getException(error);
+    async emitError(error) {
+        if (this.getException)
+            await this.getException(error);
     }
 
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
-    // debugger;
+        // debugger;
         const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
         // debugger;
         if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
-            
+
             throw 'randomly generated error,' + href;
         }
 
@@ -105,16 +106,17 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             if (this.pagination.queryString) {
                 paginationUrl = `${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`;
             } else {
-                
+
                 paginationUrl = `${scrapingObject.address}/${this.pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
-                
-                
+
+
             }
             if (this.pagination.processPaginationUrl) {
                 try {
                     paginationUrl = await this.pagination.processPaginationUrl(paginationUrl)
                     // console.log('new href', url)
                 } catch (error) {
+                    
                     console.error('Error processing URL, continuing with original one: ', paginationUrl);
 
                 }
@@ -144,13 +146,48 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         return scrapingObjects;
     }
 
+    // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
+    //     // console.log('overwriteConcurrency', overwriteConcurrency)
+    //     // debugger;
+    //     await Promise.map(scrapingObjects, (scrapingObject) => {
+    //         return this.processOneScrapingObject(scrapingObject);
+    //     }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
+    // }
+
+    // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
+
+    //     const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
+    //     for (let scrapingObject of scrapingObjects) {
+    //         debugger;
+    //         q(() => {
+    //             return this.processOneScrapingObject(scrapingObject);
+    //         })
+    //     }
+    //     await q.whenEmpty();
+
+    // }
+
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-        // console.log('overwriteConcurrency', overwriteConcurrency)
-        // debugger;
-        await Promise.map(scrapingObjects, (scrapingObject) => {
-            return this.processOneScrapingObject(scrapingObject);
-        }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
+        if(overwriteConcurrency){
+           console.log('overwrite',overwriteConcurrency) 
+        }
+        
+        const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
+        await q(scrapingObjects, (scrapingObject) => {
+            return this.processOneScrapingObject(scrapingObject)
+        }) 
+
+        // await this.processOneScrapingObject(scrapingObject);
+        // await q.whenEmpty();
+
     }
+
+    // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
+    //     const promises = scrapingObjects.map(scrapingObject=>this.processOneScrapingObject(scrapingObject))
+        
+    //     await Promise.all(promises)
+
+    // }
 
     handleFailedScrapingObject(scrapingObject, errorString, errorCode) {
         // debugger;
@@ -175,7 +212,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
     async beforePromiseFactory(message) {//Runs at the beginning of the promise-returning function, that is sent to repeatPromiseUntilResolved().
-      
+
         this.scraper.state.currentlyRunning++;
         console.log(message);
         console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
@@ -273,7 +310,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             await this.beforePromiseFactory('Opening page:' + href);
 
             let resp;
-            try {             
+            try {
                 // resp = await axios({
                 //     method: 'get', url: href,
                 //     timeout: this.scraper.config.timeout,
@@ -286,11 +323,11 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                     timeout: this.scraper.config.timeout,
                     auth: this.scraper.config.auth,
                     headers: this.scraper.config.headers,
-                    proxy:this.scraper.config.proxy
+                    proxy: this.scraper.config.proxy
                     // proxy:true
-                    
-                })   
-                
+
+                })
+
                 // debugger;
 
                 if (this.scraper.config.removeStyleAndScriptTags) {
@@ -301,7 +338,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                     // await this.getHtml(resp.data, resp.request.res.responseUrl)
                     await this.getHtml(resp.data, resp.url)
                 }
-               
+
             } catch (error) {
                 // debugger;
                 throw error;
@@ -312,8 +349,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             return resp;
         }
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
 
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
     }
 
     async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
@@ -322,8 +360,14 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             return this.paginate(scrapingObject);
         }
 
+
+
         let href = scrapingObject.address;
         try {
+            // const rand = Math.floor(Math.random() * 10) + 1;
+            // if (rand == 1) {
+            //     throw new Error('yoyo')
+            // }
             // if (this.state.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
             if (this.processUrl) {
                 try {
@@ -339,22 +383,23 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             var response = await this.getPage(href);
             // debugger;
             if (this.getPageResponse) {//If a "getResponse" callback was provided, it will be called
-            // debugger;
+                // debugger;
                 if (typeof this.getPageResponse !== 'function')
                     throw "'getPageResponse' callback must be a function";
                 await this.getPageResponse(response);
 
-            }else if (this.beforeOneLinkScrape) {//Backward compatibility
+            } else if (this.beforeOneLinkScrape) {//Backward compatibility
                 if (typeof this.beforeOneLinkScrape !== 'function')
                     throw "'beforeOneLinkScrape' callback must be a function";
                 await this.beforeOneLinkScrape(response);
             }
-            
+
             scrapingObject.successful = true
 
 
         } catch (error) {
-            // debugger;
+            debugger;
+            // console.log(error)
             const errorCode = error.code
             const errorString = `There was an error opening page ${href}, ${error}`;
             this.errors.push(errorString);
@@ -364,6 +409,10 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         }
 
         try {
+            // const rand = Math.floor(Math.random() * 10) + 1;
+            // if(rand == 1){
+            //     throw 'yoyo'
+            // }
             var dataFromChildren = await this.scrapeChildren(this.operations, response)
             response = null;
             let callback;
@@ -372,7 +421,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             if (callback) {
                 // debugger;
                 if (typeof callback !== 'function')
-                    throw  "callback must be a function";
+                    throw "callback must be a function";
 
                 const cleanData = {
                     address: href,
@@ -387,28 +436,28 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 await callback(cleanData);
             }
 
-            if(this.getPageObject){
+            if (this.getPageObject) {
                 // debugger;
-                
+
                 const tree = {
-                    address:scrapingObject.address
+                    address: scrapingObject.address
                 }
-                for(let child of dataFromChildren){                    
+                for (let child of dataFromChildren) {
                     // debugger;
-                    if(child.type === 'DownloadContent'){
-                        const data = child.data.map(d=>d.address);
-                        
-                        tree[child.name] = data.length <= 1  ? data[0] : data     
+                    if (child.type === 'DownloadContent') {
+                        const data = child.data.map(d => d.address);
+
+                        tree[child.name] = data.length <= 1 ? data[0] : data
                         continue;
                     }
                     // const type = typeof child
                     // console.log(type)
-                    tree[child.name] = child.data.length <= 1  ? child.data[0] : child.data
+                    tree[child.name] = child.data.length <= 1 ? child.data[0] : child.data
                 }
-               await this.getPageObject(tree)
+                await this.getPageObject(tree)
             }
 
-            
+
             scrapingObject.data = [...dataFromChildren];
         } catch (error) {
             console.error(error);

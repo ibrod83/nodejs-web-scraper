@@ -43,11 +43,16 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
-
-        const forceConcurrencyLimit = hasOpenLinksOperation && 3;
+        let forceConcurrencyLimit=false;
+        if(hasOpenLinksOperation){
+            forceConcurrencyLimit = 3;
+        }
+        // const forceConcurrencyLimit = hasOpenLinksOperation && 3;
         await this.executeScrapingObjects(scrapingObjects, forceConcurrencyLimit);
+        // await this.executeScrapingObjects(scrapingObjects);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+        // currentWrapper.data.push(...scrapingObjects);
         if (this.afterScrape) {
             await this.afterScrape(currentWrapper);
         }
