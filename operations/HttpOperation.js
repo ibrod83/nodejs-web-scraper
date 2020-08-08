@@ -155,11 +155,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     // }
 
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-        // if(overwriteConcurrency){
-        //     debugger;
-        //    console.log('overwrite',overwriteConcurrency) 
-        // }
-        
+
         const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
         await q(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject)
@@ -206,11 +202,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
     async createDelay() {
-        // let currentSpacer = this.requestSpacer;
-        // this.requestSpacer = (async () => {
-        //     await currentSpacer;
-        //     await Promise.delay(this.delay);
-        // })();
+
         let currentSpacer = this.scraper.requestSpacer;
         // this.scraper.requestSpacer = currentSpacer.then(() => Promise.delay(this.scraper.config.delay));
         this.scraper.requestSpacer = currentSpacer.then(() => createDelay(this.scraper.config.delay));

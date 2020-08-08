@@ -43,7 +43,7 @@ class Operation {//Base class for all operations.
 
 
     injectScraper(ScraperInstance){
-        debugger;
+        // debugger;
         this.scraper = ScraperInstance;
         
         for(let operation of this.operations){

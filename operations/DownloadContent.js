@@ -9,10 +9,8 @@ const file_downloader = require('../file_downloader')
 const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
-// const YoyoTrait = require('../YoyoTrait');
 
 let counter = 0
-// console.log(DownloadContent)
 
 
 
@@ -269,7 +267,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
 
 
-        return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
 
 
     }

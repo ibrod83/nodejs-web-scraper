@@ -1,5 +1,5 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
-It supports features like recursive scraping, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Ubuntu).
+It supports features like recursive scraping(pages that "open" other pages), file download and handling, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Ubuntu).
 
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
@@ -30,6 +30,7 @@ $ npm install nodejs-web-scraper
 - [Automatic Logs](#automatic-logs) 
 - [Memory consumption](#memory-consumption) 
 - [Concurrency](#concurrency) 
+- [License](#license) 
 - [Disclaimer](#disclaimer) 
 
 
@@ -615,8 +616,15 @@ In scraping jobs that require the "opening" of many large HTML pages at the same
 
 The program uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most.
 
-## Disclaimer
+## License
 
-Nodejs Web Scraper uses ISC License https://opensource.org/licenses/ISC
+Copyright 2020 ibrod83
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+## Disclaimer
 
 The author, ibrod83, doesn't condone the usage of the program or a part of it, for any illegal activity, and will not be held responsible for actions taken by the user. Please use it with discretion, and in accordance with international/your local law.
