@@ -4,9 +4,9 @@ const { Qyu } = require('qyu');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const URL = require('url').URL;
-const Promise = require('bluebird');
+// const Promise = require('bluebird');
 const request = require('../request/request.js');
-
+const {createDelay} = require('../utils/delay');
 
 
 
@@ -154,40 +154,19 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     //     }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
     // }
 
-    // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-
-    //     const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
-    //     for (let scrapingObject of scrapingObjects) {
-    //         debugger;
-    //         q(() => {
-    //             return this.processOneScrapingObject(scrapingObject);
-    //         })
-    //     }
-    //     await q.whenEmpty();
-
-    // }
-
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-        if(overwriteConcurrency){
-           console.log('overwrite',overwriteConcurrency) 
-        }
+        // if(overwriteConcurrency){
+        //     debugger;
+        //    console.log('overwrite',overwriteConcurrency) 
+        // }
         
         const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
         await q(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject)
         }) 
 
-        // await this.processOneScrapingObject(scrapingObject);
-        // await q.whenEmpty();
-
     }
 
-    // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-    //     const promises = scrapingObjects.map(scrapingObject=>this.processOneScrapingObject(scrapingObject))
-        
-    //     await Promise.all(promises)
-
-    // }
 
     handleFailedScrapingObject(scrapingObject, errorString, errorCode) {
         // debugger;
@@ -233,7 +212,8 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         //     await Promise.delay(this.delay);
         // })();
         let currentSpacer = this.scraper.requestSpacer;
-        this.scraper.requestSpacer = currentSpacer.then(() => Promise.delay(this.scraper.config.delay));
+        // this.scraper.requestSpacer = currentSpacer.then(() => Promise.delay(this.scraper.config.delay));
+        this.scraper.requestSpacer = currentSpacer.then(() => createDelay(this.scraper.config.delay));
         await currentSpacer;
     }
 
@@ -398,7 +378,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
 
         } catch (error) {
-            debugger;
+            // debugger;
             // console.log(error)
             const errorCode = error.code
             const errorString = `There was an error opening page ${href}, ${error}`;

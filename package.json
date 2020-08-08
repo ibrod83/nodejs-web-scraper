@@ -19,8 +19,7 @@
   ],
   "author": "ibrod83",
   "license": "ISC",
-  "dependencies": {
-    "bluebird": "^3.5.1",
+  "dependencies": {   
     "cheerio": "^1.0.0-rc.2",
     "cheerio-advanced-selectors": "^2.0.1",
     "https-proxy-agent": "^5.0.0",
