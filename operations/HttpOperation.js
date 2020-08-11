@@ -6,7 +6,8 @@ cheerio = cheerioAdv.wrap(cheerio);
 const URL = require('url').URL;
 // const Promise = require('bluebird');
 const request = require('../request/request.js');
-const {createDelay} = require('../utils/delay');
+const { createDelay } = require('../utils/delay');
+const PuppeteerSimple = require('puppeteer-simple')
 
 
 
@@ -116,7 +117,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                     paginationUrl = await this.pagination.processPaginationUrl(paginationUrl)
                     // console.log('new href', url)
                 } catch (error) {
-                    
+
                     console.error('Error processing URL, continuing with original one: ', paginationUrl);
 
                 }
@@ -159,7 +160,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
         await q(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject)
-        }) 
+        })
 
     }
 
@@ -274,6 +275,54 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
 
+    async SPA_getPage(href, bypassError) {
+        const promiseFactory = async () => {
+
+            await this.beforePromiseFactory('Opening page:' + href);
+
+            let resp;
+            try {
+
+                const puppeteer = new PuppeteerSimple(href)
+                
+                
+                // resp = await request({
+                //     method: 'get', url: href,
+                //     timeout: this.scraper.config.timeout,
+                //     auth: this.scraper.config.auth,
+                //     headers: this.scraper.config.headers,
+                //     proxy: this.scraper.config.proxy
+                //     // proxy:true
+
+                // })
+
+
+
+                // debugger;
+
+                // if (this.scraper.config.removeStyleAndScriptTags) {
+                //     this.stripTags(resp);
+                // }
+
+                // if (this.getHtml) {
+                //     // await this.getHtml(resp.data, resp.request.res.responseUrl)
+                //     await this.getHtml(resp.data, resp.url)
+                // }
+
+            } catch (error) {
+                // debugger;
+                throw error;
+            }
+            finally {
+                this.afterPromiseFactory();
+            }
+            return resp;
+        }
+
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
+
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
+    }
 
     async getPage(href, bypassError) {//Fetches the html of a given page.
 
@@ -325,6 +374,10 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
     }
+
+    // async SPA_processOneScrapingObject(scrapingObject){
+
+    // }
 
     async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
 
