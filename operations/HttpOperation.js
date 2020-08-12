@@ -7,7 +7,7 @@ const URL = require('url').URL;
 // const Promise = require('bluebird');
 const request = require('../request/request.js');
 const {createDelay} = require('../utils/delay');
-
+const rpur = require('repeat-promise-until-resolved')
 
 
 
@@ -44,6 +44,19 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             await this.getException(error);
     }
 
+    async repeatPromiseUntilResolved(promiseFactory,href){
+        const maxAttempts = this.scraper.config.maxRetries;
+        const onError= (error,retries)=>{
+            console.log('Retrying failed promise...error:', error, 'href:', href);
+            const newRetries = retries + 1;
+            console.log('Retreis', newRetries)
+            
+        }
+
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        return await this.qyuFactory(() =>rpur(promiseFactory, { maxAttempts,  onError }));
+    }
 
     async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
@@ -323,7 +336,17 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
 
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
+        // const maxAttempts = this.scraper.config.maxRetries;
+        // const onError= (error,retries)=>{
+        //     console.log('Retrying failed promise...error:', error, 'href:', href);
+        //     const newRetries = retries + 1;
+        //     console.log('Retreis', newRetries)
+        // }
+
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        return await this.qyuFactory(() =>this.repeatPromiseUntilResolved(promiseFactory,href));
     }
 
     async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.

@@ -454,7 +454,7 @@ Public methods:
 
 | Name        | Description                                                                                               |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
-| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent)                                       |
+| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent,CollectContent)                                       |
 | getData()   | Gets all data collected by this operation. In the case of root, it will just be the entire scraping tree. |
 | getErrors() | In the case of root, it will show all errors in every operation.                                          |
 
@@ -486,7 +486,7 @@ Public methods:
 
 | Name        | Description                                                  |
 | ----------- | ------------------------------------------------------------ |
-| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent) |
+| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent,CollectContent)  |
 | getData()   | Will get the data from all pages processed by this operation |
 | getErrors() | Gets all errors encountered by this operation.               |
 

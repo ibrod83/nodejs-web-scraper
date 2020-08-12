@@ -9,7 +9,7 @@ const file_downloader = require('../file_downloader')
 const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
-
+// const repeatPromiseUntilResolved = require('repeat-promise-until-resolved');
 let counter = 0
 
 
@@ -266,9 +266,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         }
 
 
+        const maxAttempts = this.scraper.config.maxRetries;
+        const onError= (error,retries)=>{
+            console.log('Retrying failed promise...error:', error, 'href:', href);
+            const newRetries = retries + 1;
+            console.log('Retreis', newRetries)
+        }
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        // return await this.qyuFactory(() =>repeatPromiseUntilResolved(promiseFactory, { maxAttempts,  onError }));
+        return await this.qyuFactory(() =>this.repeatPromiseUntilResolved(promiseFactory,href));
 
 
     }
