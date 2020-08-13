@@ -7,8 +7,7 @@ const URL = require('url').URL;
 // const Promise = require('bluebird');
 const request = require('../request/request.js');
 const { createDelay } = require('../utils/delay');
-const PuppeteerSimple = require('puppeteer-simple')
-
+const rpur = require('repeat-promise-until-resolved')
 
 
 
@@ -45,49 +44,80 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             await this.getException(error);
     }
 
-
-    async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
-
+    async repeatPromiseUntilResolved(promiseFactory, href) {
         // debugger;
-        const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
-        // debugger;
-        if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
+        const maxAttempts = this.scraper.config.maxRetries + 1;//Note that "maxRetries refers" to the number of retries, whereas 
+        //"maxAttempts" is the overall number of iterations, therefore adding 1.
+        const onError = async (error, attempts) => {
+            console.log('Retrying failed request, error: ', error, 'href:', href);
 
-            throw 'randomly generated error,' + href;
+            console.log('Attempt number: ', attempts)
+            await this.emitError(error);
+
         }
 
-        const maxRetries = this.scraper.config.maxRetries;
-        try {
-            // overallRequests++
-            // console.log('overallRequests', overallRequests)
-
-            return await promiseFactory();
-        } catch (error) {
-
-            await this.emitError(error)
-
-            // debugger;
+        const shouldStop = (error) => {
             const errorCode = error.response ? error.response.status : error
-            // console.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
                 // debugger;
                 const error = new Error();
                 error.message = `Skipping error ${errorCode}`;
                 // debugger;
                 error.code = errorCode;
-                throw error;
+                return true
             }
 
-            console.log('Retrying failed promise...error:', error, 'href:', href);
-            const newRetries = retries + 1;
-            console.log('Retreis', newRetries)
-            if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
-                throw error;
-            }
-            return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
+            return false;
         }
 
+
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+
+        return await rpur(promiseFactory, { maxAttempts, shouldStop, onError });
     }
+
+    // async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
+
+    //     // debugger;
+    //     const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
+    //     // debugger;
+    //     if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
+
+    //         throw 'randomly generated error,' + href;
+    //     }
+
+    //     const maxRetries = this.scraper.config.maxRetries;
+    //     try {
+    //         // overallRequests++
+    //         // console.log('overallRequests', overallRequests)
+
+    //         return await promiseFactory();
+    //     } catch (error) {
+    //         debugger;
+    //         await this.emitError(error)
+
+    //         // debugger;
+    //         const errorCode = error.response ? error.response.status : error
+    //         // console.log('Error code', errorCode);
+    //         if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
+    //             // debugger;
+    //             const error = new Error();
+    //             error.message = `Skipping error ${errorCode}`;
+    //             // debugger;
+    //             error.code = errorCode;
+    //             throw error;
+    //         }
+
+    //         console.log('Retrying failed promise...error:', error, 'href:', href);
+    //         const newRetries = retries + 1;
+    //         console.log('Retreis', newRetries)
+    //         if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
+    //             throw error;
+    //         }
+    //         return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
+    //     }
+
+    // }
 
     async paginate(scrapingObject) {//Divides a given page to multiple pages.
 
@@ -284,8 +314,8 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             try {
 
                 const puppeteer = new PuppeteerSimple(href)
-                
-                
+
+
                 // resp = await request({
                 //     method: 'get', url: href,
                 //     timeout: this.scraper.config.timeout,
@@ -339,6 +369,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 //     headers: this.scraper.config.headers,
                 //     proxy:this.scraper.config.proxy
                 // }) 
+                // debugger;
                 resp = await request({
                     method: 'get', url: href,
                     timeout: this.scraper.config.timeout,
@@ -372,7 +403,12 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
 
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
+
+
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href));
     }
 
     // async SPA_processOneScrapingObject(scrapingObject){
