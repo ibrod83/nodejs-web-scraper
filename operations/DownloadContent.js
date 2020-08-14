@@ -5,7 +5,8 @@ cheerio = cheerioAdv.wrap(cheerio);
 const fs = require('fs');
 const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile)
-const file_downloader = require('../file_downloader')
+// const file_downloader = require('../file_downloader')
+const Downloader = require('nodejs-file-downloader')
 const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
@@ -209,11 +210,29 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
 
+            // const options = {
+            //     url,
+            //     // useContentDisposition,
+            //     dest: this.filePath || this.scraper.config.filePath,
+            //     clone: this.scraper.config.cloneImages,
+            //     // flag: this.fileFlag || this.scraper.config.fileFlag,
+            //     // responseType:'stream',
+            //     shouldBufferResponse: this.contentType === 'image' ? true : false,
+            //     // mockImages:true,
+            //     auth: this.scraper.config.auth,
+            //     timeout: this.scraper.config.timeout,
+            //     headers: this.scraper.config.headers,
+            //     proxy: this.scraper.config.proxy,
+
+            // }
+
+            // await verifyDirectoryExists(options.dest);
+
             const options = {
                 url,
                 // useContentDisposition,
-                dest: this.filePath || this.scraper.config.filePath,
-                clone: this.scraper.config.cloneImages,
+                directory: this.filePath || this.scraper.config.filePath,
+                cloneFiles: this.scraper.config.cloneImages,
                 // flag: this.fileFlag || this.scraper.config.fileFlag,
                 // responseType:'stream',
                 shouldBufferResponse: this.contentType === 'image' ? true : false,
@@ -225,28 +244,28 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
             }
 
-            // await verifyDirectoryExists(options.dest);
-
-
 
             var promiseFactory = async () => {
 
                 await this.beforePromiseFactory('Fetching file:' + url);
 
                 try {
-                    const fileDownloader = new file_downloader(options);
-                    //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
-                    await fileDownloader.download();
-                    if (!this.scraper.config.mockImages) {
-                        // if (false) {
-                        // const { newFileCreated } = await fileDownloader.save();
-                        await fileDownloader.save();
+                    // const fileDownloader = new file_downloader(options);
+                    // //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
+                    // await fileDownloader.download();
+                    // if (!this.scraper.config.mockImages) {
+                    //     // if (false) {
+                    //     // const { newFileCreated } = await fileDownloader.save();
+                    //     await fileDownloader.save();
 
-                        // newFileCreated && this.scraper.state.downloadedFiles++;
-                        this.scraper.state.downloadedFiles++
+                    //     // newFileCreated && this.scraper.state.downloadedFiles++;
+                    //     this.scraper.state.downloadedFiles++
 
-                        console.log('images:', this.scraper.state.downloadedFiles)
-                    }
+                    //     console.log('images:', this.scraper.state.downloadedFiles)
+                    // }
+                    
+                    const downloader = new Downloader(options)
+                    await downloader.download();
 
                 } catch (err) {
 
