@@ -275,7 +275,7 @@ Description: "Go to https://www.profesia.sk/praca/; Paginate 100 pages from the 
   const config = {        
         baseSiteUrl: `https://www.some-content-site.com`,
         startUrl: `https://www.some-content-site.com/videos`,
-        filePath: './videos/'
+        filePath: './videos/',
         logPath: './logs/'
     }
    
