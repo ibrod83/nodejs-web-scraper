@@ -6,7 +6,7 @@ cheerio = cheerioAdv.wrap(cheerio);
 const URL = require('url').URL;
 // const Promise = require('bluebird');
 const request = require('../request/request.js');
-const {createDelay} = require('../utils/delay');
+const { createDelay } = require('../utils/delay');
 const rpur = require('repeat-promise-until-resolved')
 
 
@@ -44,41 +44,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             await this.getException(error);
     }
 
-    async repeatPromiseUntilResolved(promiseFactory,href){
-        const maxAttempts = this.scraper.config.maxRetries;
-        const onError= (error,retries)=>{
-            console.log('Retrying failed promise...error:', error, 'href:', href);
-            const newRetries = retries + 1;
-            console.log('Retreis', newRetries)
-            
-        }
-
-        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
-        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
-        return await this.qyuFactory(() =>rpur(promiseFactory, { maxAttempts,  onError }));
-    }
-
-    async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
-
-        // debugger;
-        const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
-        // debugger;
-        if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
-
-            throw 'randomly generated error,' + href;
-        }
-
-        const maxRetries = this.scraper.config.maxRetries;
-        try {
-            // overallRequests++
-            // console.log('overallRequests', overallRequests)
-
-            return await promiseFactory();
-        } catch (error) {
-
-            await this.emitError(error)
-
-            // debugger;
+    async repeatPromiseUntilResolved(promiseFactory, href) {
+        const maxAttempts = this.scraper.config.maxRetries + 1;
+        const shouldStop = (error)=>{
             const errorCode = error.response ? error.response.status : error
             // console.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
@@ -87,19 +55,66 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 error.message = `Skipping error ${errorCode}`;
                 // debugger;
                 error.code = errorCode;
-                throw error;
+                return true;
             }
+            return false;
+        }
+        const onError = async (error, retries) => {
 
+            
             console.log('Retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('Retreis', newRetries)
-            if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
-                throw error;
-            }
-            return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
+            await this.emitError(error)
         }
 
+        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
+        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        return await rpur(promiseFactory, { maxAttempts, onError,shouldStop });
     }
+
+    // async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
+
+    //     // debugger;
+    //     const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
+    //     // debugger;
+    //     if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
+
+    //         throw 'randomly generated error,' + href;
+    //     }
+
+    //     const maxRetries = this.scraper.config.maxRetries;
+    //     try {
+    //         // overallRequests++
+    //         // console.log('overallRequests', overallRequests)
+
+    //         return await promiseFactory();
+    //     } catch (error) {
+
+    //         await this.emitError(error)
+
+    //         // debugger;
+    //         const errorCode = error.response ? error.response.status : error
+    //         // console.log('Error code', errorCode);
+    //         if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
+    //             // debugger;
+    //             const error = new Error();
+    //             error.message = `Skipping error ${errorCode}`;
+    //             // debugger;
+    //             error.code = errorCode;
+    //             throw error;
+    //         }
+
+    //         console.log('Retrying failed promise...error:', error, 'href:', href);
+    //         const newRetries = retries + 1;
+    //         console.log('Retreis', newRetries)
+    //         if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
+    //             throw error;
+    //         }
+    //         return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
+    //     }
+
+    // }
 
     async paginate(scrapingObject) {//Divides a given page to multiple pages.
 
@@ -129,7 +144,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                     paginationUrl = await this.pagination.processPaginationUrl(paginationUrl)
                     // console.log('new href', url)
                 } catch (error) {
-                    
+
                     console.error('Error processing URL, continuing with original one: ', paginationUrl);
 
                 }
@@ -172,7 +187,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
         await q(scrapingObjects, (scrapingObject) => {
             return this.processOneScrapingObject(scrapingObject)
-        }) 
+        })
 
     }
 
@@ -346,7 +361,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
-        return await this.qyuFactory(() =>this.repeatPromiseUntilResolved(promiseFactory,href));
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href));
     }
 
     async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
