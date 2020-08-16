@@ -10,7 +10,7 @@ const Downloader = require('nodejs-file-downloader')
 // const FileProcessor = require('../file_downloader/file_processor');
 const FileProcessor = require('nodejs-file-downloader/FileProcessor.js');
 const crypto = require('crypto')
-const { verifyDirectoryExists } = require('../utils/files')
+// const { verifyDirectoryExists } = require('../utils/files')
 
 
 let counter = 0
@@ -60,7 +60,9 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
     async scrape(responseObjectFromParent) {
         if (!this.directoryVerified) {
-            await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            // await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            await this.scraper.pathQueue.verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            debugger;
             this.directoryVerified = true;
         }
 
@@ -164,6 +166,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         // counter++;
         // console.log('DATAURL ', counter)
         return async () => {
+            // debugger;
             // return new Promise(async(resolve, reject) => {
             console.log('Src is base64. Creating a file form it, with a hashed name.')
 
@@ -175,20 +178,26 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var base64Data = split[1]
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-            debugger;
-            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
+            // debugger;
+            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath },this.scraper.pathQueue);
             if (this.scraper.config.cloneImages) {
-
+                debugger;
                 // fileName = await fileProcessor.getAvailableFileName();
                 fileName = fileProcessor.getAvailableFileName();
             } else {
                 fileName = fileName + '.' + extension;
             }
 
-            await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
-            this.scraper.state.downloadedFiles++
+            try {
+              await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
+            this.scraper.state.downloadedFiles++  
+            } catch (error) {
+                debugger;
+                throw error;
+            }
+            
 
-            console.log('images:', this.scraper.state.downloadedFiles)
+            // console.log('images:', this.scraper.state.downloadedFiles)
 
             // })
         }
@@ -269,6 +278,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     // }
                     // debugger;
                     const downloader = new Downloader(options)
+                    debugger;
+                    downloader.injectPathQueue(this.scraper.pathQueue)
                     // debugger;
                     await downloader.download();
                     this.scraper.state.downloadedFiles++
@@ -276,9 +287,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     console.log('images:', this.scraper.state.downloadedFiles)
 
                 } catch (err) {
-
+                    debugger;
                     if (err.code === 'EEXIST') {
-                        console.log('File already exists in the directory, NOT overwriting it:', url);
+                        debugger;
+                        // console.log('File already exists in the directory, NOT overwriting it:', url);
                     } else {
                         throw err;
                     }
