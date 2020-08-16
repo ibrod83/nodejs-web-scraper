@@ -41,6 +41,15 @@ class CustomResponse {
     // }
 }
 
+// export interface AxiosError<T = any> extends Error {
+//     config: AxiosRequestConfig;
+//     code?: string;
+//     request?: any;
+//     response?: AxiosResponse<T>;
+//     isAxiosError: boolean;
+//     toJSON: () => object;
+//   }
+
 class CustomError extends Error {
     // debugger;
     constructor({ code, response, message, errno }) {

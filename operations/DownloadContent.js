@@ -7,9 +7,11 @@ const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile)
 // const file_downloader = require('../file_downloader')
 const Downloader = require('nodejs-file-downloader')
-const FileProcessor = require('../file_downloader/file_processor');
+// const FileProcessor = require('../file_downloader/file_processor');
+const FileProcessor = require('nodejs-file-downloader/FileProcessor.js');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
+
 
 let counter = 0
 
@@ -173,15 +175,16 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var base64Data = split[1]
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-            // debugger;
+            debugger;
             const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
             if (this.scraper.config.cloneImages) {
 
+                // fileName = await fileProcessor.getAvailableFileName();
                 fileName = fileProcessor.getAvailableFileName();
             } else {
                 fileName = fileName + '.' + extension;
             }
-            
+
             await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
@@ -239,6 +242,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 // mockImages:true,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
+                // timeout: 150,
                 headers: this.scraper.config.headers,
                 proxy: this.scraper.config.proxy,
 
@@ -263,9 +267,13 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
                     //     console.log('images:', this.scraper.state.downloadedFiles)
                     // }
-                    
+                    // debugger;
                     const downloader = new Downloader(options)
+                    // debugger;
                     await downloader.download();
+                    this.scraper.state.downloadedFiles++
+
+                    console.log('images:', this.scraper.state.downloadedFiles)
 
                 } catch (err) {
 
