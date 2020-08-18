@@ -30,7 +30,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {Function} [config.afterScrape = null] Receives a data object
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
-    constructor(querySelector, config) {
+    constructor(querySelector, config={}) {
         // debugger;
         super(config);
 
@@ -95,8 +95,11 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
             const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
             fileRefs.push(absoluteUrl);
+            
 
         })
+
+        console.log('refs',fileRefs.length)
         $ = null;
 
         // if (!fileRefs.length) {//problem, this resolves the promise with undefined, if no images are found.

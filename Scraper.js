@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
 const {Root} = require('./');//For jsdoc
-
+const PuppeteerSimple = require('puppeteer-simple').default;
 
 
 
@@ -31,6 +31,7 @@ class Scraper {
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = null] 
      * @param {Object} [globalConfig.proxy = null] 
+     * @param {boolean} [globalConfig.usePuppeteer = false] 
      */
     constructor(globalConfig) {
         // debugger;
@@ -47,7 +48,8 @@ class Scraper {
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,
             headers: null,
-            proxy: null
+            proxy: null,
+            usePuppeteer:false
         }
         // this.state = new State();
         this.state = {
@@ -75,7 +77,8 @@ class Scraper {
         this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
-        
+        // debugger;
+        this.puppeteerSimple = new PuppeteerSimple()
         this.referenceToRoot = null;
 
     }
@@ -125,6 +128,10 @@ class Scraper {
         }
         // console.log('global.counter of alternative src ',global.counter)
         console.log('overall files: ', this.state.downloadedFiles)
+
+        if(this.puppeteerSimple){
+        //    await this.puppeteerSimple.close()
+        }
 
 
     }

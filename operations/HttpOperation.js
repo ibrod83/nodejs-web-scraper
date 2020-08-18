@@ -7,21 +7,33 @@ const URL = require('url').URL;
 // const Promise = require('bluebird');
 const request = require('../request/request.js');
 const { createDelay } = require('../utils/delay');
-const rpur = require('repeat-promise-until-resolved')
+const rpur = require('repeat-promise-until-resolved');
+const { url } = require('inspector');
+const  SPA_page  = require('../spa/SPA_page');
 
 
 
 class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
 
     constructor(config) {
-        // debugger;
         super(config)
+        this.SPA_page = null;//This will hold an instance of SPA_page, which wraps a PuppeteerSimple Page.
+        //Relevant only if this.scraper.config.usePuppeteer is true.
+
+        this.virtualOperations=[];
+        
+     
         if (this.condition) {
             const type = typeof this.condition;
             if (type !== 'function') {
                 throw new Error(`"condition" hook must receive a function, got: ${type}`)
             }
         }
+
+
+
+
+
     }
 
     createScrapingObject(href, type) {//Creates a scraping object, for all operations.
@@ -272,10 +284,25 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     addOperation(operationObject) {//Adds a reference to an operation object     
         // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
-        if (!(operationObject instanceof Object.getPrototypeOf(HttpOperation))) {
-            throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
-        }
-        this.operations.push(operationObject)
+        debugger;
+        
+        const SPA_operationNames = ['ScrollToBottom'];
+        const operationName = operationObject.constructor.name;
+        debugger;
+        if ( SPA_operationNames.includes(operationName)) {
+
+            this.virtualOperations.push(operationObject)
+            
+        }else{
+            if (!(operationObject instanceof Object.getPrototypeOf(HttpOperation))) {
+                throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
+            }
+            this.operations.push(operationObject)
+        }       
+       
+            
+      
+
     }
 
 
@@ -310,43 +337,56 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
             await this.beforePromiseFactory('Opening page:' + href);
 
-            let resp;
+            let mockResponse;
             try {
 
-                const puppeteer = new PuppeteerSimple(href)
-
-
-                // resp = await request({
-                //     method: 'get', url: href,
-                //     timeout: this.scraper.config.timeout,
-                //     auth: this.scraper.config.auth,
-                //     headers: this.scraper.config.headers,
-                //     proxy: this.scraper.config.proxy
-                //     // proxy:true
-
-                // })
-
-
-
                 // debugger;
+                // var page = await this.scraper.puppeteer.createPage(href);
+                // await page.init();
+                // const data = await page.getHtml();
+                debugger;
+                var page = new SPA_page(this.scraper.puppeteerSimple,href);
+                this.SPA_page = page;
+                // const scrollToBottom = new ScrollToBottom({ numRepetitions: 10, delay: 1500 })
+                for(let virtualOperation of this.virtualOperations){
+                  this.SPA_page.addOperation(virtualOperation)  
+                }
+                
+                await this.SPA_page.scrape(page);
+                const data = await this.SPA_page.getHtml();
+                mockResponse = {//Mocking the "request" response object, to pass to the child operation.
+                    url: href,
+                    config: {
+                        url: href
+                    },
+                    originalResponse: null,
+                    data,
+                    status: 404,
+                    // statusText: statusTexturl,
+                    // headers: headers
+                }
+
 
                 // if (this.scraper.config.removeStyleAndScriptTags) {
                 //     this.stripTags(resp);
                 // }
 
-                // if (this.getHtml) {
-                //     // await this.getHtml(resp.data, resp.request.res.responseUrl)
-                //     await this.getHtml(resp.data, resp.url)
-                // }
+                if (this.getHtml) {
+                    // await this.getHtml(resp.data, resp.request.res.responseUrl)
+                    await this.getHtml(mockResponse.data, mockResponse.url)
+                }
 
             } catch (error) {
                 // debugger;
                 throw error;
             }
             finally {
+                // await this.SPA_page.close();
                 this.afterPromiseFactory();
             }
-            return resp;
+            // return resp;
+            // debugger;
+            return mockResponse;
         }
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
@@ -362,14 +402,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
             let resp;
             try {
-                // resp = await axios({
-                //     method: 'get', url: href,
-                //     timeout: this.scraper.config.timeout,
-                //     auth: this.scraper.config.auth,
-                //     headers: this.scraper.config.headers,
-                //     proxy:this.scraper.config.proxy
-                // }) 
-                // debugger;
+             
                 resp = await request({
                     method: 'get', url: href,
                     timeout: this.scraper.config.timeout,
@@ -440,8 +473,12 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
             }
 
+            if (this.scraper.config.usePuppeteer) {
+                var response = await this.SPA_getPage(href);
+            } else {
+                var response = await this.getPage(href);
+            }
 
-            var response = await this.getPage(href);
             // debugger;
             if (this.getPageResponse) {//If a "getResponse" callback was provided, it will be called
                 // debugger;
