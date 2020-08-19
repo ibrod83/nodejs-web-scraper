@@ -7,7 +7,9 @@ const URL = require('url').URL;
 // const Promise = require('bluebird');
 const request = require('../request/request.js');
 const { createDelay } = require('../utils/delay');
+const { stripTags } = require('../utils/html');
 const rpur = require('repeat-promise-until-resolved')
+const ScrapingObject = require('../ScrapingObject')
 
 
 
@@ -16,28 +18,28 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     constructor(config) {
         // debugger;
         super(config)
-        if (this.condition) {
-            const type = typeof this.condition;
+        if (config && config.condition) {
+            const type = typeof config.condition;
             if (type !== 'function') {
                 throw new Error(`"condition" hook must receive a function, got: ${type}`)
             }
         }
     }
 
-    createScrapingObject(href, type) {//Creates a scraping object, for all operations.
-        const scrapingObject = {
-            address: href,//The image href            
-            referenceToOperationObject: this.referenceToOperationObject.bind(this),
-            successful: false,
-            data: []
-        }
-        if (type)
-            scrapingObject.type = type;
+    // createScrapingObject(href, type) {//Creates a scraping object, for all operations.
+    //     const scrapingObject = {
+    //         address: href,//The image href            
+    //         referenceToOperationObject: this.referenceToOperationObject.bind(this),
+    //         successful: false,
+    //         data: []
+    //     }
+    //     if (type)
+    //         scrapingObject.type = type;
 
-        this.scraper.state.scrapingObjects.push(scrapingObject)
+    //     this.scraper.state.scrapingObjects.push(scrapingObject)
 
-        return scrapingObject;
-    }
+    //     return scrapingObject;
+    // }
 
     async emitError(error) {
         if (this.getException)
@@ -46,7 +48,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     async repeatPromiseUntilResolved(promiseFactory, href) {
         const maxAttempts = this.scraper.config.maxRetries + 1;
-        const shouldStop = (error)=>{
+        const shouldStop = (error) => {
             const errorCode = error.response ? error.response.status : error
             // console.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
@@ -61,7 +63,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         }
         const onError = async (error, retries) => {
 
-            
+
             console.log('Retrying failed promise...error:', error, 'href:', href);
             const newRetries = retries + 1;
             console.log('Retreis', newRetries)
@@ -70,51 +72,10 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
-        return await rpur(promiseFactory, { maxAttempts, onError,shouldStop });
+        return await rpur(promiseFactory, { maxAttempts, onError, shouldStop });
     }
 
-    // async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
 
-    //     // debugger;
-    //     const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
-    //     // debugger;
-    //     if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
-
-    //         throw 'randomly generated error,' + href;
-    //     }
-
-    //     const maxRetries = this.scraper.config.maxRetries;
-    //     try {
-    //         // overallRequests++
-    //         // console.log('overallRequests', overallRequests)
-
-    //         return await promiseFactory();
-    //     } catch (error) {
-
-    //         await this.emitError(error)
-
-    //         // debugger;
-    //         const errorCode = error.response ? error.response.status : error
-    //         // console.log('Error code', errorCode);
-    //         if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
-    //             // debugger;
-    //             const error = new Error();
-    //             error.message = `Skipping error ${errorCode}`;
-    //             // debugger;
-    //             error.code = errorCode;
-    //             throw error;
-    //         }
-
-    //         console.log('Retrying failed promise...error:', error, 'href:', href);
-    //         const newRetries = retries + 1;
-    //         console.log('Retreis', newRetries)
-    //         if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
-    //             throw error;
-    //         }
-    //         return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
-    //     }
-
-    // }
 
     async paginate(scrapingObject) {//Divides a given page to multiple pages.
 
@@ -150,7 +111,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 }
 
             }
-            paginationObject = this.createScrapingObject(paginationUrl);
+            // paginationObject = this.createScrapingObject(paginationUrl);
+            paginationObject = new ScrapingObject(paginationUrl,null,this.referenceToOperationObject.bind(this));
+            this.scraper.state.scrapingObjects.push(scrapingObject)
             scrapingObjects.push(paginationObject);
 
         }
@@ -166,7 +129,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         refs.forEach((href) => {
             if (href) {
                 // const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, href)
-                var scrapingObject = this.createScrapingObject(href, type);
+                // var scrapingObject = this.createScrapingObject(href, type);
+                const scrapingObject = new ScrapingObject(href, type, this.referenceToOperationObject.bind(this))
+                this.scraper.state.scrapingObjects.push(scrapingObject)
                 scrapingObjects.push(scrapingObject);
             }
 
@@ -237,35 +202,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         await currentSpacer;
     }
 
-    getAbsoluteUrl(base, relative) {//Handles the absolute URL.
-        // debugger;
-        const newUrl = new URL(relative, base).toString();
-        return newUrl;
 
-    }
-
-    getBaseUrlFromBaseTag($) {
-        let baseMetaTag = $('base');
-
-        // debugger;
-        if (baseMetaTag.length == 0 || baseMetaTag.length > 1) {
-            baseMetaTag = null;
-        }
-        else {
-            baseMetaTag = baseMetaTag[0];
-            var baseUrlFromBaseTag = baseMetaTag.attribs.href || null;
-        }
-
-        if (baseUrlFromBaseTag) {
-            if (baseUrlFromBaseTag === '/') {
-                baseUrlFromBaseTag = this.scraper.config.baseSiteUrl
-            }
-        }
-
-        return baseUrlFromBaseTag;
-
-
-    }
 
     addOperation(operationObject) {//Adds a reference to an operation object     
         // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
@@ -297,7 +234,6 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, '');
 
         }
-        // console.log('after strip', sizeof(responseObject.data))
 
     }
 
@@ -311,13 +247,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
             let resp;
             try {
-                // resp = await axios({
-                //     method: 'get', url: href,
-                //     timeout: this.scraper.config.timeout,
-                //     auth: this.scraper.config.auth,
-                //     headers: this.scraper.config.headers,
-                //     proxy:this.scraper.config.proxy
-                // }) 
+
                 resp = await request({
                     method: 'get', url: href,
                     timeout: this.scraper.config.timeout,
@@ -330,8 +260,13 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
                 // debugger;
 
+                // if (this.scraper.config.removeStyleAndScriptTags) {
+                //     this.stripTags(resp);
+                // }
+
                 if (this.scraper.config.removeStyleAndScriptTags) {
-                    this.stripTags(resp);
+                    // this.stripTags(resp);
+                    resp.data = stripTags(resp.data);
                 }
 
                 if (this.getHtml) {
@@ -478,6 +413,49 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         }
 
     }
+
+    // async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
+
+    //     // debugger;
+    //     const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
+    //     // debugger;
+    //     if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
+
+    //         throw 'randomly generated error,' + href;
+    //     }
+
+    //     const maxRetries = this.scraper.config.maxRetries;
+    //     try {
+    //         // overallRequests++
+    //         // console.log('overallRequests', overallRequests)
+
+    //         return await promiseFactory();
+    //     } catch (error) {
+
+    //         await this.emitError(error)
+
+    //         // debugger;
+    //         const errorCode = error.response ? error.response.status : error
+    //         // console.log('Error code', errorCode);
+    //         if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
+    //             // debugger;
+    //             const error = new Error();
+    //             error.message = `Skipping error ${errorCode}`;
+    //             // debugger;
+    //             error.code = errorCode;
+    //             throw error;
+    //         }
+
+    //         console.log('Retrying failed promise...error:', error, 'href:', href);
+    //         const newRetries = retries + 1;
+    //         console.log('Retreis', newRetries)
+    //         if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
+    //             throw error;
+    //         }
+    //         return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
+    //     }
+
+    // }
 
 }
 

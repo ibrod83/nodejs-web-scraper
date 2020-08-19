@@ -1,17 +1,9 @@
 
-const Scraper = require('../Scraper.js');
-
-
 class Operation {//Base class for all operations.
 
     constructor(objectConfig) {
 
-        // debugger;
-        // console.log(arguments)
-        // this.scraper = Scraper.getScraperInstance();//Reference to the scraper main object.
 
-        // this.handleNewOperationCreation(this);
-        // debugger;
         if (objectConfig) {
             for (let i in objectConfig) {
                 this[i] = objectConfig[i];
@@ -19,18 +11,10 @@ class Operation {//Base class for all operations.
         }
         if (!this.name)
             this.name = `Default ${this.constructor.name} name`;
-
-        // if(this.condition){
-        //     const type = typeof this.condition; 
-        //         if(type !== 'function'){
-        //             throw new Error(`"condition" hook must receive a function, got: ${type}`)
-        //         }
-        // }    
+   
         this.data = [];
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
-
-
 
     }
 
@@ -62,15 +46,6 @@ class Operation {//Base class for all operations.
         this.validateOperationArguments();
         
     }
-
-    // initOperationWithScraperInstance(ScraperInstance){
-    //     this.scraper = ScraperInstance;
-    //     this.handleNewOperationCreation(this)
-    //     for(let operation of this.operations){
-    //         operation.injectScraper(ScraperInstance);
-    //     }
-    // }
-
 
 
 
@@ -111,43 +86,7 @@ class Operation {//Base class for all operations.
     }
 
 
-    async createElementList($) {
-        const nodeList = Array.from(this.createNodeList($));
-        const elementList = [];
-        for (let node of nodeList) {
-            const nodeFromCheerio = $(node);
-            // debugger;
-            if (this.condition) {
-                // const type = typeof this.condition; 
-                // if(type !== 'function'){
-                //     throw new Error(`"condition" hook must receive a function, got: ${type}`)
-                // }
-                const shouldBeIncluded = await this.condition(nodeFromCheerio);
-                // console.log(shouldBeIncluded)
-                if (shouldBeIncluded) {
-                    // debugger;
-                    elementList.push(nodeFromCheerio)
-                }
-
-            } else {
-                elementList.push(nodeFromCheerio)
-            }
-        }
-        
-        if (this.getElementList) {
-            await this.getElementList(elementList);
-        }
-        // debugger;
-        return elementList;
-    }
-
-    createNodeList($) {//Gets a cheerio object and creates a nodelist. Checks for "getNodeList" user callback.       
-
-        const nodeList = this.slice ? $(this.querySelector).slice(typeof this.slice === 'number' ? this.slice : this.slice[0], this.slice[1]) : $(this.querySelector);
-
-        return nodeList;
-    }
-
+   
 
     createWrapper(address) {
         const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
@@ -182,19 +121,6 @@ class Operation {//Base class for all operations.
 
 }
 
-// var handler = {
-//     construct(target, args) {
-//         debugger
-//         console.log(args)
-//         console.log('DownloadContent constructor called');
-//         // expected output: "monster1 constructor called"
-
-//         return new target();
-
-//     }
-// };
-
-// Operation= new Proxy(Operation,handler)
 
 
 module.exports = Operation;
