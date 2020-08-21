@@ -9,7 +9,7 @@ const request = require('../request/request.js');
 const { createDelay } = require('../utils/delay');
 const { stripTags } = require('../utils/html');
 const rpur = require('repeat-promise-until-resolved')
-const ScrapingObject = require('../ScrapingObject')
+const ScrapingObject = require('../utils/ScrapingObject')
 
 
 

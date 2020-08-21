@@ -272,9 +272,9 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     console.log('images:', this.scraper.state.downloadedFiles)
 
                 } catch (err) {
-                    debugger;
+                    // debugger;
                     if (err.code === 'EEXIST') {
-                        debugger;
+                        // debugger;
                         // console.log('File already exists in the directory, NOT overwriting it:', url);
                     } else {
                         throw err;
