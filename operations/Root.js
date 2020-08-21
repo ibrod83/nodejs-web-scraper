@@ -1,5 +1,5 @@
 const HttpOperation = require('./HttpOperation');
-
+const ScrapingObject = require('../ScrapingObject')
 class Root extends HttpOperation {//Fetches the initial page, and starts the scraping process.
 
     /**
@@ -29,8 +29,10 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
     
     async scrape() {
 
-        const scrapingObject = this.createScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination')
+        // const scrapingObject = this.createScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination')
+        const scrapingObject =new  ScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination',this.referenceToOperationObject.bind(this))
         this.data = scrapingObject;
+        this.scraper.state.scrapingObjects.push(scrapingObject)
         await this.processOneScrapingObject(scrapingObject);
 
     }

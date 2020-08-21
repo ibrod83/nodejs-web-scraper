@@ -2,10 +2,13 @@ const HttpOperation = require('./HttpOperation');
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
+const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
+const {getAbsoluteUrl} = require('../utils/url');
+
 
 class OpenLinks extends HttpOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
 
-    
+
     /**
      * 
      * @param {string} querySelector cheerio-advanced-selectors selector 
@@ -43,8 +46,8 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
-        let forceConcurrencyLimit=false;
-        if(hasOpenLinksOperation){
+        let forceConcurrencyLimit = false;
+        if (hasOpenLinksOperation) {
             forceConcurrencyLimit = 3;
         }
         // const forceConcurrencyLimit = hasOpenLinksOperation && 3;
@@ -66,16 +69,22 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         var $ = cheerio.load(responseObjectFromParent.data);
         // debugger;
         // const nodeList = await this.createNodeList($);
-        const elementList = await this.createElementList($);
+        // const elementList = await this.createElementList($);
+        const elementList = await createElementList($,this.querySelector,{condition:this.condition,slice:this.slice});
+        if (this.getElementList) {
+            await this.getElementList(elementList);
+        }
         // debugger;
-        const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
+        // const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
+        const baseUrlFromBaseTag = getBaseUrlFromBaseTag($, this.scraper.config.baseSiteUrl);
         // debugger;
         $ = null;
         const refs = [];
         // debugger;
         elementList.forEach((link) => {
             // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.request.res.responseUrl, link[0].attribs.href)
-            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, link[0].attribs.href)
+            // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, link[0].attribs.href)
+            const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, link[0].attribs.href)
             refs.push(absoluteUrl)
 
         })
