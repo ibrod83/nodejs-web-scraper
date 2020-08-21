@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
 const {Root} = require('./');//For jsdoc
+// const PathQueue = require('./utils/PathQueue');
 
 
 
@@ -75,7 +76,7 @@ class Scraper {
         this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
-        
+        // this.pathQueue = new PathQueue();
         this.referenceToRoot = null;
 
     }
@@ -144,10 +145,13 @@ class Scraper {
     }
 
 
-    saveFile(obj) {
-        // verifyDirectoryExists(this.config.logPath);
+    async saveFile(obj) {
+        verifyDirectoryExists(this.config.logPath);
+        // await this.pathQueue.verifyDirectoryExists(this.config.logPath);
+         
         return new Promise(async (resolve, reject) => {
-            await verifyDirectoryExists(this.config.logPath);
+            // await verifyDirectoryExists(this.config.logPath);
+
             console.log('saving file')
             fs.writeFile(path.join(this.config.logPath, `${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
                 if (error) {

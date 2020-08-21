@@ -5,11 +5,14 @@ cheerio = cheerioAdv.wrap(cheerio);
 const fs = require('fs');
 const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile)
-const file_downloader = require('../file_downloader')
-const FileProcessor = require('../file_downloader/file_processor');
+// const file_downloader = require('../file_downloader')
+const Downloader = require('nodejs-file-downloader')
+// const FileProcessor = require('../file_downloader/file_processor');
+const FileProcessor = require('nodejs-file-downloader/FileProcessor.js');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
-// const repeatPromiseUntilResolved = require('repeat-promise-until-resolved');
+
+
 let counter = 0
 
 
@@ -58,6 +61,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     async scrape(responseObjectFromParent) {
         if (!this.directoryVerified) {
             await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            // await this.scraper.pathQueue.verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            // debugger;
             this.directoryVerified = true;
         }
 
@@ -161,6 +166,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         // counter++;
         // console.log('DATAURL ', counter)
         return async () => {
+            // debugger;
             // return new Promise(async(resolve, reject) => {
             console.log('Src is base64. Creating a file form it, with a hashed name.')
 
@@ -173,18 +179,26 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
             // debugger;
+            // const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath },this.scraper.pathQueue);
             const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
             if (this.scraper.config.cloneImages) {
-
+                debugger;
+                // fileName = await fileProcessor.getAvailableFileName();
                 fileName = fileProcessor.getAvailableFileName();
             } else {
                 fileName = fileName + '.' + extension;
             }
-            
-            await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
-            this.scraper.state.downloadedFiles++
 
-            console.log('images:', this.scraper.state.downloadedFiles)
+            try {
+              await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
+            this.scraper.state.downloadedFiles++  
+            } catch (error) {
+                debugger;
+                throw error;
+            }
+            
+
+            // console.log('images:', this.scraper.state.downloadedFiles)
 
             // })
         }
@@ -209,24 +223,41 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
 
+            // const options = {
+            //     url,
+            //     // useContentDisposition,
+            //     dest: this.filePath || this.scraper.config.filePath,
+            //     clone: this.scraper.config.cloneImages,
+            //     // flag: this.fileFlag || this.scraper.config.fileFlag,
+            //     // responseType:'stream',
+            //     shouldBufferResponse: this.contentType === 'image' ? true : false,
+            //     // mockImages:true,
+            //     auth: this.scraper.config.auth,
+            //     timeout: this.scraper.config.timeout,
+            //     headers: this.scraper.config.headers,
+            //     proxy: this.scraper.config.proxy,
+
+            // }
+
+            // await verifyDirectoryExists(options.dest);
+            
             const options = {
                 url,
                 // useContentDisposition,
-                dest: this.filePath || this.scraper.config.filePath,
-                clone: this.scraper.config.cloneImages,
+                directory: this.filePath || this.scraper.config.filePath,
+                cloneFiles: this.scraper.config.cloneImages,
                 // flag: this.fileFlag || this.scraper.config.fileFlag,
                 // responseType:'stream',
                 shouldBufferResponse: this.contentType === 'image' ? true : false,
+                // shouldBufferResponse: true,
                 // mockImages:true,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
+                // timeout: 150,
                 headers: this.scraper.config.headers,
                 proxy: this.scraper.config.proxy,
 
             }
-
-            // await verifyDirectoryExists(options.dest);
-
 
 
             var promiseFactory = async () => {
@@ -234,24 +265,34 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 await this.beforePromiseFactory('Fetching file:' + url);
 
                 try {
-                    const fileDownloader = new file_downloader(options);
-                    //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
-                    await fileDownloader.download();
-                    if (!this.scraper.config.mockImages) {
-                        // if (false) {
-                        // const { newFileCreated } = await fileDownloader.save();
-                        await fileDownloader.save();
+                    // const fileDownloader = new file_downloader(options);
+                    // //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
+                    // await fileDownloader.download();
+                    // if (!this.scraper.config.mockImages) {
+                    //     // if (false) {
+                    //     // const { newFileCreated } = await fileDownloader.save();
+                    //     await fileDownloader.save();
 
-                        // newFileCreated && this.scraper.state.downloadedFiles++;
-                        this.scraper.state.downloadedFiles++
+                    //     // newFileCreated && this.scraper.state.downloadedFiles++;
+                    //     this.scraper.state.downloadedFiles++
 
-                        console.log('images:', this.scraper.state.downloadedFiles)
-                    }
+                    //     console.log('images:', this.scraper.state.downloadedFiles)
+                    // }
+                    // debugger;
+                    const downloader = new Downloader(options)
+                    // debugger;
+                    // downloader.injectPathQueue(this.scraper.pathQueue)
+                    // debugger;
+                    await downloader.download();
+                    this.scraper.state.downloadedFiles++
+
+                    console.log('images:', this.scraper.state.downloadedFiles)
 
                 } catch (err) {
-
+                    debugger;
                     if (err.code === 'EEXIST') {
-                        console.log('File already exists in the directory, NOT overwriting it:', url);
+                        debugger;
+                        // console.log('File already exists in the directory, NOT overwriting it:', url);
                     } else {
                         throw err;
                     }

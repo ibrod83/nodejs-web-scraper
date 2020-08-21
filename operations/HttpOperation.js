@@ -63,6 +63,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
             
             console.log('Retrying failed promise...error:', error, 'href:', href);
+            // console.log('Retrying failed promise...error:', error);
             const newRetries = retries + 1;
             console.log('Retreis', newRetries)
             await this.emitError(error)
