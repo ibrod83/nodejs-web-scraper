@@ -130,7 +130,7 @@ class Scraper {
         console.log('overall files: ', this.state.downloadedFiles)
 
         if(this.puppeteerSimple){
-        //    await this.puppeteerSimple.close()
+           await this.puppeteerSimple.close()
         }
 
 

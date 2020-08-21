@@ -4,7 +4,8 @@ const CollectContent = require('./operations/CollectContent'),
     DownloadContent = require('./operations/DownloadContent'),
     // SubmitForm = require('./operations/SubmitForm'),
     Root = require('./operations/Root'),
-    ScrollToBottom = require('./spa/ScrollToBottom'),
+    ScrollToBottom = require('./limitedSpa/ScrollToBottom'),
+    Click = require('./limitedSpa/Click'),
     Scraper = require('./Scraper.js');
 
 module.exports = {
@@ -14,7 +15,8 @@ module.exports = {
     Inquiry,
     OpenLinks,
     CollectContent,
-    ScrollToBottom
+    ScrollToBottom,
+    Click
     // SubmitForm
 };
 
