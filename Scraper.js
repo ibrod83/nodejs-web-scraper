@@ -3,8 +3,8 @@
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
-const {verifyDirectoryExists} = require('./utils/files')
-const {Root} = require('./');//For jsdoc
+const { verifyDirectoryExists } = require('./utils/files')
+const { Root } = require('./');//For jsdoc
 const PuppeteerSimple = require('puppeteer-simple').default;
 
 
@@ -38,7 +38,7 @@ class Scraper {
         // global.counter=0;
         this.config = {
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-            removeStyleAndScriptTags: true,           
+            removeStyleAndScriptTags: true,
             concurrency: 3,//Maximum concurrent requests.
             maxRetries: 5,//Maximum number of retries of a failed request.            
             startUrl: '',
@@ -49,7 +49,7 @@ class Scraper {
             auth: null,
             headers: null,
             proxy: null,
-            usePuppeteer:false
+            usePuppeteer: false
         }
         // this.state = new State();
         this.state = {
@@ -78,7 +78,15 @@ class Scraper {
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
         // debugger;
-        this.puppeteerSimple = new PuppeteerSimple()
+        if (this.config.usePuppeteer) {
+            // debugger;
+            this.puppeteerSimple = new PuppeteerSimple()
+            this.isBrowserReady = this.puppeteerSimple.createBrowser();
+        }
+
+       
+
+
         this.referenceToRoot = null;
 
     }
@@ -87,7 +95,15 @@ class Scraper {
         console.error('Scraper.destroy() is deprecated. You can now have multiple instances, without calling this method.')
     }
 
-    
+    async awaitBrowserReady() {
+        await this.isBrowserReady;
+    }
+
+    getPuppeteerSimpleInstance() {
+        return this.puppeteerSimple;
+    }
+
+
 
     validateGlobalConfig(conf) {
         if (!conf || typeof conf !== 'object')
@@ -96,8 +112,8 @@ class Scraper {
             throw 'Please provide both baseSiteUrl and startUrl';
     }
 
-     
-   
+
+
 
 
     /**
@@ -112,7 +128,14 @@ class Scraper {
         // debugger;
         // rootObject.injectScraper(this)
         rootObject.init(this)
+
+        if(this.config.usePuppeteer){
+           await this.awaitBrowserReady(); 
+        }
+        
+
         await rootObject.scrape();
+
         if (this.areThereRepeatableErrors()) {
             console.error('Number of repeatable failed requests: ', this.state.failedScrapingObjects.length);
         } else {
@@ -129,8 +152,8 @@ class Scraper {
         // console.log('global.counter of alternative src ',global.counter)
         console.log('overall files: ', this.state.downloadedFiles)
 
-        if(this.puppeteerSimple){
-           await this.puppeteerSimple.close()
+        if (this.config.usePuppeteer) {
+            await this.puppeteerSimple.close()
         }
 
 

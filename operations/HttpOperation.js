@@ -9,7 +9,7 @@ const request = require('../request/request.js');
 const { createDelay } = require('../utils/delay');
 const rpur = require('repeat-promise-until-resolved');
 const { url } = require('inspector');
-const  SPA_page  = require('../limitedSpa/SPA_page');
+const  SPA_page  = require('../limitedSpa/Page');
 
 
 
@@ -17,8 +17,8 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     constructor(config) {
         super(config)
-        this.SPA_page = null;//This will hold an instance of SPA_page, which wraps a PuppeteerSimple Page.
-        //Relevant only if this.scraper.config.usePuppeteer is true.
+        // page = null;//This will hold an instance of page, which wraps a PuppeteerSimple Page.
+        // //Relevant only if this.scraper.config.usePuppeteer is true.
 
         this.virtualOperations=[];
         
@@ -85,7 +85,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
 
-        return await rpur(promiseFactory, { maxAttempts, shouldStop, onError });
+        return await rpur(promiseFactory, { maxAttempts, shouldStop, onError,  timeout:0});
     }
 
     // async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
@@ -345,19 +345,19 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 // await page.init();
                 // const data = await page.getHtml();
                 // debugger;
-                var page = new SPA_page(this.scraper.puppeteerSimple,href);
-                this.SPA_page = page;
+                var page = new SPA_page(this.scraper.getPuppeteerSimpleInstance(),href);
+                // page = page;
                 // const scrollToBottom = new ScrollToBottom({ numRepetitions: 10, delay: 1500 })
                 for(let virtualOperation of this.virtualOperations){
-                  this.SPA_page.addOperation(virtualOperation)  
+                  page.addOperation(virtualOperation)  
                 }
                 
-                await this.SPA_page.scrape(page);
-                const data = await this.SPA_page.getHtml();
+                await page.scrape(page);
+                const data = await page.getHtml();
                 if (!data) {
                     debugger
                     console.log('no html from httpoperation');
-                    process.exit()
+                    // process.exit()
         
                 }
                 mockResponse = {//Mocking the "request" response object, to pass to the child operation.
@@ -365,6 +365,8 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                     config: {
                         url: href
                     },
+                    headers:this.scraper.headers,
+                    statusText:'ok',
                     originalResponse: null,
                     data,
                     status: 200,
@@ -387,7 +389,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 throw error;
             }
             finally {
-                await this.SPA_page.close();
+                await page.close();
                 this.afterPromiseFactory();
             }
             // return resp;

@@ -29,7 +29,7 @@ class Operation {//Base class for all operations.
         this.data = [];
         this.operations = [];//References to child operation objects.
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
-
+        this.scraper = null;//Will hold the reference to the global Scraper instance.
 
 
     }
