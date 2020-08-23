@@ -18,6 +18,10 @@ class ScrapingObject {//Creates a scraping object, for all operations.
 
     }
 
+    // async processSelf(func){
+    //     await func();
+    // }
+
 }
 
 module.exports = ScrapingObject;
