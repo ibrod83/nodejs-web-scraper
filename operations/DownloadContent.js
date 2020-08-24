@@ -172,9 +172,9 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var base64Data = split[1]
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
+            const fileProcessor = new FileProcessor({useSynchronousMode:true, fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
             if (this.scraper.config.cloneImages) {
-                debugger;
+                // debugger;
                 // fileName = await fileProcessor.getAvailableFileName();
                 fileName = fileProcessor.getAvailableFileName();
             } else {
@@ -239,6 +239,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 // timeout: 150,
                 headers: this.scraper.config.headers,
                 proxy: this.scraper.config.proxy,
+                useSynchronousMode:true
 
             }
 
