@@ -22,7 +22,7 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
     
     
     async scrape() {
-        debugger;
+        // debugger;
         const scrapingObject = this.createScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination')
         this.data = scrapingObject;
         await this.processOneScrapingObject(scrapingObject);
