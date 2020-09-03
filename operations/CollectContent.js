@@ -21,7 +21,6 @@ class CollectContent extends Operation {
      * @param {Function} [config.getElementList = null] Receives an elementList array
      * @param {Function} [config.getElementContent = null] Receives elementContentString and pageAddress
      * @param {Function} [config.afterScrape = null] Receives a data object
-     * @param {Function} [config.getElementList = null] Receives
      
      */
     constructor(querySelector, config) {
@@ -49,7 +48,7 @@ class CollectContent extends Operation {
         var $ = cheerio.load(responseObjectFromParent.data);
         const elementList = await this.createElementList($);
 
-
+        // debugger;
         for(let element of elementList){
             let content = this.getNodeContent(element);
             if (this.getElementContent) {

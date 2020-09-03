@@ -309,11 +309,12 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
 
-    async scrapeChildren(childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
+    async scrapeChildren(childOperations, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
 
         const scrapedData = []
         for (let operation of childOperations) {
-            const dataFromChild = await operation.scrape(passedData, responseObjectFromParent);
+            debugger;
+            const dataFromChild = await operation.scrape( responseObjectFromParent);
 
             scrapedData.push(dataFromChild);//Pushes the data from the child
 
@@ -440,7 +441,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
                 })
 
-                debugger;
+                // debugger;
 
                 if (this.scraper.config.removeStyleAndScriptTags) {
                     this.stripTags(resp);

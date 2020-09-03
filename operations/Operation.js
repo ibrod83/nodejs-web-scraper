@@ -42,16 +42,10 @@ class Operation {//Base class for all operations.
     }
 
 
-    injectScraper(ScraperInstance){
-        // debugger;
-        this.scraper = ScraperInstance;
-        
-        for(let operation of this.operations){
-            operation.injectScraper(ScraperInstance);
-        }
-    }
+   
 
     init(ScraperInstance){
+        debugger;
         // this.reset()
         this.scraper = ScraperInstance;
         this.handleNewOperationCreation(this)
@@ -63,16 +57,7 @@ class Operation {//Base class for all operations.
         
     }
 
-    // initOperationWithScraperInstance(ScraperInstance){
-    //     this.scraper = ScraperInstance;
-    //     this.handleNewOperationCreation(this)
-    //     for(let operation of this.operations){
-    //         operation.injectScraper(ScraperInstance);
-    //     }
-    // }
-
-
-
+ 
 
     validateOperationArguments() {
 
@@ -135,6 +120,7 @@ class Operation {//Base class for all operations.
         }
         
         if (this.getElementList) {
+            // debugger;
             await this.getElementList(elementList);
         }
         // debugger;

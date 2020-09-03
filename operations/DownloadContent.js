@@ -56,6 +56,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
 
     async scrape(responseObjectFromParent) {
+        debugger;
         if (!this.directoryVerified) {
             await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
             this.directoryVerified = true;

@@ -127,6 +127,7 @@ class Scraper {
         this.referenceToRoot = rootObject;
         // debugger;
         // rootObject.injectScraper(this)
+        debugger;
         rootObject.init(this)
 
         if(this.config.usePuppeteer){
