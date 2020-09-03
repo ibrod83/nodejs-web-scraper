@@ -1,16 +1,10 @@
 
-// const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
 const { verifyDirectoryExists } = require('./utils/files')
-const { Root } = require('./');//For jsdoc
+const Root = require('./operations/Root');//For jsdoc
 const PuppeteerSimple = require('puppeteer-simple').default;
-
-
-
-
-
 
 
 
@@ -91,6 +85,10 @@ class Scraper {
 
     }
 
+    registerOperation(Operation){
+        this.state.registeredOperations.push(Operation);
+    }
+
     destroy() {
         console.error('Scraper.destroy() is deprecated. You can now have multiple instances, without calling this method.')
     }
@@ -128,7 +126,7 @@ class Scraper {
         // debugger;
         // rootObject.injectScraper(this)
         debugger;
-        rootObject.init(this)
+        rootObject.injectScraper(this)
 
         if(this.config.usePuppeteer){
            await this.awaitBrowserReady(); 
@@ -160,14 +158,6 @@ class Scraper {
 
     }
 
-    // outPutErrors() {
-    //     const numErrors = this.state.failedScrapingObjects.length;
-    //     if (numErrors > 0) {
-    //         console.error('Number of repeatable failed requests: ', numErrors);
-    //     } else {
-    //         console.log('All done, no repeatable errors');
-    //     }
-    // }
 
     areThereRepeatableErrors() {
         // debugger;

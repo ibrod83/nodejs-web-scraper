@@ -9,8 +9,10 @@ const file_downloader = require('../file_downloader')
 const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
+const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
+const {getAbsoluteUrl,isDataUrl,getDataUrlExtension} = require('../utils/url');
 
-let counter = 0
+// const repeatPromiseUntilResolved = require('repeat-promise-until-resolved');
 
 
 
@@ -30,10 +32,11 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {Function} [config.afterScrape = null] Receives a data object
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
-    constructor(querySelector, config={}) {
+    constructor(querySelector, config = {}) {
         // debugger;
         super(config);
 
+        
         this.querySelector = querySelector;
         // this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
         this.overridableProps = ['filePath'];
@@ -49,12 +52,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             'data-src-large',
             'data-src-medium',
             'data-src-small',
-
         ]
-
     }
 
+   
 
+
+    /**
+     * 
+     * @param {CustomResponse} responseObjectFromParent 
+     * @return {Promise<{type: string;name: string;data: Array;}>}
+     */
     async scrape(responseObjectFromParent) {
         debugger;
         if (!this.directoryVerified) {
@@ -67,9 +75,15 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         this.contentType = this.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
         // debugger;
-        const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
+        // const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
+        const baseUrlFromBaseTag = getBaseUrlFromBaseTag($, this.scraper.config.baseSiteUrl);
 
-        const elementList = await this.createElementList($);
+        // const elementList = await this.createElementList($);
+        const elementList = await createElementList($,this.querySelector,{condition:this.condition,slice:this.slice});
+
+        if (this.getElementList) {
+            await this.getElementList(elementList);
+        }
         // debugger;
         const fileRefs = [];
 
@@ -77,8 +91,9 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
             var src;
             src = element.attr(this.contentType === 'image' ? 'src' : 'href')
-            const isDataUrl = this.isDataUrl(src);//Give priority to non-base64 images.
-            if (!src || isDataUrl) {//If the element doesn't have an "src" tag(in case of content type image), or the src is base64, try getting an alternative.
+            // const isDataUrl = this.isDataUrl(src);//Give priority to non-base64 images.
+            const isImageDataUrl = isDataUrl(src);//Give priority to non-base64 images.
+            if (!src || isImageDataUrl) {//If the element doesn't have an "src" tag(in case of content type image), or the src is base64, try getting an alternative.
                 const alternativeAttrib = this.alternativeSrc && this.getAlternativeAttrib(element[0].attribs);
                 if (alternativeAttrib) {
 
@@ -94,7 +109,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 }
             }
 
-            const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
+            // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
+            const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
             fileRefs.push(absoluteUrl);
             
 
@@ -148,35 +164,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
-
-    isDataUrl(url) {
-        if (!url || !url.startsWith("data:image"))
-            return false
-
-        return true;
-    }
-
-    getDataUrlExtension(dataurl) {
-        return dataurl.split('/')[1].split(';')[0]
-    }
-    // counter = 0;
     saveDataUrlPromiseFactory(url) {
 
-        // counter++;
-        // console.log('DATAURL ', counter)
         return async () => {
-            // return new Promise(async(resolve, reject) => {
             console.log('Src is base64. Creating a file form it, with a hashed name.')
 
-            const extension = this.getDataUrlExtension(url);
+            const extension = getDataUrlExtension(url);
             const split = url.split(';base64,');
-            // debugger;
-            // console.log('split',split)
-            // var base64Data = url.split(';base64,').pop();
+
             var base64Data = split[1]
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-            // debugger;
             const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
             if (this.scraper.config.cloneImages) {
 
@@ -184,25 +182,22 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             } else {
                 fileName = fileName + '.' + extension;
             }
-            
+
             await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
             console.log('images:', this.scraper.state.downloadedFiles)
 
-            // })
         }
 
 
     }
 
     async getFile(url) {
-        // debugger;
 
         if (this.processUrl) {
             try {
                 url = await this.processUrl(url)
-                // console.log('new href', url)
             } catch (error) {
                 console.error('Error processing URL, continuing with original one: ', url);
             }
@@ -269,18 +264,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             }
         }
 
-
-        // const maxAttempts = this.scraper.config.maxRetries;
-        // const onError= (error,retries)=>{
-        //     console.log('Retrying failed promise...error:', error, 'href:', href);
-        //     const newRetries = retries + 1;
-        //     console.log('Retreis', newRetries)
-        // }
-
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
         // return await this.qyuFactory(() =>repeatPromiseUntilResolved(promiseFactory, { maxAttempts,  onError }));
-        return await this.qyuFactory(() =>this.repeatPromiseUntilResolved(promiseFactory,url));
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
 
 
     }
@@ -292,23 +279,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         const fileHref = scrapingObject.address;
 
         try {
-
-
             await this.getFile(fileHref);
-            // debugger;
             scrapingObject.successful = true;
 
         } catch (error) {
-            // debugger;
-            // error.code
+
             const errorCode = error.code
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
             this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
 
             return;
-
-
         }
 
     }

@@ -2,13 +2,14 @@ const Operation = require('./Operation')
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors')
 cheerio = cheerioAdv.wrap(cheerio)
+const { createElementList,getNodeContent } = require('../utils/cheerio')
 // const YoyoTrait = require('../YoyoTrait');
 
 
 class CollectContent extends Operation {
-    
-   
-   
+
+
+
 
     /**
      * 
@@ -36,9 +37,7 @@ class CollectContent extends Operation {
     }
 
     async scrape(responseObjectFromParent) {
-        // debugger;
-        // console.log('address',responseObjectFromParent.request.res.responseUrl)
-        // const parentAddress = responseObjectFromParent.request.res.responseUrl
+
         const parentAddress = responseObjectFromParent.url
         const currentWrapper = this.createWrapper(parentAddress);
 
@@ -46,27 +45,23 @@ class CollectContent extends Operation {
         !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
 
         var $ = cheerio.load(responseObjectFromParent.data);
-        const elementList = await this.createElementList($);
+        // const elementList = await this.createElementList($);
+        const elementList = await createElementList($,this.querySelector,{condition:this.condition,slice:this.slice});
 
-        // debugger;
-        for(let element of elementList){
-            let content = this.getNodeContent(element);
+        if (this.getElementList) {
+            await this.getElementList(elementList);
+        }
+
+        for (let element of elementList) {
+            let content = getNodeContent(element,{shouldTrim:this.shouldTrim,contentType:this.contentType});
             if (this.getElementContent) {
-                const contentFromCallback = await this.getElementContent(content,parentAddress)
+                const contentFromCallback = await this.getElementContent(content, parentAddress)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
             // debugger;
             currentWrapper.data.push(content);
         }
-        // elementList.forEach(async(element) => {
-        //     let content = this.getNodeContent(element);
-        //     if (this.getElementContent) {
-        //         const contentFromCallback = await this.getElementContent(content,parentAddress)
-        //         content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
-        //     }
-        //     // debugger;
-        //     currentWrapper.data.push(content);
-        // })
+
         $ = null;
 
         if (this.afterScrape) {
@@ -78,26 +73,9 @@ class CollectContent extends Operation {
 
         return this.createMinimalData(currentWrapper);
 
-
-
     }
 
-    getNodeContent(elem) {
-        const getText = () => this.shouldTrim ? elem.text().trim() : elem.text();//Will trim the string, if "shouldTrim" is true.
-        switch (this.contentType) {
-            case 'text':
-                return getText();
-            case 'html':
-                return elem.html();
-            default:
-                return getText();;
-
-        }
-    }
-
-
-
-
+    
 
 }
 

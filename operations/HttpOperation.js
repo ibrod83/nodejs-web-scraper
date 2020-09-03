@@ -1,57 +1,35 @@
 const Operation = require('./Operation');
-var cheerio = require('cheerio');
 const { Qyu } = require('qyu');
-var cheerioAdv = require('cheerio-advanced-selectors');
-cheerio = cheerioAdv.wrap(cheerio);
-const URL = require('url').URL;
-// const Promise = require('bluebird');
-const request = require('../request/request.js');
-const { createDelay } = require('../utils/delay');
 const rpur = require('repeat-promise-until-resolved');
-const { url } = require('inspector');
-const SPA_page = require('../limitedSpa/Page');
+const { createDelay } = require('../utils/delay');
+const ScrapingObject = require('../ScrapingObject');
 
 
-
-class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
+/**
+ * Base class for all operations that require reaching out to the internet.
+ */
+class HttpOperation extends Operation {
 
     constructor(config) {
         super(config)
-        // page = null;//This will hold an instance of page, which wraps a PuppeteerSimple Page.
-        // //Relevant only if this.scraper.config.usePuppeteer is true.
 
-        this.virtualOperations = [];
-
+        this.virtualOperations = [];//Will hold "virtual operations" performed by Puppeteer, which are out of the normal scraping flow.
 
         if (this.condition) {
             const type = typeof this.condition;
-            if (type !== 'function') {
-                throw new Error(`"condition" hook must receive a function, got: ${type}`)
+            if (config && config.condition) {
+                const type = typeof config.condition;
+                if (type !== 'function') {
+                    throw new Error(`"condition" hook must receive a function, got: ${type}`)
+                }
             }
+
+            this.counter = 0;
+
         }
-
-        this.counter = 0;
-
-
-
-
-
     }
 
-    createScrapingObject(href, type) {//Creates a scraping object, for all operations.
-        const scrapingObject = {
-            address: href,//The image href            
-            referenceToOperationObject: this.referenceToOperationObject.bind(this),
-            successful: false,
-            data: []
-        }
-        if (type)
-            scrapingObject.type = type;
 
-        this.scraper.state.scrapingObjects.push(scrapingObject)
-
-        return scrapingObject;
-    }
 
     async emitError(error) {
         if (this.getException)
@@ -81,101 +59,15 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                 error.code = errorCode;
                 return true
             }
-
             return false;
         }
-
 
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
 
         return await rpur(promiseFactory, { maxAttempts, shouldStop, onError, timeout: 0 });
     }
 
-    // async repeatPromiseUntilResolved(promiseFactory, href, retries = 0) {//Repeats a given failed promise few times(not to be confused with "repeatErrors()").
-
-    //     // debugger;
-    //     const randomNumber = this.scraper.config.fakeErrors && Math.floor(Math.random() * (3 - 1 + 1)) + 1;
-    //     // debugger;
-    //     if (this.scraper.state.numRequests > 3 && randomNumber === 1) {
-
-    //         throw 'randomly generated error,' + href;
-    //     }
-
-    //     const maxRetries = this.scraper.config.maxRetries;
-    //     try {
-    //         // overallRequests++
-    //         // console.log('overallRequests', overallRequests)
-
-    //         return await promiseFactory();
-    //     } catch (error) {
-    //         debugger;
-    //         await this.emitError(error)
-
-    //         // debugger;
-    //         const errorCode = error.response ? error.response.status : error
-    //         // console.log('Error code', errorCode);
-    //         if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
-    //             // debugger;
-    //             const error = new Error();
-    //             error.message = `Skipping error ${errorCode}`;
-    //             // debugger;
-    //             error.code = errorCode;
-    //             throw error;
-    //         }
-
-    //         console.log('Retrying failed promise...error:', error, 'href:', href);
-    //         const newRetries = retries + 1;
-    //         console.log('Retreis', newRetries)
-    //         if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
-    //             throw error;
-    //         }
-    //         return await this.repeatPromiseUntilResolved(promiseFactory, href, newRetries);//Calls it self, as long as there are retries left.
-    //     }
-
-    // }
-
-    async paginate(scrapingObject) {//Divides a given page to multiple pages.
-
-        delete scrapingObject.successful;
-        const scrapingObjects = [];
-        const numPages = this.pagination.numPages;
-        const firstPage = typeof this.pagination.begin !== 'undefined' ? this.pagination.begin : 1;
-        const lastPage = this.pagination.end || numPages;
-        const offset = this.pagination.offset || 1;
-
-        for (let i = firstPage; i <= lastPage; i = i + offset) {
-
-            const mark = scrapingObject.address.includes('?') ? '&' : '?';
-            var paginationUrl;
-            var paginationObject;
-            // debugger;
-            if (this.pagination.queryString) {
-                paginationUrl = `${scrapingObject.address}${mark}${this.pagination.queryString}=${i}`;
-            } else {
-
-                paginationUrl = `${scrapingObject.address}/${this.pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
-
-
-            }
-            if (this.pagination.processPaginationUrl) {
-                try {
-                    paginationUrl = await this.pagination.processPaginationUrl(paginationUrl)
-                    // console.log('new href', url)
-                } catch (error) {
-
-                    console.error('Error processing URL, continuing with original one: ', paginationUrl);
-
-                }
-
-            }
-            paginationObject = this.createScrapingObject(paginationUrl);
-            scrapingObjects.push(paginationObject);
-
-        }
-
-        scrapingObject.data = [...scrapingObjects];
-        await this.executeScrapingObjects(scrapingObjects, 3);//The argument 3 forces lower promise limitation on pagination.
-    }
+    
 
     createScrapingObjectsFromRefs(refs, type) {
 
@@ -183,8 +75,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         refs.forEach((href) => {
             if (href) {
-                // const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, href)
-                var scrapingObject = this.createScrapingObject(href, type);
+
+                const scrapingObject = new ScrapingObject(href, type, this.referenceToOperationObject.bind(this))
+                this.scraper.state.scrapingObjects.push(scrapingObject)
                 scrapingObjects.push(scrapingObject);
             }
 
@@ -192,14 +85,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         return scrapingObjects;
     }
 
-    // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-    //     // console.log('overwriteConcurrency', overwriteConcurrency)
-    //     // debugger;
-    //     await Promise.map(scrapingObjects, (scrapingObject) => {
-    //         return this.processOneScrapingObject(scrapingObject);
-    //     }, { concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
-    // }
-
+ 
     async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
 
         const q = new Qyu({ concurrency: overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency })
@@ -255,346 +141,126 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         await currentSpacer;
     }
 
-    getAbsoluteUrl(base, relative) {//Handles the absolute URL.
-        // debugger;
-        const newUrl = new URL(relative, base).toString();
-        return newUrl;
 
+
+async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
+
+    if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
+        return this.paginate(scrapingObject);
+        // return PageMixin.paginate(scrapingObject)
     }
 
-    getBaseUrlFromBaseTag($) {
-        let baseMetaTag = $('base');
 
-        // debugger;
-        if (baseMetaTag.length == 0 || baseMetaTag.length > 1) {
-            baseMetaTag = null;
-        }
-        else {
-            baseMetaTag = baseMetaTag[0];
-            var baseUrlFromBaseTag = baseMetaTag.attribs.href || null;
-        }
 
-        if (baseUrlFromBaseTag) {
-            if (baseUrlFromBaseTag === '/') {
-                baseUrlFromBaseTag = this.scraper.config.baseSiteUrl
+    let href = scrapingObject.address;
+    try {
+        // const rand = Math.floor(Math.random() * 10) + 1;
+        // if (rand == 1) {
+        //     throw new Error('yoyo')
+        // }
+        // if (this.state.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
+        if (this.processUrl) {
+            try {
+                href = await this.processUrl(href)
+                // console.log('new href', href)
+            } catch (error) {
+                console.error('Error processing URL, continuing with original one: ', href);
             }
+
         }
 
-        return baseUrlFromBaseTag;
-
-
-    }
-
-    addOperation(operationObject) {//Adds a reference to an operation object     
-        // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
-        // debugger;
-
-        const SPA_operationNames = ['ScrollToBottom', 'Click'];
-        const operationName = operationObject.constructor.name;
-        // debugger;
-        if (SPA_operationNames.includes(operationName)) {
-
-            this.virtualOperations.push(operationObject)
-
+        if (this.scraper.config.usePuppeteer) {
+            var response = await this.SPA_getPage(href);
         } else {
-            if (!(operationObject instanceof Object.getPrototypeOf(HttpOperation))) {
-                throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
-            }
-            this.operations.push(operationObject)
+            var response = await this.getPage(href);
         }
 
-
-
-
-    }
-
-
-    async scrapeChildren(childOperations, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
-
-        const scrapedData = []
-        for (let operation of childOperations) {
-            debugger;
-            const dataFromChild = await operation.scrape( responseObjectFromParent);
-
-            scrapedData.push(dataFromChild);//Pushes the data from the child
-
-        }
-        responseObjectFromParent = null;
-        return scrapedData;
-    }
-
-    stripTags(responseObject) {//Cleans the html string from script and style tags.
-
-
-        if (this.scraper.config.removeStyleAndScriptTags) {
-            responseObject.data = responseObject.data.replace(/<\s*script[^>]*>[\s\S]*?(<\s*\/script[^>]*>|$)/ig, '');
-            responseObject.data = responseObject.data.replace(/<style[^>]*>[\s\S]*?(<\/style[^>]*>|$)/ig, '');
-
-        }
-        // console.log('after strip', sizeof(responseObject.data))
-
-    }
-
-
-    async SPA_getPage(href, bypassError) {
-        const promiseFactory = async () => {
-
-            await this.beforePromiseFactory('Opening page:' + href);
-
-            let mockResponse;
-            try {
-
-                // debugger;
-                // var page = await this.scraper.puppeteer.createPage(href);
-                // await page.init();
-                // const data = await page.getHtml();
-                // debugger;
-                var page = new SPA_page(this.scraper.getPuppeteerSimpleInstance(), href);
-                // page = page;
-                // const scrollToBottom = new ScrollToBottom({ numRepetitions: 10, delay: 1500 })
-                for (let virtualOperation of this.virtualOperations) {
-                    page.addOperation(virtualOperation)
-                }
-
-                await page.scrape(page);
-                const response = page.getResponse();
-                const {status,statusText,headers,url} = response;
-                const data = await page.getHtml();
-                // debugger;
-                // console.log(response.status)
-                // debugger;
-                // if (!data) {
-                //     debugger
-                //     console.log('no html from httpoperation');
-                //     // process.exit()
-
-                // }
-                //status,statusText,headers,url
-                mockResponse = {//Mocking the "request" response object, to pass to the child operation.
-                    url,
-                    config: {
-                        url: href
-                    },
-                    headers,
-                    statusText,
-                    originalResponse: response,
-                    data,
-                    status,
-                    // statusText: statusTexturl,
-                    // headers: headers
-                }
-
-                // debugger;
-
-
-                if (this.scraper.config.removeStyleAndScriptTags) {
-                    this.stripTags(mockResponse);
-                }
-
-                if (this.getHtml) {
-                    // await this.getHtml(resp.data, resp.request.res.responseUrl)
-                    await this.getHtml(mockResponse.data, mockResponse.url)
-                }
-                // await page.close();
-                return mockResponse;
-
-            } catch (error) {
-                // await page.close();
-                debugger;
-                throw error;
-            } finally {
-                debugger;
-                // console.log('finally!')
-                this.counter++;
-                console.log('counter', this.counter)
-                // debugger;
-                // await page.close();
-                page.close();
-                this.afterPromiseFactory();
-            }
-            // return resp;
+        // debugger;
+        if (this.getPageResponse) {//If a "getResponse" callback was provided, it will be called
             // debugger;
-            // return mockResponse;
+            if (typeof this.getPageResponse !== 'function')
+                throw "'getPageResponse' callback must be a function";
+            await this.getPageResponse(response);
+
+        } else if (this.beforeOneLinkScrape) {//Backward compatibility
+            if (typeof this.beforeOneLinkScrape !== 'function')
+                throw "'beforeOneLinkScrape' callback must be a function";
+            await this.beforeOneLinkScrape(response);
         }
 
-        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
+        scrapingObject.successful = true
 
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
+
+    } catch (error) {
+        debugger;
+        // console.log(error)
+        const errorCode = error.code
+        const errorString = `There was an error opening page ${href}, ${error}`;
+        this.errors.push(errorString);
+        this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
+        return;
+
     }
 
-    async getPage(href, bypassError) {//Fetches the html of a given page.
-
-        const promiseFactory = async () => {
-
-            await this.beforePromiseFactory('Opening page:' + href);
-
-            let resp;
-            try {
-
-                resp = await request({
-                    method: 'get', url: href,
-                    timeout: this.scraper.config.timeout,
-                    auth: this.scraper.config.auth,
-                    headers: this.scraper.config.headers,
-                    proxy: this.scraper.config.proxy
-                    // proxy:true
-
-                })
-
-                // debugger;
-
-                if (this.scraper.config.removeStyleAndScriptTags) {
-                    this.stripTags(resp);
-                }
-
-                if (this.getHtml) {
-                    // await this.getHtml(resp.data, resp.request.res.responseUrl)
-                    await this.getHtml(resp.data, resp.url)
-                }
-
-            } catch (error) {
-                // debugger;
-                throw error;
-            }
-            finally {
-                this.afterPromiseFactory();
-            }
-            return resp;
-        }
-
-        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, href, bypassError);
-
-        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
-
-
-        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
-        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href));
-    }
-
-    // async SPA_processOneScrapingObject(scrapingObject){
-
-    // }
-
-    async processOneScrapingObject(scrapingObject) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
-
-        if (scrapingObject.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-            return this.paginate(scrapingObject);
-        }
-
-
-
-        let href = scrapingObject.address;
-        try {
-            // const rand = Math.floor(Math.random() * 10) + 1;
-            // if (rand == 1) {
-            //     throw new Error('yoyo')
-            // }
-            // if (this.state.fakeErrors && scrapingObject.type === 'pagination') { throw 'faiiiiiiiiiil' };
-            if (this.processUrl) {
-                try {
-                    href = await this.processUrl(href)
-                    // console.log('new href', href)
-                } catch (error) {
-                    console.error('Error processing URL, continuing with original one: ', href);
-                }
-
-            }
-
-            if (this.scraper.config.usePuppeteer) {
-                var response = await this.SPA_getPage(href);
-            } else {
-                var response = await this.getPage(href);
-            }
-
+    try {
+        // const rand = Math.floor(Math.random() * 10) + 1;
+        // if(rand == 1){
+        //     throw 'yoyo'
+        // }
+        // var dataFromChildren = await this.scrapeChildren(this.operations, response)
+        var dataFromChildren = await this.scrapeChildren(response)
+        response = null;
+        let callback;
+        // debugger;
+        callback = this.getPageData || this.afterOneLinkScrape;//For backward compatibility. 
+        if (callback) {
             // debugger;
-            if (this.getPageResponse) {//If a "getResponse" callback was provided, it will be called
-                // debugger;
-                if (typeof this.getPageResponse !== 'function')
-                    throw "'getPageResponse' callback must be a function";
-                await this.getPageResponse(response);
+            if (typeof callback !== 'function')
+                throw "callback must be a function";
 
-            } else if (this.beforeOneLinkScrape) {//Backward compatibility
-                if (typeof this.beforeOneLinkScrape !== 'function')
-                    throw "'beforeOneLinkScrape' callback must be a function";
-                await this.beforeOneLinkScrape(response);
-            }
+            const cleanData = {
+                address: href,
+                data: []
+            };
 
-            scrapingObject.successful = true
-
-
-        } catch (error) {
-            debugger;
-            // console.log(error)
-            const errorCode = error.code
-            const errorString = `There was an error opening page ${href}, ${error}`;
-            this.errors.push(errorString);
-            this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
-            return;
-
+            dataFromChildren.forEach((dataFromChild) => {
+                // cleanData.data.push(this.createPresentableData(dataFromChild));
+                cleanData.data.push(dataFromChild);
+                // cleanData.push(dataFromChild)
+            })
+            await callback(cleanData);
         }
 
-        try {
-            // const rand = Math.floor(Math.random() * 10) + 1;
-            // if(rand == 1){
-            //     throw 'yoyo'
-            // }
-            var dataFromChildren = await this.scrapeChildren(this.operations, response)
-            response = null;
-            let callback;
+        if (this.getPageObject) {
             // debugger;
-            callback = this.getPageData || this.afterOneLinkScrape;//For backward compatibility. 
-            if (callback) {
-                // debugger;
-                if (typeof callback !== 'function')
-                    throw "callback must be a function";
 
-                const cleanData = {
-                    address: href,
-                    data: []
-                };
-
-                dataFromChildren.forEach((dataFromChild) => {
-                    // cleanData.data.push(this.createPresentableData(dataFromChild));
-                    cleanData.data.push(dataFromChild);
-                    // cleanData.push(dataFromChild)
-                })
-                await callback(cleanData);
+            const tree = {
+                address: scrapingObject.address
             }
-
-            if (this.getPageObject) {
+            for (let child of dataFromChildren) {
                 // debugger;
+                if (child.type === 'DownloadContent') {
+                    const data = child.data.map(d => d.address);
 
-                const tree = {
-                    address: scrapingObject.address
+                    tree[child.name] = data.length <= 1 ? data[0] : data
+                    continue;
                 }
-                for (let child of dataFromChildren) {
-                    // debugger;
-                    if (child.type === 'DownloadContent') {
-                        const data = child.data.map(d => d.address);
 
-                        tree[child.name] = data.length <= 1 ? data[0] : data
-                        continue;
-                    }
-                    // const type = typeof child
-                    // console.log(type)
-                    tree[child.name] = child.data.length <= 1 ? child.data[0] : child.data
-                }
-                await this.getPageObject(tree)
+                tree[child.name] = child.data.length <= 1 ? child.data[0] : child.data
             }
-
-
-            scrapingObject.data = [...dataFromChildren];
-        } catch (error) {
-            // if(error.message.includes('type')){
-            //     debugger;
-            // }
-            // debugger;
-            console.error(error);
+            await this.getPageObject(tree)
         }
 
+
+        scrapingObject.data = [...dataFromChildren];
+    } catch (error) {
+
+        console.error(error);
     }
 
 }
 
+
+}
+// Object.assign(HttpOperation.prototype,PageMixin)
 module.exports = HttpOperation;
