@@ -1,5 +1,12 @@
 const HttpOperation = require('./HttpOperation');
 const ScrapingObject = require('../ScrapingObject')
+const CompositeMixin = require('./mixins/CompositeMixin');
+const PageMixin = require('./mixins/PageMixin');
+
+/**
+ * @mixes CompositeMixin
+ * @mixes PageMixin
+ */
 class Root extends HttpOperation {//Fetches the initial page, and starts the scraping process.
 
     /**
@@ -52,5 +59,8 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
 
 
 }
+
+Object.assign(Root.prototype,CompositeMixin)
+Object.assign(Root.prototype,PageMixin)
 
 module.exports = Root;

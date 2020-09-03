@@ -1,5 +1,5 @@
 const CollectContent = require('./operations/CollectContent'),
-    Inquiry = require('./operations/Inquiry'),
+    // Inquiry = require('./operations/Inquiry'),
     OpenLinks = require('./operations/OpenLinks'),
     DownloadContent = require('./operations/DownloadContent'),
     // SubmitForm = require('./operations/SubmitForm'),
@@ -10,7 +10,7 @@ module.exports = {
     Scraper,
     Root,
     DownloadContent,
-    Inquiry,
+    // Inquiry,
     OpenLinks,
     CollectContent,
     // SubmitForm

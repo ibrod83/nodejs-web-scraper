@@ -1,11 +1,18 @@
 const HttpOperation = require('./HttpOperation');
+const CompositeMixin = require('./mixins/CompositeMixin');
+
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
 const {getAbsoluteUrl} = require('../utils/url');
+const PageMixin = require('./mixins/PageMixin');
 
-
+/**
+ * @mixes CompositeMixin
+ * @mixes PageMixin
+ * 
+ */
 class OpenLinks extends HttpOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
 
 
@@ -94,5 +101,8 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 
 }
+
+Object.assign(OpenLinks.prototype,CompositeMixin)
+Object.assign(OpenLinks.prototype,PageMixin)
 
 module.exports = OpenLinks;

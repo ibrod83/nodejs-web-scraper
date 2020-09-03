@@ -123,4 +123,5 @@ class Operation {//Base class for all operations.
 
 
 
+
 module.exports = Operation;
