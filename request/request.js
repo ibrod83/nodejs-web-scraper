@@ -209,7 +209,7 @@ class Request {
 }
 
 // module.exports.default = request;
-module.exports = request;
+module.exports = {request, CustomResponse};
 // module.exports.Request = Request;
 
 // debugger;

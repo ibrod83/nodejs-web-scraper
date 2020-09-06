@@ -1,17 +1,17 @@
 const HttpOperation = require('./HttpOperation');
-const ScrapingObject = require('../ScrapingObject')
+const ScrapingObject = require('../structures/ScrapingObject')
 const CompositeMixin = require('./mixins/CompositeMixin');
 const PageMixin = require('./mixins/PageMixin');
 
 /**
+ * //Methods are added after class declaration.
  * @mixes CompositeMixin
  * @mixes PageMixin
  */
 class Root extends HttpOperation {//Fetches the initial page, and starts the scraping process.
 
     /**
-     * 
-     * @param {string} querySelector cheerio-advanced-selectors selector 
+     *     
      * @param {Object} [config]    
      * @param {Object} [config.pagination = null] Look at the pagination API for more details.      
      * @param {Function} [config.getElementList = null] Receives an elementList array    
@@ -24,20 +24,15 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
      */
     constructor(config){
         super(config)
+        this.operations = [];//References to child operation objects.
     }
 
-    // init(ScraperInstance){
-    //     this.scraper = ScraperInstance;
-    //     this.handleNewOperationCreation(this)
-    //     for(let operation of this.operations){
-    //         operation.init(ScraperInstance);
-    //     }
-    // }
+   
     
     async scrape() {
 
         // const scrapingObject = this.createScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination')
-        const scrapingObject =new  ScrapingObject(this.scraper.config.startUrl, this.pagination && 'pagination',this.referenceToOperationObject.bind(this))
+        const scrapingObject =new  ScrapingObject(this.scraper.config.startUrl, this.config.pagination && 'pagination',this.referenceToOperationObject.bind(this))
         this.data = scrapingObject;
         this.scraper.state.scrapingObjects.push(scrapingObject)
         await this.processOneScrapingObject(scrapingObject);
@@ -53,6 +48,10 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
                 errors = [...errors,...operation.getErrors()]
         })
         return errors;
+    }
+
+    validateOperationArguments() {
+        // return;
     }
 
 

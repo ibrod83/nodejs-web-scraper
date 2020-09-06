@@ -5,12 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
 const {Root} = require('./');//For jsdoc
-
-
-
-
-
-
+const ScrapingObject = require('./structures/ScrapingObject');//For jsdoc
 
 
 
@@ -44,7 +39,7 @@ class Scraper {
             baseSiteUrl: '',
             delay: 200,
             timeout: 6000,
-            filePath: null,//Needs to be provided only if an image operation is created.
+            filePath: null,//Needs to be provided only if a DownloadContent operation is created.
             auth: null,
             headers: null,
             proxy: null
@@ -71,13 +66,17 @@ class Scraper {
 
         this.config.fakeErrors = false;
         this.config.errorCodesToSkip = [404, 403, 400];
-        this.config.useQyu = true;
+        // this.config.useQyu = true;
         this.config.mockImages = false;
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
         
         this.referenceToRoot = null;
 
+    }
+
+    registerOperation(Operation){
+        this.state.registeredOperations.push(Operation)
     }
 
     destroy() {
@@ -107,8 +106,8 @@ class Scraper {
 
         this.referenceToRoot = rootObject;
         // debugger;
-        // rootObject.injectScraper(this)
-        rootObject.init(this)
+        rootObject.injectScraper(this)
+        // rootObject.init(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
             console.error('Number of repeatable failed requests: ', this.state.failedScrapingObjects.length);
@@ -143,17 +142,37 @@ class Scraper {
         return this.state.failedScrapingObjects.length > 0;
     }
 
+    /**
+     * 
+     * @param {ScrapingObject} scrapingObject 
+     */
+    reportFailedScrapingObject(scrapingObject){
+        debugger;
+        const errorCode = scrapingObject.errorCode;
+        const shouldNotBeSkipped = !this.config.errorCodesToSkip.includes(errorCode);
+        if (!this.state.failedScrapingObjects.includes(scrapingObject) && shouldNotBeSkipped) {
+            // console.log('scrapingObject not included,pushing it!')
+            this.state.failedScrapingObjects.push(scrapingObject);
+        }
+    }
 
-    saveFile(obj) {
+
+    /**
+     * 
+     * @param {Object} data 
+     * @param {string} fileName    
+     */
+    saveFile(data,fileName) {
         // verifyDirectoryExists(this.config.logPath);
         return new Promise(async (resolve, reject) => {
             await verifyDirectoryExists(this.config.logPath);
             console.log('saving file')
-            fs.writeFile(path.join(this.config.logPath, `${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
+            debugger;
+            fs.writeFile(path.join(this.config.logPath, `${fileName}.json`), JSON.stringify(data), (error) => {
                 if (error) {
                     reject(error)
                 } else {
-                    console.log(`Log file ${obj.fileName} saved`);
+                    console.log(`Log file ${fileName} saved`);
                     resolve();
                 }
 
@@ -164,9 +183,9 @@ class Scraper {
     }
 
     async createLogs() {
-        // debugger;
+        debugger;
         for (let operation of this.state.registeredOperations) {
-            const fileName = operation.constructor.name === 'Root' ? 'log' : operation.name;
+            const fileName = operation.constructor.name === 'Root' ? 'log' : operation.config.name;
             const data = operation.getData();
             await this.createLog({ fileName, data })
         }
@@ -175,8 +194,14 @@ class Scraper {
     }
 
 
+    /**
+     * 
+     * @param {Object} obj 
+     * @param {string} obj.fileName
+     * @param {ScrapingObject | ScrapingObject[]} obj.data
+     */
     async createLog(obj) {
-        await this.saveFile(obj);
+        await this.saveFile(obj.data,obj.fileName);
     }
 
 

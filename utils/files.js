@@ -1,7 +1,7 @@
 const fs = require('fs');
-const {promisify} = require('util');
-const access = promisify(fs.access);
-const mkdir = promisify(fs.mkdir);
+// const {promisify} = require('util');
+// const access = promisify(fs.access);
+// const mkdir = promisify(fs.mkdir);
 
 function verifyDirectoryExists(path) {//Will make sure the target directory exists.   
     if (!fs.existsSync(path)) {
@@ -31,26 +31,27 @@ function verifyDirectoryExists(path) {//Will make sure the target directory exis
    
 // }
 
-//  function verifyDirectoryExists(path){
+ function verifyDirectoryExistsAsync(path){
 
-//        return new Promise((resolve,reject)=>{
-//            fs.access(path,(err)=>{
-//             //    debugger;
-//                if(err){
-//                    fs.mkdir(path,{recursive:true},(err)=>{
-//                     //    debugger;
-//                        resolve();
-//                    })
-//                }else{
-//                    resolve();
-//                }
-//            })
-//        }) 
+       return new Promise((resolve,reject)=>{
+           fs.access(path,(err)=>{
+            //    debugger;
+               if(err){
+                   fs.mkdir(path,{recursive:true},(err)=>{
+                    //    debugger;
+                       resolve();
+                   })
+               }else{
+                   resolve();
+               }
+           })
+       }) 
      
    
 
-// }
+}
 
 module.exports = {
-    verifyDirectoryExists
+    verifyDirectoryExists,
+    verifyDirectoryExistsAsync
 }

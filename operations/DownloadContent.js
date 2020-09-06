@@ -10,9 +10,9 @@ const FileProcessor = require('../file_downloader/file_processor');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
-const {getAbsoluteUrl,isDataUrl,getDataUrlExtension} = require('../utils/url');
-
-// const repeatPromiseUntilResolved = require('repeat-promise-until-resolved');
+const { getAbsoluteUrl, isDataUrl, getDataUrlExtension } = require('../utils/url');
+const ScrapingWrapper = require('../structures/ScrapingWrapper');
+const MinimalData = require('../structures/MinimalData');
 
 
 
@@ -41,7 +41,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         this.overridableProps = ['filePath'];
         for (let prop in config) {
             if (this.overridableProps.includes(prop))
-                this[prop] = config[prop];
+                this.config[prop] = config[prop];
         }
 
         this.directoryVerified = false;
@@ -54,6 +54,15 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         ]
     }
 
+    validateOperationArguments() {
+        if (!this.scraper.config.filePath && !this.config.filePath)
+            throw new Error(`DownloadContent operation Must be provided with a filePath, either locally or globally.`);
+        if (!this.querySelector || typeof this.querySelector !== 'string')
+            throw new Error(`DownloadContent operation must be provided with a querySelector.`);
+    }
+
+
+
 
     /**
      * 
@@ -62,32 +71,28 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      */
     async scrape(responseObjectFromParent) {
         if (!this.directoryVerified) {
-            await verifyDirectoryExists(this.filePath || this.scraper.config.filePath);
+            await verifyDirectoryExists(this.config.filePath || this.scraper.config.filePath);
             this.directoryVerified = true;
         }
 
-        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
+        const currentWrapper = new ScrapingWrapper('DownloadContent', this.config.name, responseObjectFromParent.config.url);
 
-        this.contentType = this.contentType || 'image';
+        this.config.contentType = this.config.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
-        // debugger;
-        // const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
         const baseUrlFromBaseTag = getBaseUrlFromBaseTag($, this.scraper.config.baseSiteUrl);
 
-        // const elementList = await this.createElementList($);
-        const elementList = await createElementList($,this.querySelector,{condition:this.condition,slice:this.slice});
+        const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
 
-        if (this.getElementList) {
-            await this.getElementList(elementList);
+        if (this.config.getElementList) {
+            await this.config.getElementList(elementList);
         }
-        // debugger;
+        // debugger;config.
         const fileRefs = [];
 
         elementList.forEach((element) => {
 
             var src;
-            src = element.attr(this.contentType === 'image' ? 'src' : 'href')
-            // const isDataUrl = this.isDataUrl(src);//Give priority to non-base64 images.
+            src = element.attr(this.config.contentType === 'image' ? 'src' : 'href')
             const isImageDataUrl = isDataUrl(src);//Give priority to non-base64 images.
             if (!src || isImageDataUrl) {//If the element doesn't have an "src" tag(in case of content type image), or the src is base64, try getting an alternative.
                 const alternativeAttrib = this.alternativeSrc && this.getAlternativeAttrib(element[0].attribs);
@@ -105,21 +110,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 }
             }
 
-            // const absoluteUrl = this.getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
             const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
             fileRefs.push(absoluteUrl);
 
         })
         $ = null;
 
-        // if (!fileRefs.length) {//problem, this resolves the promise with undefined, if no images are found.
-
-        //     return;
-        // }
-
         const scrapingObjects = this.createScrapingObjectsFromRefs(fileRefs);
         // debugger;
-        await this.executeScrapingObjects(scrapingObjects);
+        await this.executeScrapingObjects(scrapingObjects, (scrapingObject) => {
+            return this.processOneScrapingObject(scrapingObject)
+        });
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
 
@@ -127,11 +128,13 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         this.data.push(currentWrapper);
         // this.data.push(currentWrapper.data);
 
-        if (this.afterScrape) {
-            await this.afterScrape(currentWrapper);
+        if (this.config.afterScrape) {
+            await this.config.afterScrape(currentWrapper);
         }
 
-        return this.createMinimalData(currentWrapper);
+        // return this.createMinimalData(currentWrapper);
+        return new MinimalData(currentWrapper.type, currentWrapper.name, currentWrapper.data)
+
     }
 
     /**
@@ -168,7 +171,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var base64Data = split[1]
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.filePath || this.scraper.config.filePath });
+            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.config.filePath || this.scraper.config.filePath });
             if (this.scraper.config.cloneImages) {
 
                 fileName = fileProcessor.getAvailableFileName();
@@ -176,7 +179,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 fileName = fileName + '.' + extension;
             }
 
-            await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
+            await writeFile(`${this.config.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
             console.log('images:', this.scraper.state.downloadedFiles)
@@ -186,70 +189,69 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
     }
 
-    async getFile(url) {
-
-        if (this.processUrl) {
+    /**
+     * 
+     * @param {string} href
+     * @return {Promise<string>} 
+     */
+    async runProcessUrlHook(href) {
+        if (this.config.processUrl) {
+            let finalHref;
             try {
-                url = await this.processUrl(url)
+                finalHref = await this.config.processUrl(href)
+                // console.log('new href', href)
             } catch (error) {
-                console.error('Error processing URL, continuing with original one: ', url);
+                console.error('Error processing URL, continuing with original one: ', href);
+                finalHref = href;
+            } finally {
+                return finalHref;
             }
 
         }
+        return href;
+    }
 
-        if (url.startsWith("data:image")) {
-            var promiseFactory = this.saveDataUrlPromiseFactory(url);
+
+    async getFile(url) {
+
+        const finalUrl = await this.runProcessUrlHook(url);
+
+        if (finalUrl.startsWith("data:image")) {
+            var promiseFactory = this.saveDataUrlPromiseFactory(finalUrl);
         } else {
 
             const options = {
-                url,
-                // useContentDisposition,
-                dest: this.filePath || this.scraper.config.filePath,
+                url: finalUrl,
+                dest: this.config.filePath || this.scraper.config.filePath,
                 clone: this.scraper.config.cloneImages,
-                // flag: this.fileFlag || this.scraper.config.fileFlag,
-                // responseType:'stream',
-                shouldBufferResponse: this.contentType === 'image' ? true : false,
-                // mockImages:true,
+                shouldBufferResponse: this.config.contentType === 'image' ? true : false,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
                 headers: this.scraper.config.headers,
                 proxy: this.scraper.config.proxy,
-
             }
-
-            // await verifyDirectoryExists(options.dest);
-
 
 
             var promiseFactory = async () => {
 
-                await this.beforePromiseFactory('Fetching file:' + url);
+                await this.beforePromiseFactory('Fetching file:' + finalUrl);
 
                 try {
                     const fileDownloader = new file_downloader(options);
                     //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
                     await fileDownloader.download();
                     if (!this.scraper.config.mockImages) {
-                        // if (false) {
-                        // const { newFileCreated } = await fileDownloader.save();
+
                         await fileDownloader.save();
 
-                        // newFileCreated && this.scraper.state.downloadedFiles++;
                         this.scraper.state.downloadedFiles++
 
                         console.log('images:', this.scraper.state.downloadedFiles)
                     }
 
                 } catch (err) {
-
-                    if (err.code === 'EEXIST') {
-                        console.log('File already exists in the directory, NOT overwriting it:', url);
-                    } else {
-                        throw err;
-                    }
-                }
-
-                finally {
+                    throw err;
+                } finally {
                     this.afterPromiseFactory();
                 }
                 // return resp;
@@ -257,10 +259,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             }
         }
 
-        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
-        // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
-        // return await this.qyuFactory(() =>repeatPromiseUntilResolved(promiseFactory, { maxAttempts,  onError }));
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, finalUrl));
 
 
     }

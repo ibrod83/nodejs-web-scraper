@@ -1,5 +1,5 @@
 counter = 0;
-const request = require('../request/request.js');
+const {request} = require('../request/request.js');
 // const sanitize = require('sanitize-filename');
 const path = require('path');
 const FileProcessor = require('./file_processor');

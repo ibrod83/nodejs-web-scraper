@@ -5,10 +5,14 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
-const {getAbsoluteUrl} = require('../utils/url');
+const { getAbsoluteUrl } = require('../utils/url');
 const PageMixin = require('./mixins/PageMixin');
+const ScrapingWrapper = require('../structures/ScrapingWrapper');
+
+
 
 /**
+ * //Methods are added after class declaration.
  * @mixes CompositeMixin
  * @mixes PageMixin
  * 
@@ -33,38 +37,45 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config) {
+        
         super(config);
 
+        this.operations = [];//References to child operation objects.
         this.querySelector = querySelector;
-        // debugger;
-        // this.validateOperationArguments();
 
+    }
+
+    validateOperationArguments() {
+        if (!this.querySelector || typeof this.querySelector !== 'string')
+            throw new Error(`OpenLinks operation must be provided with a querySelector.`);
     }
 
     async scrape(responseObjectFromParent) {
 
-        // debugger;
-        const currentWrapper = this.createWrapper(responseObjectFromParent.config.url);
-        // debugger
+        
+        const currentWrapper = new ScrapingWrapper('OpenLinks', this.config.name, responseObjectFromParent.config.url);
+
         var scrapingObjects = [];
 
         const refs = await this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
 
-        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.pagination && 'pagination');//If the operation is paginated, will pass a flag.
+        scrapingObjects = this.createScrapingObjectsFromRefs(refs, this.config.pagination && 'pagination');//If the operation is paginated, will pass a flag.
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
         if (hasOpenLinksOperation) {
             forceConcurrencyLimit = 3;
         }
         // const forceConcurrencyLimit = hasOpenLinksOperation && 3;
-        await this.executeScrapingObjects(scrapingObjects, forceConcurrencyLimit);
+        await this.executeScrapingObjects(scrapingObjects,(scrapingObject)=>{
+            return this.processOneScrapingObject(scrapingObject)
+        }, forceConcurrencyLimit);
         // await this.executeScrapingObjects(scrapingObjects);
 
         currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
         // currentWrapper.data.push(...scrapingObjects);
-        if (this.afterScrape) {
-            await this.afterScrape(currentWrapper);
+        if (this.config.afterScrape) {
+            await this.config.afterScrape(currentWrapper);
         }
         this.data = [...this.data, ...currentWrapper.data]
 
@@ -77,9 +88,9 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         // debugger;
         // const nodeList = await this.createNodeList($);
         // const elementList = await this.createElementList($);
-        const elementList = await createElementList($,this.querySelector,{condition:this.condition,slice:this.slice});
-        if (this.getElementList) {
-            await this.getElementList(elementList);
+        const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
+        if (this.config.getElementList) {
+            await this.config.getElementList(elementList);
         }
         // debugger;
         // const baseUrlFromBaseTag = this.getBaseUrlFromBaseTag($);
@@ -102,7 +113,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 }
 
-Object.assign(OpenLinks.prototype,CompositeMixin)
-Object.assign(OpenLinks.prototype,PageMixin)
+Object.assign(OpenLinks.prototype, CompositeMixin)
+Object.assign(OpenLinks.prototype, PageMixin)
 
 module.exports = OpenLinks;

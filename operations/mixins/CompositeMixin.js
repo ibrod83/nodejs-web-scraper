@@ -1,4 +1,4 @@
-const HttpOperation = require('../HttpOperation')
+// const Operation = require('../Operation')
 /**
  * This provides methods used for event handling. It's not meant to
  * be used directly.
@@ -7,13 +7,34 @@ const HttpOperation = require('../HttpOperation')
  */
 const CompositeMixin = {
 
-  addOperation: function (operationObject) {//Adds a reference to an operation object     
-    // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
-    if (!(operationObject instanceof Object.getPrototypeOf(HttpOperation))) {
-      throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
+  injectScraper: function (ScraperInstance) {//Override the original init function of Operation
+    // debugger;
+    // this.reset()
+    this.scraper = ScraperInstance;
+    // this.handleNewOperationCreation(this)
+    ScraperInstance.registerOperation(this);
+    for (let operation of this.operations) {
+      operation.injectScraper(ScraperInstance);
     }
+
+    this.validateOperationArguments();
+
+  },
+
+  addOperation: function (operationObject) {//Adds a reference to an operation object     
     
-    this.operations.push(operationObject)
+    let next = Object.getPrototypeOf(operationObject);
+
+    while (next.constructor.name !== "Object") {
+      if (next.constructor.name === 'Operation'){
+        this.operations.push(operationObject)
+        return;
+      }
+       
+      next = Object.getPrototypeOf(next);
+    }
+    throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
+   
   },
 
   scrapeChildren: async function (childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
