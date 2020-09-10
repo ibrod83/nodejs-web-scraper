@@ -1,13 +1,13 @@
-class ScrapingObject {
+class ScrapingAction {
 
     /**
-     * Holds the data for any http operation. Can be repeated later on.
+     * Holds the data for an ITERATION of any Operation.scrape(). Can be repeated later on.
      * @param {string} address 
      * @param {string} type 
      * @param {Function} operationObjectReferenceGetter 
      */
     constructor(address, type, operationObjectReferenceGetter) {
-        this._identifier= 'ScrapingObject'
+        this._identifier = 'ScrapingAction'
         this.address = address//The image href            
         this.referenceToOperationObject = operationObjectReferenceGetter
         this.successful = false
@@ -15,17 +15,26 @@ class ScrapingObject {
         this.error = null;
         this.errorCode = null;
 
-        if (type)
-            this.type = type;
+        // if (type)
+        this.type = type;
 
     }
+
+    // getCleanData(){
+    //     return {
+    //         address:this.address,
+    //         successful: this.successful,
+    //         data:this.data,            
+            
+    //     }
+    // }
 
     /**
      * 
      * @param {string} errorString 
      * @param {number} errorCode 
      */
-    setError(errorString,errorCode) {
+    setError(errorString, errorCode) {
         this.error = errorString;
         this.errorCode = errorCode;
     }
@@ -36,4 +45,4 @@ class ScrapingObject {
 
 }
 
-module.exports = ScrapingObject;
+module.exports = ScrapingAction;

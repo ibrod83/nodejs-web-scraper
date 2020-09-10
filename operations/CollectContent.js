@@ -5,6 +5,7 @@ cheerio = cheerioAdv.wrap(cheerio)
 const { createElementList, getNodeContent } = require('../utils/cheerio')
 const ScrapingWrapper = require('../structures/ScrapingWrapper')
 const MinimalData = require('../structures/MinimalData')
+const ScrapingAction = require('../structures/ScrapingAction')
 // const YoyoTrait = require('../YoyoTrait');
 
 
@@ -46,12 +47,20 @@ class CollectContent extends Operation {
 
     }
 
- 
+    // createScrapingActionFromElement(element, url) {
+
+    //     const scrapingAction = new ScrapingAction(url, 'CollectContent', this.referenceToOperationObject.bind(this))
+    //     return scrapingAction;
+
+    // }
+
+
     async scrape(responseObjectFromParent) {
 
+        const scrapingActions = [];
         const parentAddress = responseObjectFromParent.url
         // const currentWrapper = this.createWrapper(parentAddress);
-        const currentWrapper = new ScrapingWrapper('CollectContent',this.config.name,parentAddress);
+        // const currentWrapper = new ScrapingWrapper('CollectContent', this.config.name, parentAddress);
 
         this.config.contentType = this.config.contentType || 'text';
         !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
@@ -71,21 +80,32 @@ class CollectContent extends Operation {
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
             // debugger;
-            currentWrapper.data.push(content);
+            // currentWrapper.data.push(content);
+            const scrapingAction = new ScrapingAction(parentAddress, 'CollectContent', this.referenceToOperationObject.bind(this))
+            scrapingAction.data = content;
+            scrapingAction.successful = true;
+            scrapingActions.push(scrapingAction);
+            // debugger;
         }
 
         $ = null;
 
         if (this.config.afterScrape) {
-            await this.config.afterScrape(currentWrapper);
+            // await this.config.afterScrape(currentWrapper);
+            await this.config.afterScrape(scrapingActions);
         }
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
-        this.data = [...this.data, currentWrapper];
+        this.data = [...this.data, ...scrapingActions];
 
         // return this.createMinimalData(currentWrapper);
-        return new MinimalData(currentWrapper.type,currentWrapper.name,currentWrapper.data)
-      
+        // return new MinimalData(currentWrapper.type,currentWrapper.name,currentWrapper.data)
+        // return this.returnAfterScrape({ type: 'CollectContent', address: parentAddress, data:scrapingActions })
+
+        const scrapingWrapper  = new ScrapingWrapper({type:'CollectContent',name:this.config.name,address:parentAddress,data:scrapingActions})
+        return scrapingWrapper;
+
+
 
     }
 

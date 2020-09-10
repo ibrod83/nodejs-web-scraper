@@ -1,7 +1,7 @@
 const { Qyu } = require('qyu');
 /**
      * 
-     * @param {itterable[]} scrapingObjects 
+     * @param {itterable[]} scrapingActions 
      * @param {Function} overwriteConcurrency 
      * @param {number} concurrency 
      */

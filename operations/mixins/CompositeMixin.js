@@ -21,7 +21,7 @@ const CompositeMixin = {
 
   },
 
-  addOperation: function (operationObject) {//Adds a reference to an operation object     
+  _addOperation: function (operationObject) {//Adds a reference to an operation object     
     
     let next = Object.getPrototypeOf(operationObject);
 

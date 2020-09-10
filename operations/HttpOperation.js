@@ -7,7 +7,7 @@ cheerio = cheerioAdv.wrap(cheerio);
 const { mapPromisesWithLimitation } = require('../utils/concurrency');
 const { createDelay } = require('../utils/delay');
 const rpur = require('repeat-promise-until-resolved')
-const ScrapingObject = require('../structures/ScrapingObject');
+const ScrapingAction = require('../structures/ScrapingAction');
 
 
 
@@ -71,33 +71,33 @@ class HttpOperation extends Operation {//Base class for all operations that requ
      * @param {string[]} refs 
      * @param {string} type 
      */
-    createScrapingObjectsFromRefs(refs, type) {
+    createScrapingActionsFromRefs(refs, type) {
 
-        const scrapingObjects = [];
+        const scrapingActions = [];
 
         refs.forEach((href) => {
             if (href) {
                 // const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, href)
-                // var scrapingObject = this.createScrapingObject(href, type);
-                const scrapingObject = new ScrapingObject(href, type, this.referenceToOperationObject.bind(this))
-                this.scraper.state.scrapingObjects.push(scrapingObject)
-                scrapingObjects.push(scrapingObject);
+                // var scrapingAction = this.createScrapingAction(href, type);
+                const scrapingAction = new ScrapingAction(href, type, this.referenceToOperationObject.bind(this))
+                this.scraper.state.scrapingActions.push(scrapingAction)
+                scrapingActions.push(scrapingAction);
             }
 
         })
-        return scrapingObjects;
+        return scrapingActions;
     }
 
 
     /**
      * 
-     * @param {ScrapingObject[]} scrapingObjects 
+     * @param {ScrapingAction[]} scrapingActions 
      * @param {Function} executionFunc
      * @param {number} overwriteConcurrency 
      */
-    async executeScrapingObjects(scrapingObjects, executionFunc, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
+    async executeScrapingActions(scrapingActions, executionFunc, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
 
-        await mapPromisesWithLimitation(scrapingObjects, executionFunc, overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency)
+        await mapPromisesWithLimitation(scrapingActions, executionFunc, overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency)
 
     }
 
@@ -105,14 +105,14 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     /**
      * 
-     * @param {ScrapingObject} scrapingObject 
+     * @param {ScrapingAction} scrapingAction 
      * @param {string} errorString 
      * @param {number} errorCode 
      */
-    handleFailedScrapingObject(scrapingObject, errorString, errorCode) {
+    handleFailedScrapingAction(scrapingAction, errorString, errorCode) {
         console.error(errorString);
-        scrapingObject.setError(errorString, errorCode)
-        this.scraper.reportFailedScrapingObject(scrapingObject);
+        scrapingAction.setError(errorString, errorCode)
+        this.scraper.reportFailedScrapingAction(scrapingAction);
 
     }
 

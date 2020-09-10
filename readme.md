@@ -239,7 +239,7 @@ const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
     let directoryExists;
 
-    const getHtml = (html, pageAddress) => {//Saving the HTML file, using the page address as a name.
+    const getPageHtml = (html, pageAddress) => {//Saving the HTML file, using the page address as a name.
 
         if(!directoryExists){
             fs.mkdirSync('./html');
@@ -253,7 +253,7 @@ const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 100 } });
 
-    const jobAds = new OpenLinks('.list-row h2 a', { getHtml });//Opens every job ad, and calls a hook after every page is done.
+    const jobAds = new OpenLinks('.list-row h2 a', { getPageHtml });//Opens every job ad, and calls a hook after every page is done.
 
     root.addOperation(jobAds);
 
@@ -440,7 +440,7 @@ The optional config takes these properties:
 {    
     pagination:{},//In case your root page is paginated.    
     getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
-    getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
+    getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected by the root and its children.
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
@@ -472,7 +472,7 @@ The optional config can have these properties:
     pagination:{},//Look at the pagination API for more details.
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
     getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
-    getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
+    getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.

@@ -1,5 +1,6 @@
 
-const Scraper = require('../Scraper')//For jsdoc
+const Scraper = require('../Scraper');//For jsdoc
+// const ScrapingWrapper = require('../structures/ScrapingWrapper');
 
 /**
  * Base class for all operations(not including limitedSpa).
@@ -10,7 +11,7 @@ class Operation {//Base class for all operations.
     constructor(objectConfig) {
 
 
-        this.config={}
+        this.config = {}
         if (objectConfig) {
             for (let i in objectConfig) {
                 this.config[i] = objectConfig[i];
@@ -18,28 +19,28 @@ class Operation {//Base class for all operations.
         }
         if (!this.config.name)
             this.config.name = `Default ${this.constructor.name} name`;
-   
+
         this.scraper = null; //Scraper instance is passed later on.
         this.data = []; //Holds all data collected by this operation, in the form of possibly multiple "ScrapingWrappers".       
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
     }
 
-  
-    
+
+
     /**
      * Being that all Operation objects are created independetly from the Scraper, a Scraper reference must be passed to them.
      * Due to the nature of the API, this cannot be done in the Operation constructor. 
      * @param {Scraper} ScraperInstance 
      */
-    injectScraper(ScraperInstance){
+    injectScraper(ScraperInstance) {
 
         this.scraper = ScraperInstance;
 
         this.handleNewOperationCreation(this)
 
         this.validateOperationArguments();//Implemented by all Operation objects
-        
+
     }
 
 
@@ -67,7 +68,25 @@ class Operation {//Base class for all operations.
         return this.data;
     }
 
- 
+    // /**
+    //  * 
+    //  * @param {Object} params
+    //  * @param {string} params.type 
+    //  * @param {string} params.address 
+    //  * @param {Array} params.data 
+    //  */
+    // returnAfterScrape({ type, address, data }) {
+    //     return new ScrapingWrapper(
+    //         {
+    //             type,
+    //             name: this.config.name,
+    //             address,
+    //             data
+    //         }
+    //     );
+    // }
+
+
     /**
      * @return {string[]}
      */

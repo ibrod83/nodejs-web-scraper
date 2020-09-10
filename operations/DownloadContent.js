@@ -12,7 +12,7 @@ const { verifyDirectoryExists } = require('../utils/files')
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
 const { getAbsoluteUrl, isDataUrl, getDataUrlExtension } = require('../utils/url');
 const ScrapingWrapper = require('../structures/ScrapingWrapper');
-const MinimalData = require('../structures/MinimalData');
+// const MinimalData = require('../structures/MinimalData');
 
 
 
@@ -75,7 +75,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             this.directoryVerified = true;
         }
 
-        const currentWrapper = new ScrapingWrapper('DownloadContent', this.config.name, responseObjectFromParent.config.url);
+        // const currentWrapper = new ScrapingWrapper('DownloadContent', this.config.name, responseObjectFromParent.config.url);
 
         this.config.contentType = this.config.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
@@ -116,25 +116,31 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         })
         $ = null;
 
-        const scrapingObjects = this.createScrapingObjectsFromRefs(fileRefs);
+        const scrapingActions = this.createScrapingActionsFromRefs(fileRefs);
         // debugger;
-        await this.executeScrapingObjects(scrapingObjects, (scrapingObject) => {
-            return this.processOneScrapingObject(scrapingObject)
+        await this.executeScrapingActions(scrapingActions, (scrapingAction) => {
+            return this.processOneScrapingAction(scrapingAction)
         });
 
-        currentWrapper.data = [...currentWrapper.data, ...scrapingObjects];
+        // currentWrapper.data = [...currentWrapper.data, ...scrapingActions];
 
 
-        this.data.push(currentWrapper);
-        // this.data.push(currentWrapper.data);
+        // this.data.push(currentWrapper);
+        // this.data.push(scrapingActions)
+        this.data = [...this.data, ...scrapingActions]  
 
         if (this.config.afterScrape) {
-            await this.config.afterScrape(currentWrapper);
+            // await this.config.afterScrape(currentWrapper);
+            await this.config.afterScrape(scrapingActions);
         }
 
         // return this.createMinimalData(currentWrapper);
-        return new MinimalData(currentWrapper.type, currentWrapper.name, currentWrapper.data)
-
+        // return new MinimalData(currentWrapper.type, currentWrapper.name, currentWrapper.data)
+        // return new MinimalData('DownloadContent', this.config.name, [...scrapingActions])
+        // return scrapingActions;
+        // return this.returnAfterScrape({type:'DownloadContent',address:responseObjectFromParent.url,data:scrapingActions})
+        const scrapingWrapper  = new ScrapingWrapper({type:'DownloadContent',name:this.config.name,address:responseObjectFromParent.url,data:scrapingActions})
+        return scrapingWrapper;
     }
 
     /**
@@ -265,21 +271,21 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
-    async processOneScrapingObject(scrapingObject) {
+    async processOneScrapingAction(scrapingAction) {
 
-        delete scrapingObject.data;//Deletes the unnecessary 'data' attribute.
-        const fileHref = scrapingObject.address;
+        delete scrapingAction.data;//Deletes the unnecessary 'data' attribute.
+        const fileHref = scrapingAction.address;
 
         try {
             await this.getFile(fileHref);
-            scrapingObject.successful = true;
+            scrapingAction.successful = true;
 
         } catch (error) {
 
             const errorCode = error.code
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
-            this.handleFailedScrapingObject(scrapingObject, errorString, errorCode);
+            this.handleFailedScrapingAction(scrapingAction, errorString, errorCode);
 
             return;
         }
