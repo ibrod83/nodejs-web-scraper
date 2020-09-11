@@ -1,9 +1,9 @@
 const HttpOperation = require('./HttpOperation');
-const ScrapingAction = require('../structures/ScrapingAction')
+const ScrapingAction = require('./structures/ScrapingAction')
 const CompositeMixin = require('./mixins/CompositeMixin');
 // const PageMixin = require('./mixins/PageMixin');
 const PageHelper = require('./helpers/PageHelper')
-const ScrapingWrapper = require('../structures/ScrapingWrapper');
+const ScrapingWrapper = require('./structures/ScrapingWrapper');
 
 // const CompositeHelper = require('./helpers/CompositeHelper')
 // const { createScrapingActionsForPagination } = require('../utils/pagination.js')
@@ -20,7 +20,6 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
      * @param {Object} [config.pagination = null] Look at the pagination API for more details.      
      * @param {Function} [config.getElementList = null] Receives an elementList array    
      * @param {Function} [config.getPageData = null] 
-     * @param {Function} [config.getAllPagesData = null] 
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
@@ -37,7 +36,7 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
      * 
      * @param {Operation} Operation 
      */
-    addOperation(Operation){
+    addOperation(Operation) {
         this._addOperation(Operation);
     }
 
@@ -58,15 +57,17 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
         // }
 
         // const scrapingAction = this.createScrapingAction(this.scraper.config.startUrl, this.pagination && 'pagination')
-        const scrapingAction = new ScrapingAction(this.scraper.config.startUrl, this.config.pagination && 'pagination', this.referenceToOperationObject.bind(this))
-        
-        this.scraper.state.scrapingActions.push(scrapingAction)
+        // const scrapingAction = new ScrapingAction(this.scraper.config.startUrl, this.config.pagination && 'pagination', this.referenceToOperationObject.bind(this))
+        const scrapingAction = new ScrapingAction({address:this.scraper.config.startUrl, type:this.config.pagination && 'pagination', },this.referenceToOperationObject.bind(this))
 
+        this.scraper.state.scrapingActions.push(scrapingAction)
+        // debugger;
         // await this.processOneScrapingAction(scrapingAction);
         await this.pageHelper.processOneScrapingAction(scrapingAction);
-        
-        this.data.push(scrapingAction);
-        const scrapingWrapper  = new ScrapingWrapper({type:'Root',name:this.config.name,address:this.scraper.config.startUrl,data:[scrapingAction]})
+
+        // this.data.push(scrapingAction);
+        const scrapingWrapper = new ScrapingWrapper({ type: 'Root', name: this.config.name, address: this.scraper.config.startUrl, data: [scrapingAction] })
+        this.data = scrapingWrapper;
         return scrapingWrapper;
 
     }
@@ -84,6 +85,16 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
 
     validateOperationArguments() {
         // return;
+    }
+
+    /**
+     * @override
+     * @return {ScrapingAction}
+     */
+    getData() {
+        return this.data.data[0]
+
+       
     }
 
 

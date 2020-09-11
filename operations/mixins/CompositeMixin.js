@@ -21,20 +21,30 @@ const CompositeMixin = {
 
   },
 
+  // getData: function () {
+  //   var minimalData = [];
+  //   for (let scrapingWrapper of this.data) {
+  //     for (let scrapingAction of scrapingWrapper.data) {
+  //       minimalData.push(scrapingAction.getData());
+  //     }
+  //   }
+  //   return minimalData;
+  // },
+
   _addOperation: function (operationObject) {//Adds a reference to an operation object     
-    
+
     let next = Object.getPrototypeOf(operationObject);
 
     while (next.constructor.name !== "Object") {
-      if (next.constructor.name === 'Operation'){
+      if (next.constructor.name === 'Operation') {
         this.operations.push(operationObject)
         return;
       }
-       
+
       next = Object.getPrototypeOf(next);
     }
     throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
-   
+
   },
 
   scrapeChildren: async function (childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.

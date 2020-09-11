@@ -1,7 +1,7 @@
 const Operation = require('../Operation');//For jsdoc
 const { request } = require('../../request/request.js');
 const { stripTags } = require('../../utils/html');
-const ScrapingAction = require('../../structures/ScrapingAction')
+const ScrapingAction = require('../structures/ScrapingAction')
 const { CustomResponse } = require('../../request/request')//For jsdoc
 
 class PageHelper {
@@ -13,6 +13,39 @@ class PageHelper {
     constructor(Operation) {
         this.Operation = Operation;
     }
+
+
+
+    createScrapingActionsForPagination({begin,end,queryString,routingString,offset=1,address,referenceToOperationObject}) {//Divides a given page to multiple pages.
+
+        const scrapingActions = [];
+        const firstPage = typeof begin !== 'undefined' ? begin : 1;
+        const lastPage = end    
+    
+        for (let i = firstPage; i <= lastPage; i = i + offset) {
+    
+            const mark = address.includes('?') ? '&' : '?';
+            var paginationUrl;
+            // var paginationObject;
+            // debugger;
+            if (queryString) {
+                paginationUrl = `${address}${mark}${queryString}=${i}`;
+            } else {
+    
+                paginationUrl = `${address}/${routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
+    
+    
+            }            
+            // paginationObject = new ScrapingAction(paginationUrl,null,referenceToOperationObject);
+            const paginationObject = new ScrapingAction({address:paginationUrl },referenceToOperationObject.bind(this))
+            scrapingActions.push(paginationObject);
+    
+        }
+        return scrapingActions;
+
+    }
+
+
     /**
     * 
     * @param {ScrapingAction} scrapingAction      
@@ -91,7 +124,7 @@ class PageHelper {
 
             }
             // paginationObject = this.Operation.createScrapingAction(paginationUrl);
-            paginationObject = new ScrapingAction(paginationUrl, 'paginationPage', this.Operation.referenceToOperationObject.bind(this));
+            paginationObject = new ScrapingAction({address:paginationUrl, type:'paginationPage'}, this.Operation.referenceToOperationObject.bind(this));
             this.Operation.scraper.state.scrapingActions.push(scrapingAction)
             scrapingActions.push(paginationObject);
 

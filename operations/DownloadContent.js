@@ -11,7 +11,7 @@ const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
 const { getAbsoluteUrl, isDataUrl, getDataUrlExtension } = require('../utils/url');
-const ScrapingWrapper = require('../structures/ScrapingWrapper');
+const ScrapingWrapper = require('./structures/ScrapingWrapper');
 // const MinimalData = require('../structures/MinimalData');
 
 
@@ -127,7 +127,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
         // this.data.push(currentWrapper);
         // this.data.push(scrapingActions)
-        this.data = [...this.data, ...scrapingActions]  
+        // this.data = [...this.data, ...scrapingActions]  
 
         if (this.config.afterScrape) {
             // await this.config.afterScrape(currentWrapper);
@@ -139,7 +139,9 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         // return new MinimalData('DownloadContent', this.config.name, [...scrapingActions])
         // return scrapingActions;
         // return this.returnAfterScrape({type:'DownloadContent',address:responseObjectFromParent.url,data:scrapingActions})
-        const scrapingWrapper  = new ScrapingWrapper({type:'DownloadContent',name:this.config.name,address:responseObjectFromParent.url,data:scrapingActions})
+        const scrapingWrapper = new ScrapingWrapper({ type: 'DownloadContent', name: this.config.name, address: responseObjectFromParent.url, data: scrapingActions })
+        this.data.push(scrapingWrapper)
+
         return scrapingWrapper;
     }
 
@@ -246,14 +248,13 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     const fileDownloader = new file_downloader(options);
                     //**************TAKE CARE OF PROGRAM ENDING BEFORE ALL FILES COMPLETED**************** */
                     await fileDownloader.download();
-                    if (!this.scraper.config.mockImages) {
 
-                        await fileDownloader.save();
+                    await fileDownloader.save();
 
-                        this.scraper.state.downloadedFiles++
+                    this.scraper.state.downloadedFiles++
 
-                        console.log('images:', this.scraper.state.downloadedFiles)
-                    }
+                    console.log('images:', this.scraper.state.downloadedFiles)
+
 
                 } catch (err) {
                     throw err;
@@ -273,12 +274,13 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
     async processOneScrapingAction(scrapingAction) {
 
-        delete scrapingAction.data;//Deletes the unnecessary 'data' attribute.
+        // delete scrapingAction.data;//Deletes the unnecessary 'data' attribute.
         const fileHref = scrapingAction.address;
 
         try {
             await this.getFile(fileHref);
             scrapingAction.successful = true;
+            
 
         } catch (error) {
 
@@ -291,6 +293,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         }
 
     }
+
 
 
 }

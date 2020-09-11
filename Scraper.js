@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
 const {Root} = require('./');//For jsdoc
-const ScrapingAction = require('./structures/ScrapingAction');//For jsdoc
+const ScrapingAction = require('./operations/structures/ScrapingAction');//For jsdoc
 
 
 
@@ -186,7 +186,7 @@ class Scraper {
         // debugger;
         for (let operation of this.state.registeredOperations) {
             const fileName = operation.constructor.name === 'Root' ? 'log' : operation.config.name;
-            const data = operation.getData();
+            const data = operation.getFullData();
             await this.createLog({ fileName, data })
         }
         await this.createLog({ fileName: 'failedRepeatableRequests', data: this.state.failedScrapingActions })

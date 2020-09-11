@@ -3,9 +3,8 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors')
 cheerio = cheerioAdv.wrap(cheerio)
 const { createElementList, getNodeContent } = require('../utils/cheerio')
-const ScrapingWrapper = require('../structures/ScrapingWrapper')
-const MinimalData = require('../structures/MinimalData')
-const ScrapingAction = require('../structures/ScrapingAction')
+const ScrapingWrapper = require('./structures/ScrapingWrapper')
+const ScrapingAction = require('./structures/ScrapingAction')
 // const YoyoTrait = require('../YoyoTrait');
 
 
@@ -54,6 +53,17 @@ class CollectContent extends Operation {
 
     // }
 
+    getCleanScrapingAction(ScrapingAction){
+        return ScrapingAction.data;
+    }
+
+    getCleanScrapingActions(ScrapingActions){
+        return ScrapingActions.map((action)=>{
+            return this.getCleanScrapingAction(action);
+        })
+    }
+    
+
 
     async scrape(responseObjectFromParent) {
 
@@ -81,7 +91,8 @@ class CollectContent extends Operation {
             }
             // debugger;
             // currentWrapper.data.push(content);
-            const scrapingAction = new ScrapingAction(parentAddress, 'CollectContent', this.referenceToOperationObject.bind(this))
+            // const scrapingAction = new ScrapingAction(parentAddress, 'CollectContent', this.referenceToOperationObject.bind(this))
+            const scrapingAction = new ScrapingAction({address:parentAddress, type:'CollectContent', },this.referenceToOperationObject.bind(this))
             scrapingAction.data = content;
             scrapingAction.successful = true;
             scrapingActions.push(scrapingAction);
@@ -96,19 +107,21 @@ class CollectContent extends Operation {
         }
 
         // this.overallCollectedData.push(this.currentlyScrapedData);
-        this.data = [...this.data, ...scrapingActions];
+        // this.data = [...this.data, ...scrapingActions];
 
         // return this.createMinimalData(currentWrapper);
         // return new MinimalData(currentWrapper.type,currentWrapper.name,currentWrapper.data)
         // return this.returnAfterScrape({ type: 'CollectContent', address: parentAddress, data:scrapingActions })
 
         const scrapingWrapper  = new ScrapingWrapper({type:'CollectContent',name:this.config.name,address:parentAddress,data:scrapingActions})
+        this.data.push(scrapingWrapper)
         return scrapingWrapper;
 
 
 
     }
 
+    
 
 
 }

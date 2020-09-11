@@ -2,22 +2,29 @@ class ScrapingAction {
 
     /**
      * Holds the data for an ITERATION of any Operation.scrape(). Can be repeated later on.
-     * @param {string} address 
-     * @param {string} type 
-     * @param {Function} operationObjectReferenceGetter 
+     * @param {Object} [params] 
+     * @param {string} [params.address] 
+     * @param {string} [params.type] 
+     * @param {string} [params.parentAddress] 
+     * @param {Function} operationObjectReferenceGetter
      */
-    constructor(address, type, operationObjectReferenceGetter) {
+    constructor({ address, type, parentAddress }, operationObjectReferenceGetter) {
         this._identifier = 'ScrapingAction'
-        this.address = address//The image href            
+        this.address = address
+        this.parentAddress = parentAddress
         this.referenceToOperationObject = operationObjectReferenceGetter
         this.successful = false
         this.data = []
-        this.error = null;
-        this.errorCode = null;
+        this.error = undefined;
+        this.errorCode = undefined;
 
         // if (type)
         this.type = type;
 
+    }
+
+    getData(){
+        return this.data;
     }
 
     // getCleanData(){
@@ -25,7 +32,7 @@ class ScrapingAction {
     //         address:this.address,
     //         successful: this.successful,
     //         data:this.data,            
-            
+
     //     }
     // }
 

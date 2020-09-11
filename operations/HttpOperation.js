@@ -7,7 +7,7 @@ cheerio = cheerioAdv.wrap(cheerio);
 const { mapPromisesWithLimitation } = require('../utils/concurrency');
 const { createDelay } = require('../utils/delay');
 const rpur = require('repeat-promise-until-resolved')
-const ScrapingAction = require('../structures/ScrapingAction');
+const ScrapingAction = require('./structures/ScrapingAction');
 
 
 
@@ -79,7 +79,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             if (href) {
                 // const absoluteUrl = this.getAbsoluteUrl(baseUrlOfCurrentDomain, href)
                 // var scrapingAction = this.createScrapingAction(href, type);
-                const scrapingAction = new ScrapingAction(href, type, this.referenceToOperationObject.bind(this))
+                // const scrapingAction = new ScrapingAction(href, type, this.referenceToOperationObject.bind(this))
+                const scrapingAction = new ScrapingAction({address:href, type },this.referenceToOperationObject.bind(this))
+
                 this.scraper.state.scrapingActions.push(scrapingAction)
                 scrapingActions.push(scrapingAction);
             }

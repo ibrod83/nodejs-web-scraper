@@ -61,12 +61,29 @@ class Operation {//Base class for all operations.
         return this;
     }
 
+    /**
+     * @return {Array} Returns an array of all items collected by this operation
+     */
+    getData(){
+        var minimalData = [];
+        for(let scrapingWrapper of this.data){
+            for(let scrapingAction of scrapingWrapper.data){
+                minimalData.push(scrapingAction.getData());
+            }
+        }
+        return minimalData;
+    }
 
-    getData() {
+    getFullData() {
         // console.log('getData')
         // debugger;
         return this.data;
     }
+
+    // getData(){
+    //     // return this.data.map(d=>d.data)
+    //     return this.data.map(d=>d.data)
+    // }
 
     // /**
     //  * 

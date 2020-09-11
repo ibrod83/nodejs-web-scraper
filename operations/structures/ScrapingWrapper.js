@@ -22,6 +22,16 @@ class ScrapingWrapper{
         this.data = data;
        
     }
+
+    // getData(){
+    //     const data = []
+    //     // return this.data.map(scrapingAction=>[...scrapingAction.getData()])
+    //     for(let action of this.data){
+    //         data.push(...action.getData())
+    //     }
+
+    //     return data;
+    // }
 }
 
 module.exports = ScrapingWrapper

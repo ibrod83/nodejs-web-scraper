@@ -1,6 +1,6 @@
 const HttpOperation = require('./HttpOperation');
 const CompositeMixin = require('./mixins/CompositeMixin');
-const Operation  = require('./Operation')//For jsdoc
+const Operation = require('./Operation')//For jsdoc
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
@@ -8,8 +8,9 @@ const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
 const { getAbsoluteUrl } = require('../utils/url');
 // const PageMixin = require('./mixins/PageMixin');
 // const {processOneScrapingAction} = require('./helpers/page')
-const ScrapingWrapper = require('../structures/ScrapingWrapper');
+const ScrapingWrapper = require('./structures/ScrapingWrapper');
 const PageHelper = require('./helpers/PageHelper');
+const ScrapingAction = require('./structures/ScrapingAction');//For jsdoc
 // const CompositeHelper = require('./helpers/CompositeHelper');
 
 
@@ -38,10 +39,10 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      *    
      */
 
-     //  * @param {Function} [config.afterScrape = null] Receives a data object
-     //  * @param {Function} [config.getPageObject = null] Receives a pageObject object
+    //  * @param {Function} [config.afterScrape = null] Receives a data object
+    //  * @param {Function} [config.getPageObject = null] Receives a pageObject object
     constructor(querySelector, config) {
-        
+
         super(config);
         this.pageHelper = new PageHelper(this);
         // this.compositeHelper = new CompositeHelper(this);
@@ -55,19 +56,19 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * 
      * @param {Operation} Operation 
      */
-    addOperation(Operation){
+    addOperation(Operation) {
         this._addOperation(Operation);
     }
-    
+
 
     validateOperationArguments() {
         if (!this.querySelector || typeof this.querySelector !== 'string')
             throw new Error(`OpenLinks operation must be provided with a querySelector.`);
     }
 
-    async getAllPagesDataHook(scrapingActions){
+    async getAllPagesDataHook(scrapingActions) {
         // debugger;
-        if(this.config.getAllPagesData){
+        if (this.config.getAllPagesData) {
             await this.config.getAllPagesData(scrapingActions);
         }
     }
@@ -76,25 +77,35 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         const address = responseObjectFromParent.url;
 
+        // if(this.config.pagination){
+        //     const {begin,end,queryString,routingString,offset} = this.config.pagination;
+        //     this.pageHelper.createScrapingActionsForPagination({
+
+        //     })
+        // }
 
         const refs = await this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
 
-       const  scrapingActions = this.createScrapingActionsFromRefs(refs, this.config.pagination && 'pagination');//If the operation is paginated, will pass a flag.
+        // const scrapingActions = this.createScrapingActionsFromRefs(refs, this.config.pagination && 'pagination');//If the operation is paginated, will pass a flag.
+        const scrapingActions = this.createScrapingActionsFromRefs(refs, this.config.pagination  ? 'pagination' : 'openLinks');//If the operation is paginated, will pass a flag.
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
         if (hasOpenLinksOperation) {
             forceConcurrencyLimit = 3;
         }
-        await this.executeScrapingActions(scrapingActions,(scrapingAction)=>{
+        // debugger;
+        await this.executeScrapingActions(scrapingActions, (scrapingAction) => {
             return this.pageHelper.processOneScrapingAction(scrapingAction)
         }, forceConcurrencyLimit);
 
-        this.data = [...this.data, ...scrapingActions]
+        // this.data = [...this.data, ...scrapingActions]
 
-        const scrapingWrapper  = new ScrapingWrapper({type:'OpenLinks',name:this.config.name,address,data:scrapingActions})
+
+        const scrapingWrapper = new ScrapingWrapper({ type: 'OpenLinks', name: this.config.name, address, data: scrapingActions })
         await this.getAllPagesDataHook(scrapingWrapper);
-        return scrapingWrapper; 
+        this.data.push(scrapingWrapper);
+        return scrapingWrapper;
 
     }
 
@@ -118,6 +129,35 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         return refs;
     }
+
+    /**
+     * @override
+     * @return {ScrapingAction[]}
+     */
+    getData(){
+        const minimalData = []
+        for(let scrapingWrapper of this.data){
+            minimalData.push(...scrapingWrapper.data);
+        }
+        // return this.data;
+        return minimalData;
+        // const minimalData = []
+        // debugger;
+        // for(let wrapper of this.data){
+        //     minimalData.push(...wrapper.getData())
+        // }
+        // return minimalData;
+    }
+
+    // getData() {
+    //     const minimalData = {}
+    //     for (let scrapingWrapper of this.data) {
+    //         // minimalData.push(...scrapingWrapper.data);
+    //         minimalData[scrapingWrapper.address] = scrapingWrapper.data;
+    //     }
+    //     // return this.data;
+    //     return minimalData;
+    // }
 
 
 }
