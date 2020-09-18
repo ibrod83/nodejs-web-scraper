@@ -6,13 +6,8 @@ var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
 const { getAbsoluteUrl } = require('../utils/url');
-// const PageMixin = require('./mixins/PageMixin');
-// const {processOneScrapingAction} = require('./helpers/page')
-const ScrapingWrapper = require('./structures/ScrapingWrapper');
 const PageHelper = require('./helpers/PageHelper');
-const ScrapingAction = require('./structures/ScrapingAction');//For jsdoc
-// const CompositeHelper = require('./helpers/CompositeHelper');
-
+const {CustomResponse} = require('../request/request')
 
 
 /**
@@ -66,46 +61,41 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
             throw new Error(`OpenLinks operation must be provided with a querySelector.`);
     }
 
-    async getAllPagesDataHook(scrapingActions) {
-        // debugger;
-        if (this.config.getAllPagesData) {
-            await this.config.getAllPagesData(scrapingActions);
-        }
-    }
+    
 
+    /**
+     * 
+     * @param {CustomResponse} responseObjectFromParent 
+     * @return {Array} dataFromChildren
+     */
     async scrape(responseObjectFromParent) {
 
-        const address = responseObjectFromParent.url;
-
-        // if(this.config.pagination){
-        //     const {begin,end,queryString,routingString,offset} = this.config.pagination;
-        //     this.pageHelper.createScrapingActionsForPagination({
-
-        //     })
-        // }
 
         const refs = await this.createLinkList(responseObjectFromParent)
         responseObjectFromParent = {};
-
-        // const scrapingActions = this.createScrapingActionsFromRefs(refs, this.config.pagination && 'pagination');//If the operation is paginated, will pass a flag.
-        const scrapingActions = this.createScrapingActionsFromRefs(refs, this.config.pagination  ? 'pagination' : 'openLinks');//If the operation is paginated, will pass a flag.
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
         if (hasOpenLinksOperation) {
             forceConcurrencyLimit = 3;
         }
         // debugger;
-        await this.executeScrapingActions(scrapingActions, (scrapingAction) => {
-            return this.pageHelper.processOneScrapingAction(scrapingAction)
+        const shouldPaginate =  this.config.pagination ? true : false;
+        const dataFromChildren = [];
+        await this.executeScrapingActions(refs, async (href) => {
+            const data = await this.pageHelper.processOneScrapingAction(href, shouldPaginate) 
+
+            if(this.config.getPageData)
+                await this.config.getPageData(data);
+
+            dataFromChildren.push(data)
+
         }, forceConcurrencyLimit);
 
-        // this.data = [...this.data, ...scrapingActions]
+        if (this.config.getAllPagesData)
+            await this.config.getAllPagesData(dataFromChildren);
 
-
-        const scrapingWrapper = new ScrapingWrapper({ type: 'OpenLinks', name: this.config.name, address, data: scrapingActions })
-        await this.getAllPagesDataHook(scrapingWrapper);
-        this.data.push(scrapingWrapper);
-        return scrapingWrapper;
+        this.data.push(...dataFromChildren)
+        return dataFromChildren
 
     }
 
@@ -130,39 +120,10 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         return refs;
     }
 
-    /**
-     * @override
-     * @return {ScrapingAction[]}
-     */
-    getData(){
-        const minimalData = []
-        for(let scrapingWrapper of this.data){
-            minimalData.push(...scrapingWrapper.data);
-        }
-        // return this.data;
-        return minimalData;
-        // const minimalData = []
-        // debugger;
-        // for(let wrapper of this.data){
-        //     minimalData.push(...wrapper.getData())
-        // }
-        // return minimalData;
-    }
-
-    // getData() {
-    //     const minimalData = {}
-    //     for (let scrapingWrapper of this.data) {
-    //         // minimalData.push(...scrapingWrapper.data);
-    //         minimalData[scrapingWrapper.address] = scrapingWrapper.data;
-    //     }
-    //     // return this.data;
-    //     return minimalData;
-    // }
-
+    
 
 }
 
 Object.assign(OpenLinks.prototype, CompositeMixin)
-// Object.assign(OpenLinks.prototype, PageMixin)
 
 module.exports = OpenLinks;

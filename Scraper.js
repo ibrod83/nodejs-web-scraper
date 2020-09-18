@@ -53,7 +53,7 @@ class Scraper {
             registeredOperations: [],//Holds a reference to each created operation.
             numRequests: 0,
             repetitionCycles: 0,
-            scrapingActions: []//for debugging
+            // scrapingActions: []//for debugging
         }
 
 
@@ -110,9 +110,9 @@ class Scraper {
         // rootObject.init(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
-            console.error('Number of repeatable failed requests: ', this.state.failedScrapingActions.length);
+            console.error('Number of requests that failed, in their last attempt: ', this.state.failedScrapingActions.length);
         } else {
-            console.log('All done, no repeatable errors');
+            console.log('All done, no final errors');
         }
         // this.outPutErrors();
         if (this.config.logPath) {
@@ -128,14 +128,6 @@ class Scraper {
 
     }
 
-    // outPutErrors() {
-    //     const numErrors = this.state.failedScrapingActions.length;
-    //     if (numErrors > 0) {
-    //         console.error('Number of repeatable failed requests: ', numErrors);
-    //     } else {
-    //         console.log('All done, no repeatable errors');
-    //     }
-    // }
 
     areThereRepeatableErrors() {
         // debugger;
@@ -144,16 +136,10 @@ class Scraper {
 
     /**
      * 
-     * @param {ScrapingAction} scrapingAction 
+     * @param {string} errorString 
      */
-    reportFailedScrapingAction(scrapingAction){
-        // debugger;
-        const errorCode = scrapingAction.errorCode;
-        const shouldNotBeSkipped = !this.config.errorCodesToSkip.includes(errorCode);
-        if (!this.state.failedScrapingActions.includes(scrapingAction) && shouldNotBeSkipped) {
-            // console.log('scrapingAction not included,pushing it!')
-            this.state.failedScrapingActions.push(scrapingAction);
-        }
+    reportFailedScrapingAction(errorString){
+        this.state.failedScrapingActions.push(errorString);
     }
 
 
@@ -186,11 +172,11 @@ class Scraper {
         // debugger;
         for (let operation of this.state.registeredOperations) {
             const fileName = operation.constructor.name === 'Root' ? 'log' : operation.config.name;
-            const data = operation.getFullData();
+            const data = operation.getData();
             await this.createLog({ fileName, data })
         }
-        await this.createLog({ fileName: 'failedRepeatableRequests', data: this.state.failedScrapingActions })
-        await this.createLog({ fileName: 'allErrors', data: this.referenceToRoot.getErrors() })
+        await this.createLog({ fileName: 'finalErrors', data: this.state.failedScrapingActions })
+        // await this.createLog({ fileName: 'allErrors', data: this.referenceToRoot.getErrors() })
     }
 
 
@@ -206,48 +192,47 @@ class Scraper {
 
 
 
-    async repeatAllFailedRequests(numCycles = 1) {
-        let cycleCounter = 0;
+    // async repeatAllFailedRequests(numCycles = 1) {
+    //     let cycleCounter = 0;
 
-        while (cycleCounter < numCycles) {
-            // debugger;
-            if (this.areThereRepeatableErrors()) {
-                await this.repeatErrors();
+    //     while (cycleCounter < numCycles) {
+    //         // debugger;
+    //         if (this.areThereRepeatableErrors()) {
+    //             await this.repeatErrors();
 
-                cycleCounter++;
+    //             cycleCounter++;
 
-                await this.createLogs();
+    //             await this.createLogs();
 
-            } else {
-                console.log('No repeatable errors');
-                break;
-            }
-        }
+    //         } else {
+    //             console.log('No repeatable errors');
+    //             break;
+    //         }
+    //     }
 
-    }
+    // }
 
 
-    async repeatErrors() {
-        // debugger;
-        // console.log('Beginning a cycle of repetition');
-        this.state.repetitionCycles++
-        console.log('Repetition cycle number:', this.state.repetitionCycles);
-        console.log('Number of failed objects before repetition cycle:', this.state.failedScrapingActions.length)
+    // async repeatErrors() {
 
-        await Promise.all(
-            this.state.failedScrapingActions.map(async (failedObject) => {
-                const operationContext = failedObject.referenceToOperationObject();
-                await operationContext.processOneScrapingAction(failedObject);
-                if (failedObject.successful == true) {
-                    delete failedObject.error;
-                    this.state.failedScrapingActions.splice(this.state.failedScrapingActions.indexOf(failedObject), 1);
-                }
+    //     this.state.repetitionCycles++
+    //     console.log('Repetition cycle number:', this.state.repetitionCycles);
+    //     console.log('Number of failed objects before repetition cycle:', this.state.failedScrapingActions.length)
 
-            })
-        )
+    //     await Promise.all(
+    //         this.state.failedScrapingActions.map(async (failedObject) => {
+    //             const operationContext = failedObject.referenceToOperationObject();
+    //             await operationContext.processOneScrapingAction(failedObject);
+    //             if (failedObject.successful == true) {
+    //                 delete failedObject.error;
+    //                 this.state.failedScrapingActions.splice(this.state.failedScrapingActions.indexOf(failedObject), 1);
+    //             }
 
-        console.log('One cycle of error repetition is done!')
-    }
+    //         })
+    //     )
+
+    //     console.log('One cycle of error repetition is done!')
+    // }
 
 
 

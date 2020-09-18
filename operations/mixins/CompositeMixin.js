@@ -1,4 +1,5 @@
-// const Operation = require('../Operation')
+const { CustomResponse } = require('../../request/request')//For jsdoc
+
 /**
  * This provides methods used for event handling. It's not meant to
  * be used directly.
@@ -8,10 +9,7 @@
 const CompositeMixin = {
 
   injectScraper: function (ScraperInstance) {//Override the original init function of Operation
-    // debugger;
-    // this.reset()
     this.scraper = ScraperInstance;
-    // this.handleNewOperationCreation(this)
     ScraperInstance.registerOperation(this);
     for (let operation of this.operations) {
       operation.injectScraper(ScraperInstance);
@@ -21,15 +19,7 @@ const CompositeMixin = {
 
   },
 
-  // getData: function () {
-  //   var minimalData = [];
-  //   for (let scrapingWrapper of this.data) {
-  //     for (let scrapingAction of scrapingWrapper.data) {
-  //       minimalData.push(scrapingAction.getData());
-  //     }
-  //   }
-  //   return minimalData;
-  // },
+ 
 
   _addOperation: function (operationObject) {//Adds a reference to an operation object     
 
@@ -47,14 +37,21 @@ const CompositeMixin = {
 
   },
 
+  /**
+   * 
+   * @param {Operation[]} childOperations 
+   * @param {*} passedData 
+   * @param {CustomResponse} responseObjectFromParent 
+   * @return {Promise<Object>} scrapedData
+   */
   scrapeChildren: async function (childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
 
-    const scrapedData = []
+    
+    const scrapedData = {}
     for (let operation of childOperations) {
       const dataFromChild = await operation.scrape(passedData, responseObjectFromParent);
 
-      scrapedData.push(dataFromChild);//Pushes the data from the child
-
+      scrapedData[operation.config.name] = dataFromChild;
     }
     responseObjectFromParent = null;
     return scrapedData;

@@ -1,12 +1,7 @@
 const HttpOperation = require('./HttpOperation');
-const ScrapingAction = require('./structures/ScrapingAction')
 const CompositeMixin = require('./mixins/CompositeMixin');
-// const PageMixin = require('./mixins/PageMixin');
 const PageHelper = require('./helpers/PageHelper')
-const ScrapingWrapper = require('./structures/ScrapingWrapper');
 
-// const CompositeHelper = require('./helpers/CompositeHelper')
-// const { createScrapingActionsForPagination } = require('../utils/pagination.js')
 
 /**
  * //Methods are added after class declaration.
@@ -42,33 +37,14 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
 
     async scrape() {
 
-        // if (this.config.pagination) {
-        //     var scrapingActions = createScrapingActionsForPagination({
-        //         ...this.config.pagination,
-        //         address: this.scraper.config.startUrl,                
-        //         referenceToOperationObject: this.referenceToOperationObject.bind(this)
-        //     })
-        //     this.data = [...scrapingActions]
-        //     this.scraper.state.scrapingActions.push([...scrapingActions])
-        //     // debugger;
-        //     return await this.executeScrapingActions(scrapingActions,(scrapingAction)=>{
-        //         return this.processOneScrapingAction(scrapingAction)
-        //     }, '3');
-        // }
+        const shouldPaginate = this.config.pagination ? true : false;
 
-        // const scrapingAction = this.createScrapingAction(this.scraper.config.startUrl, this.pagination && 'pagination')
-        // const scrapingAction = new ScrapingAction(this.scraper.config.startUrl, this.config.pagination && 'pagination', this.referenceToOperationObject.bind(this))
-        const scrapingAction = new ScrapingAction({address:this.scraper.config.startUrl, type:this.config.pagination && 'pagination', },this.referenceToOperationObject.bind(this))
-
-        this.scraper.state.scrapingActions.push(scrapingAction)
-        // debugger;
-        // await this.processOneScrapingAction(scrapingAction);
-        await this.pageHelper.processOneScrapingAction(scrapingAction);
-
-        // this.data.push(scrapingAction);
-        const scrapingWrapper = new ScrapingWrapper({ type: 'Root', name: this.config.name, address: this.scraper.config.startUrl, data: [scrapingAction] })
-        this.data = scrapingWrapper;
-        return scrapingWrapper;
+        const data =  await this.pageHelper.processOneScrapingAction(this.scraper.config.startUrl,shouldPaginate);
+        debugger;
+        this.data = data;
+        if(this.config.getPageData){
+            await this.config.getPageData(data)
+        }
 
     }
 
@@ -87,22 +63,11 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
         // return;
     }
 
-    /**
-     * @override
-     * @return {ScrapingAction}
-     */
-    getData() {
-        return this.data.data[0]
-
-       
-    }
-
-
+ 
 
 
 }
 
 Object.assign(Root.prototype, CompositeMixin)
-// Object.assign(Root.prototype, PageMixin)
 
 module.exports = Root;

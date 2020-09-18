@@ -1,7 +1,6 @@
 const Operation = require('../Operation');//For jsdoc
 const { request } = require('../../request/request.js');
 const { stripTags } = require('../../utils/html');
-const ScrapingAction = require('../structures/ScrapingAction')
 const { CustomResponse } = require('../../request/request')//For jsdoc
 
 class PageHelper {
@@ -16,99 +15,73 @@ class PageHelper {
 
 
 
-    createScrapingActionsForPagination({begin,end,queryString,routingString,offset=1,address,referenceToOperationObject}) {//Divides a given page to multiple pages.
-
-        const scrapingActions = [];
-        const firstPage = typeof begin !== 'undefined' ? begin : 1;
-        const lastPage = end    
-    
-        for (let i = firstPage; i <= lastPage; i = i + offset) {
-    
-            const mark = address.includes('?') ? '&' : '?';
-            var paginationUrl;
-            // var paginationObject;
-            // debugger;
-            if (queryString) {
-                paginationUrl = `${address}${mark}${queryString}=${i}`;
-            } else {
-    
-                paginationUrl = `${address}/${routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
-    
-    
-            }            
-            // paginationObject = new ScrapingAction(paginationUrl,null,referenceToOperationObject);
-            const paginationObject = new ScrapingAction({address:paginationUrl },referenceToOperationObject.bind(this))
-            scrapingActions.push(paginationObject);
-    
-        }
-        return scrapingActions;
-
-    }
-
 
     /**
     * 
-    * @param {ScrapingAction} scrapingAction      
+    * @param {string} scrapingAction      
+    * @param {boolean} shouldPaginate   
+    * @return {Promise<{_address:string,dataFromChildren:[]}>}   
     */
-    async processOneScrapingAction(scrapingAction) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
+    async processOneScrapingAction(href, shouldPaginate) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
         // debugger;
-        if (scrapingAction.type === 'pagination') {//If the scraping object is actually a pagination one, a different function is called. 
-            return this.paginate(scrapingAction);
+        if (shouldPaginate) {//If the scraping object is actually a pagination one, a different function is called. 
+            return this.paginate(href);
         }
 
-        let href = scrapingAction.address;
         try {
 
             href = await this.runProcessUrlHook(href);
-
+            debugger
             var response = await this.getPage(href);
-
+            debugger
             await this.runAfterResponseHooks(response)
 
-            scrapingAction.successful = true
-
+            if (this.Operation.config.name === 'category') {
+                // debugger;
+            }
+            debugger;
             var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, response)
 
             response = null;
 
-            scrapingAction.data = [...dataFromChildren];
-
-            await this.runGetPageDataHook(scrapingAction)
+            return {
+                _address: href,
+                ...dataFromChildren
+            };
         }
         catch (error) {
-            // debugger;
-            const errorCode = error.code
             const errorString = `There was an error opening page ${href}, ${error}`;
             this.Operation.errors.push(errorString);
-            this.Operation.handleFailedScrapingAction(scrapingAction, errorString, errorCode);
+            this.Operation.handleFailedScrapingAction(errorString);
         }
     }
 
 
     /**
      * 
-     * @param {ScrapingAction} scrapingAction 
+     * @param {string} address 
+     * @return {Promise<string[]>} paginationUrls
      */
-    async paginate(scrapingAction) {//Divides a given page to multiple pages.
+    async paginate(address) {//Divides a given page to multiple pages.
         const pagination = this.Operation.config.pagination;
-        delete scrapingAction.successful;
-        const scrapingActions = [];
+        // delete scrapingAction.successful;
+        // const scrapingActions = [];
         const numPages = pagination.numPages;
         const firstPage = typeof pagination.begin !== 'undefined' ? pagination.begin : 1;
         const lastPage = pagination.end || numPages;
         const offset = pagination.offset || 1;
-
+        const paginationUrls = []
         for (let i = firstPage; i <= lastPage; i = i + offset) {
 
-            const mark = scrapingAction.address.includes('?') ? '&' : '?';
+            const mark = address.includes('?') ? '&' : '?';
             var paginationUrl;
-            var paginationObject;
+            // var paginationObject;
             // debugger;
             if (pagination.queryString) {
-                paginationUrl = `${scrapingAction.address}${mark}${pagination.queryString}=${i}`;
+                paginationUrl = `${address}${mark}${pagination.queryString}=${i}`;
             } else {
 
-                paginationUrl = `${scrapingAction.address}/${pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
+                paginationUrl = `${address}/${pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
 
 
             }
@@ -123,17 +96,26 @@ class PageHelper {
                 }
 
             }
+            paginationUrls.push(paginationUrl)
             // paginationObject = this.Operation.createScrapingAction(paginationUrl);
-            paginationObject = new ScrapingAction({address:paginationUrl, type:'paginationPage'}, this.Operation.referenceToOperationObject.bind(this));
-            this.Operation.scraper.state.scrapingActions.push(scrapingAction)
-            scrapingActions.push(paginationObject);
+            // paginationObject = new ScrapingAction({address:paginationUrl, type:'paginationPage'}, this.Operation.referenceToOperationObject.bind(this));
+            // this.Operation.scraper.state.scrapingActions.push(scrapingAction)
+            // scrapingActions.push(paginationObject);
+            // return paginationUrls
 
         }
 
-        scrapingAction.data = [...scrapingActions];
-        await this.Operation.executeScrapingActions(scrapingActions, (scrapingAction) => {
-            return this.processOneScrapingAction(scrapingAction)
+        const dataFromChildren = [];
+        // scrapingAction.data = [...scrapingActions];
+        // const data = []
+        // scrapingAction.data = [...scrapingActions];
+        await this.Operation.executeScrapingActions(paginationUrls, async (url) => {
+            const data = await this.processOneScrapingAction(url, false);
+            // debugger;
+            dataFromChildren.push(data);
+            // dataFromChildren.push(...data)
         }, 3);//The argument 3 forces lower promise limitation on pagination.
+        return dataFromChildren;
     }
 
 
@@ -141,7 +123,7 @@ class PageHelper {
     /**
      * 
      * @param {string} href 
-     * @return {CustomResponse}
+     * @return {Promise<CustomResponse>}
      */
     async getPage(href) {//Fetches the html of a given page.
 

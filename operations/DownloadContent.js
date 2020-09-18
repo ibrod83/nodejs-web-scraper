@@ -11,8 +11,7 @@ const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
 const { getAbsoluteUrl, isDataUrl, getDataUrlExtension } = require('../utils/url');
-const ScrapingWrapper = require('./structures/ScrapingWrapper');
-// const MinimalData = require('../structures/MinimalData');
+
 
 
 
@@ -29,7 +28,6 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {number[]} [config.slice = null]
      * @param {Function} [config.condition = null] Receives a Cheerio node. Use this hook to decide if this node should be included in the scraping. Return true or false
      * @param {Function} [config.getElementList = null] Receives an elementList array     
-     * @param {Function} [config.afterScrape = null] Receives a data object
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config = {}) {
@@ -62,12 +60,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
+    // /**
+    //  * 
+    //  * @param {CustomResponse} responseObjectFromParent 
+    //  * @return {Promise<{type: string;name: string;data: Array;}>}
+    //  */
 
 
     /**
      * 
      * @param {CustomResponse} responseObjectFromParent 
-     * @return {Promise<{type: string;name: string;data: Array;}>}
+     * @return {Promise<string[]>}
      */
     async scrape(responseObjectFromParent) {
         if (!this.directoryVerified) {
@@ -75,7 +78,6 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             this.directoryVerified = true;
         }
 
-        // const currentWrapper = new ScrapingWrapper('DownloadContent', this.config.name, responseObjectFromParent.config.url);
 
         this.config.contentType = this.config.contentType || 'image';
         var $ = cheerio.load(responseObjectFromParent.data);
@@ -116,33 +118,14 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         })
         $ = null;
 
-        const scrapingActions = this.createScrapingActionsFromRefs(fileRefs);
-        // debugger;
-        await this.executeScrapingActions(scrapingActions, (scrapingAction) => {
-            return this.processOneScrapingAction(scrapingAction)
+        
+        await this.executeScrapingActions(fileRefs, (ref) => {
+            return this.processOneScrapingAction(ref)
         });
 
-        // currentWrapper.data = [...currentWrapper.data, ...scrapingActions];
-
-
-        // this.data.push(currentWrapper);
-        // this.data.push(scrapingActions)
-        // this.data = [...this.data, ...scrapingActions]  
-
-        if (this.config.afterScrape) {
-            // await this.config.afterScrape(currentWrapper);
-            await this.config.afterScrape(scrapingActions);
-        }
-
-        // return this.createMinimalData(currentWrapper);
-        // return new MinimalData(currentWrapper.type, currentWrapper.name, currentWrapper.data)
-        // return new MinimalData('DownloadContent', this.config.name, [...scrapingActions])
-        // return scrapingActions;
-        // return this.returnAfterScrape({type:'DownloadContent',address:responseObjectFromParent.url,data:scrapingActions})
-        const scrapingWrapper = new ScrapingWrapper({ type: 'DownloadContent', name: this.config.name, address: responseObjectFromParent.url, data: scrapingActions })
-        this.data.push(scrapingWrapper)
-
-        return scrapingWrapper;
+     
+        this.data.push(...fileRefs)
+        return fileRefs;
     }
 
     /**
@@ -154,9 +137,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         for (let attrib in alternativeAttribs) {
             if (typeof this.alternativeSrc === 'object') {
                 if (this.alternativeSrc.includes(attrib)) {
-                    // debugger;
 
-                    // console.log('alternative attrib:')
                     return attrib;
                 }
             } else {
@@ -272,24 +253,18 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
-    async processOneScrapingAction(scrapingAction) {
-
-        // delete scrapingAction.data;//Deletes the unnecessary 'data' attribute.
-        const fileHref = scrapingAction.address;
+    async processOneScrapingAction(fileHref) {
 
         try {
             await this.getFile(fileHref);
-            scrapingAction.successful = true;
-            
+           
 
         } catch (error) {
 
-            const errorCode = error.code
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
-            this.handleFailedScrapingAction(scrapingAction, errorString, errorCode);
+            this.handleFailedScrapingAction(errorString);
 
-            return;
         }
 
     }

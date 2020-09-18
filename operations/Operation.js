@@ -1,6 +1,5 @@
 
 const Scraper = require('../Scraper');//For jsdoc
-// const ScrapingWrapper = require('../structures/ScrapingWrapper');
 
 /**
  * Base class for all operations(not including limitedSpa).
@@ -61,47 +60,14 @@ class Operation {//Base class for all operations.
         return this;
     }
 
-    /**
-     * @return {Array} Returns an array of all items collected by this operation
-     */
-    getData(){
-        var minimalData = [];
-        for(let scrapingWrapper of this.data){
-            for(let scrapingAction of scrapingWrapper.data){
-                minimalData.push(scrapingAction.getData());
-            }
-        }
-        return minimalData;
-    }
+   
 
-    getFullData() {
-        // console.log('getData')
+    getData(){
         // debugger;
         return this.data;
     }
 
-    // getData(){
-    //     // return this.data.map(d=>d.data)
-    //     return this.data.map(d=>d.data)
-    // }
-
-    // /**
-    //  * 
-    //  * @param {Object} params
-    //  * @param {string} params.type 
-    //  * @param {string} params.address 
-    //  * @param {Array} params.data 
-    //  */
-    // returnAfterScrape({ type, address, data }) {
-    //     return new ScrapingWrapper(
-    //         {
-    //             type,
-    //             name: this.config.name,
-    //             address,
-    //             data
-    //         }
-    //     );
-    // }
+    
 
 
     /**
