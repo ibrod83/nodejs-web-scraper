@@ -16,15 +16,29 @@ class Operation {//Base class for all operations.
                 this.config[i] = objectConfig[i];
             }
         }
-        if (!this.config.name)
-            this.config.name = `Default ${this.constructor.name} name`;
 
+
+
+        // this.querySelector = querySelector;
+        // this.config.name = this.getOperationName(this.config.name);
         this.scraper = null; //Scraper instance is passed later on.
         this.data = []; //Holds all data collected by this operation, in the form of possibly multiple "ScrapingWrappers".       
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
     }
 
+    getOperationName(providedName) {
+        debugger;
+        // return this.querySelector;
+        if (!providedName) {
+            debugger;
+            console.warn(`Providing a "name" argument in the config object of  ${this.constructor.name} is highly recommended,
+            for better readability of the final output!`)
+            // this.config.name = this.querySelector;
+            return this.querySelector;
+        }
+        return providedName;
+    }
 
 
     /**
@@ -60,14 +74,14 @@ class Operation {//Base class for all operations.
         return this;
     }
 
-   
 
-    getData(){
+
+    getData() {
         // debugger;
         return this.data;
     }
 
-    
+
 
 
     /**

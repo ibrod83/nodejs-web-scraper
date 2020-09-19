@@ -60,12 +60,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
-    // /**
-    //  * 
-    //  * @param {CustomResponse} responseObjectFromParent 
-    //  * @return {Promise<{type: string;name: string;data: Array;}>}
-    //  */
-
+ 
 
     /**
      * 
@@ -178,39 +173,16 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
     }
 
-    /**
-     * 
-     * @param {string} href
-     * @return {Promise<string>} 
-     */
-    async runProcessUrlHook(href) {
-        if (this.config.processUrl) {
-            let finalHref;
-            try {
-                finalHref = await this.config.processUrl(href)
-                // console.log('new href', href)
-            } catch (error) {
-                console.error('Error processing URL, continuing with original one: ', href);
-                finalHref = href;
-            } finally {
-                return finalHref;
-            }
-
-        }
-        return href;
-    }
-
+    
 
     async getFile(url) {
 
-        const finalUrl = await this.runProcessUrlHook(url);
-
-        if (finalUrl.startsWith("data:image")) {
-            var promiseFactory = this.saveDataUrlPromiseFactory(finalUrl);
+        if (url.startsWith("data:image")) {
+            var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
 
             const options = {
-                url: finalUrl,
+                url,
                 dest: this.config.filePath || this.scraper.config.filePath,
                 clone: this.scraper.config.cloneImages,
                 shouldBufferResponse: this.config.contentType === 'image' ? true : false,
@@ -223,7 +195,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
             var promiseFactory = async () => {
 
-                await this.beforePromiseFactory('Fetching file:' + finalUrl);
+                await this.beforePromiseFactory('Fetching file:' + url);
 
                 try {
                     const fileDownloader = new file_downloader(options);
@@ -247,7 +219,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             }
         }
 
-        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, finalUrl));
+        return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
 
 
     }

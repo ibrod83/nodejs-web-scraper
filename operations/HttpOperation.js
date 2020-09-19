@@ -11,9 +11,9 @@ const rpur = require('repeat-promise-until-resolved')
 
 class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
 
-    constructor(config) {
+    constructor(querySelector,config) {
         // debugger;
-        super(config)
+        super(querySelector,config)
         if (config && config.condition) {
             const type = typeof config.condition;
             if (type !== 'function') {

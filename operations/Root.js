@@ -35,11 +35,20 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
         this._addOperation(Operation);
     }
 
+    /**
+     * @override
+     */
+    getOperationName() {
+        // debugger;
+        return 'Root'
+    }
+
     async scrape() {
 
         const shouldPaginate = this.config.pagination ? true : false;
 
         const data =  await this.pageHelper.processOneScrapingAction(this.scraper.config.startUrl,shouldPaginate);
+       
         debugger;
         this.data = data;
         if(this.config.getPageData){

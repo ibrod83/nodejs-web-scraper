@@ -30,29 +30,37 @@ class PageHelper {
 
         try {
 
-            href = await this.runProcessUrlHook(href);
-            debugger
+
+            var scrapingActionResult = {
+                _address:href
+            }
+            // debugger
             var response = await this.getPage(href);
-            debugger
+            // debugger
             await this.runAfterResponseHooks(response)
 
-            if (this.Operation.config.name === 'category') {
-                // debugger;
-            }
-            debugger;
+            // debugger;
             var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, response)
 
-            response = null;
-
-            return {
-                _address: href,
+            scrapingActionResult = {
+                ...scrapingActionResult,
                 ...dataFromChildren
-            };
+                // data:dataFromChildren
+            }
+           
         }
         catch (error) {
+           
+            debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
+            scrapingActionResult._error= errorString;
+            scrapingActionResult._successful= false;
             this.Operation.errors.push(errorString);
             this.Operation.handleFailedScrapingAction(errorString);
+        }finally{
+            // debugger;
+           
+            return scrapingActionResult
         }
     }
 
@@ -64,8 +72,7 @@ class PageHelper {
      */
     async paginate(address) {//Divides a given page to multiple pages.
         const pagination = this.Operation.config.pagination;
-        // delete scrapingAction.successful;
-        // const scrapingActions = [];
+
         const numPages = pagination.numPages;
         const firstPage = typeof pagination.begin !== 'undefined' ? pagination.begin : 1;
         const lastPage = pagination.end || numPages;
@@ -80,42 +87,25 @@ class PageHelper {
             if (pagination.queryString) {
                 paginationUrl = `${address}${mark}${pagination.queryString}=${i}`;
             } else {
-
                 paginationUrl = `${address}/${pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
-
-
-            }
-            if (pagination.processPaginationUrl) {
-                try {
-                    paginationUrl = await pagination.processPaginationUrl(paginationUrl)
-                    // console.log('new href', url)
-                } catch (error) {
-
-                    console.error('Error processing URL, continuing with original one: ', paginationUrl);
-
-                }
-
-            }
+            }            
             paginationUrls.push(paginationUrl)
-            // paginationObject = this.Operation.createScrapingAction(paginationUrl);
-            // paginationObject = new ScrapingAction({address:paginationUrl, type:'paginationPage'}, this.Operation.referenceToOperationObject.bind(this));
-            // this.Operation.scraper.state.scrapingActions.push(scrapingAction)
-            // scrapingActions.push(paginationObject);
-            // return paginationUrls
 
         }
 
         const dataFromChildren = [];
-        // scrapingAction.data = [...scrapingActions];
-        // const data = []
-        // scrapingAction.data = [...scrapingActions];
+
         await this.Operation.executeScrapingActions(paginationUrls, async (url) => {
             const data = await this.processOneScrapingAction(url, false);
-            // debugger;
+
             dataFromChildren.push(data);
-            // dataFromChildren.push(...data)
+
         }, 3);//The argument 3 forces lower promise limitation on pagination.
-        return dataFromChildren;
+        // return dataFromChildren;
+        return {
+            _address:address,
+            _pagination:dataFromChildren
+        }
     }
 
 
@@ -165,28 +155,7 @@ class PageHelper {
 
 
 
-    /**
-     * 
-     * @param {string} href
-     * @return {Promise<string>} 
-     */
-    async runProcessUrlHook(href) {
-        if (this.Operation.config.processUrl) {
-            let finalHref;
-            try {
-                finalHref = await this.Operation.config.processUrl(href)
-                // console.log('new href', href)
-            } catch (error) {
-                console.error('Error processing URL, continuing with original one: ', href);
-                finalHref = href;
-            } finally {
-                return finalHref;
-            }
-
-        }
-        return href;
-    }
-
+    
 
     /**
      * 
