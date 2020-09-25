@@ -17,8 +17,7 @@ class CollectContent extends Operation {
      * @param {boolean} [config.shouldTrim = true] Will trim the string, if "shouldTrim" is true.
      * @param {Function} [config.getElementList = null] Receives an elementList array
      * @param {Function} [config.getElementContent = null] Receives elementContentString and pageAddress
-     * @param {Function} [config.afterScrape = null] Receives a data object
-     * @param {Function} [config.getElementList = null] Receives
+     * @param {Function} [config.getAllItems = null] Receives all items collected from a specific page. Will run for each page.
      
      */
     constructor(querySelector, config) {
@@ -45,7 +44,7 @@ class CollectContent extends Operation {
      /**
      * 
      * @param {CustomResponse} responseObjectFromParent 
-     * @return {string[]} items
+     * @return {Promise<{type:string,name:string,data:[]}>} 
      */
     async scrape(responseObjectFromParent) {
 
@@ -62,7 +61,7 @@ class CollectContent extends Operation {
             await this.config.getElementList(elementList);
         }
 
-        const items = [];
+        const iterations = [];
 
         for (let element of elementList) {
             let content = getNodeContent(element, { shouldTrim: this.config.shouldTrim, contentType: this.config.contentType });
@@ -70,20 +69,22 @@ class CollectContent extends Operation {
                 const contentFromCallback = await this.config.getElementContent(content, parentAddress)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
-            items.push(content);
+
+            iterations.push(content);
    
         }
 
-        $ = null;
-
-        if (this.config.afterScrape) {
+        if (this.config.getAllElements) {
             // await this.config.afterScrape(currentWrapper);
-            await this.config.afterScrape(scrapingActions);
+            await this.config.getAllElements(iterations,parentAddress);
         }
 
-        this.data.push(...items)
+        
 
-        return items;
+        this.data.push(...iterations)
+
+        return {type:this.constructor.name,name:this.config.name,data:iterations};
+        
 
 
 

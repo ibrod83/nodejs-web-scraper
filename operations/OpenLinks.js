@@ -7,7 +7,8 @@ cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
 const { getAbsoluteUrl } = require('../utils/url');
 const PageHelper = require('./helpers/PageHelper');
-const {CustomResponse} = require('../request/request')
+const { CustomResponse } = require('../request/request');//For jsdoc
+const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 
 /**
@@ -27,6 +28,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Function} [config.condition = null] Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
      * @param {Function} [config.getElementList = null] Receives an elementList array    
      * @param {Function} [config.getPageData = null] 
+     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an _address
      * @param {Function} [config.getAllPagesData = null] 
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
@@ -34,8 +36,6 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      *    
      */
 
-    //  * @param {Function} [config.afterScrape = null] Receives a data object
-    //  * @param {Function} [config.getPageObject = null] Receives a pageObject object
     constructor(querySelector, config) {
 
         super(config);
@@ -61,41 +61,42 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
             throw new Error(`OpenLinks operation must be provided with a querySelector.`);
     }
 
-    
+
 
     /**
      * 
      * @param {CustomResponse} responseObjectFromParent 
-     * @return {Array} dataFromChildren
+     * @return {Promise<{type:string,name:string,data:[]}>}
      */
     async scrape(responseObjectFromParent) {
 
 
         const refs = await this.createLinkList(responseObjectFromParent)
-        responseObjectFromParent = {};
+        
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
         if (hasOpenLinksOperation) {
             forceConcurrencyLimit = 3;
         }
         // debugger;
-        const shouldPaginate =  this.config.pagination ? true : false;
-        const dataFromChildren = [];
-        await this.executeScrapingActions(refs, async (href) => {
-            const data = await this.pageHelper.processOneScrapingAction(href, shouldPaginate) 
+        const shouldPaginate = this.config.pagination ? true : false;
+        const iterations = [];
 
-            if(this.config.getPageData)
+        await mapPromisesWithLimitation(refs, async(href) => {
+            const data = await this.pageHelper.processOneIteration(href, shouldPaginate)
+
+            if (this.config.getPageData)
                 await this.config.getPageData(data);
+               
 
-            dataFromChildren.push(data)
-
-        }, forceConcurrencyLimit);
+            iterations.push(data)
+        }, forceConcurrencyLimit ? forceConcurrencyLimit : this.scraper.config.concurrency)
 
         if (this.config.getAllPagesData)
-            await this.config.getAllPagesData(dataFromChildren);
+            await this.config.getAllPagesData(iterations);
 
-        this.data.push(...dataFromChildren)
-        return dataFromChildren
+        this.data.push(...iterations)
+        return {type:this.constructor.name,name:this.config.name,data:iterations};
 
     }
 
@@ -108,7 +109,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
             await this.config.getElementList(elementList);
         }
         const baseUrlFromBaseTag = getBaseUrlFromBaseTag($, this.scraper.config.baseSiteUrl);
-        $ = null;
+      
         const refs = [];
         elementList.forEach((link) => {
 
@@ -120,7 +121,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         return refs;
     }
 
-    
+
 
 }
 

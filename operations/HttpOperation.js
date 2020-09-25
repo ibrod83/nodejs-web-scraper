@@ -1,9 +1,7 @@
 const Operation = require('./Operation');
 var cheerio = require('cheerio');
-
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
-const { mapPromisesWithLimitation } = require('../utils/concurrency');
 const { createDelay } = require('../utils/delay');
 const rpur = require('repeat-promise-until-resolved')
 
@@ -11,9 +9,9 @@ const rpur = require('repeat-promise-until-resolved')
 
 class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
 
-    constructor(querySelector,config) {
-        // debugger;
-        super(querySelector,config)
+    constructor(config) {
+        debugger;
+        super(config)
         if (config && config.condition) {
             const type = typeof config.condition;
             if (type !== 'function') {
@@ -63,20 +61,6 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
 
 
-   
-
-    /**
-     * 
-     * @param {string[]} hrefs 
-     * @param {Function} executionFunc
-     * @param {number} overwriteConcurrency 
-     */
-    async executeScrapingActions(hrefs, executionFunc, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-
-        await mapPromisesWithLimitation(hrefs, executionFunc, overwriteConcurrency ? overwriteConcurrency : this.scraper.config.concurrency)
-
-    }
-
 
 
     /**
@@ -84,8 +68,8 @@ class HttpOperation extends Operation {//Base class for all operations that requ
      * @param {Error} href    
      *     
      */
-    handleFailedScrapingAction(errorString) {
-    // handleFailedScrapingAction(error) {
+    handleFailedScrapingIteration(errorString) {
+    // handleFailedScrapingIteration(error) {
         console.error(errorString);
         // scrapingAction.setError(errorString, errorCode)
         this.scraper.reportFailedScrapingAction(errorString);

@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
 const {Root} = require('./');//For jsdoc
-const ScrapingAction = require('./operations/structures/ScrapingAction');//For jsdoc
 
 
 
@@ -47,13 +46,12 @@ class Scraper {
         // this.state = new State();
         this.state = {
             existingUserFileDirectories: [],
-            failedScrapingActions: [],
+            failedScrapingIterations: [],
             downloadedFiles: 0,
             currentlyRunning: 0,
             registeredOperations: [],//Holds a reference to each created operation.
             numRequests: 0,
             repetitionCycles: 0,
-            // scrapingActions: []//for debugging
         }
 
 
@@ -97,8 +95,9 @@ class Scraper {
 
 
     /**
-     * 
+     * Starts the recursive scraping process
      * @param {Root} rootObject 
+     * @return {Promise<void>}
      */
     async scrape(rootObject) {//This function will begin the entire scraping process. Expects a reference to the root operation.
         if (!rootObject || rootObject.constructor.name !== 'Root')
@@ -110,7 +109,7 @@ class Scraper {
         // rootObject.init(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
-            console.error('Number of requests that failed, in their last attempt: ', this.state.failedScrapingActions.length);
+            console.error('Number of requests that failed, in their last attempt: ', this.state.failedScrapingIterations.length);
         } else {
             console.log('All done, no final errors');
         }
@@ -129,24 +128,29 @@ class Scraper {
     }
 
 
+    /**
+     * @return {boolean}
+     */
     areThereRepeatableErrors() {
         // debugger;
-        return this.state.failedScrapingActions.length > 0;
+        return this.state.failedScrapingIterations.length > 0;
     }
 
     /**
      * 
      * @param {string} errorString 
+     * @return {void}
      */
     reportFailedScrapingAction(errorString){
-        this.state.failedScrapingActions.push(errorString);
+        this.state.failedScrapingIterations.push(errorString);
     }
 
 
     /**
      * 
      * @param {Object} data 
-     * @param {string} fileName    
+     * @param {string} fileName  
+     * @return {Promise<void>}  
      */
     saveFile(data,fileName) {
         // verifyDirectoryExists(this.config.logPath);
@@ -168,6 +172,9 @@ class Scraper {
 
     }
 
+    /**
+     * @return {Promise<void>}
+     */
     async createLogs() {
         // debugger;
         for (let operation of this.state.registeredOperations) {
@@ -175,7 +182,7 @@ class Scraper {
             const data = operation.getData();
             await this.createLog({ fileName, data })
         }
-        await this.createLog({ fileName: 'finalErrors', data: this.state.failedScrapingActions })
+        await this.createLog({ fileName: 'finalErrors', data: this.state.failedScrapingIterations })
         // await this.createLog({ fileName: 'allErrors', data: this.referenceToRoot.getErrors() })
     }
 
@@ -184,57 +191,11 @@ class Scraper {
      * 
      * @param {Object} obj 
      * @param {string} obj.fileName
-     * @param {ScrapingAction | ScrapingAction[]} obj.data
+     * @param {ScrapingAction | ScrapingAction[]} obj.data    
      */
     async createLog(obj) {
         await this.saveFile(obj.data,obj.fileName);
     }
-
-
-
-    // async repeatAllFailedRequests(numCycles = 1) {
-    //     let cycleCounter = 0;
-
-    //     while (cycleCounter < numCycles) {
-    //         // debugger;
-    //         if (this.areThereRepeatableErrors()) {
-    //             await this.repeatErrors();
-
-    //             cycleCounter++;
-
-    //             await this.createLogs();
-
-    //         } else {
-    //             console.log('No repeatable errors');
-    //             break;
-    //         }
-    //     }
-
-    // }
-
-
-    // async repeatErrors() {
-
-    //     this.state.repetitionCycles++
-    //     console.log('Repetition cycle number:', this.state.repetitionCycles);
-    //     console.log('Number of failed objects before repetition cycle:', this.state.failedScrapingActions.length)
-
-    //     await Promise.all(
-    //         this.state.failedScrapingActions.map(async (failedObject) => {
-    //             const operationContext = failedObject.referenceToOperationObject();
-    //             await operationContext.processOneScrapingAction(failedObject);
-    //             if (failedObject.successful == true) {
-    //                 delete failedObject.error;
-    //                 this.state.failedScrapingActions.splice(this.state.failedScrapingActions.indexOf(failedObject), 1);
-    //             }
-
-    //         })
-    //     )
-
-    //     console.log('One cycle of error repetition is done!')
-    // }
-
-
 
 
 }

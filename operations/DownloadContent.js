@@ -11,6 +11,7 @@ const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
 const { getAbsoluteUrl, isDataUrl, getDataUrlExtension } = require('../utils/url');
+const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 
 
@@ -60,12 +61,12 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
- 
+
 
     /**
      * 
      * @param {CustomResponse} responseObjectFromParent 
-     * @return {Promise<string[]>}
+     * @return {Promise<{type:string,name:string,data:[]}>}
      */
     async scrape(responseObjectFromParent) {
         if (!this.directoryVerified) {
@@ -111,16 +112,15 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             fileRefs.push(absoluteUrl);
 
         })
-        $ = null;
 
-        
-        await this.executeScrapingActions(fileRefs, (ref) => {
-            return this.processOneScrapingAction(ref)
-        });
 
-     
-        this.data.push(...fileRefs)
-        return fileRefs;
+        await mapPromisesWithLimitation(fileRefs, (ref) => {
+            return this.processOneIteration(ref)
+        }, this.scraper.config.concurrency)
+
+        const iterations = fileRefs;
+        this.data.push(...iterations)
+        return { type: this.constructor.name, name: this.config.name, data: iterations };
     }
 
     /**
@@ -173,7 +173,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
     }
 
-    
+
 
     async getFile(url) {
 
@@ -225,17 +225,17 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     }
 
 
-    async processOneScrapingAction(fileHref) {
+    async processOneIteration(fileHref) {
 
         try {
             await this.getFile(fileHref);
-           
+
 
         } catch (error) {
 
             const errorString = `There was an error fetching file:, ${fileHref}, ${error}`
             this.errors.push(errorString);
-            this.handleFailedScrapingAction(errorString);
+            this.handleFailedScrapingIteration(errorString);
 
         }
 

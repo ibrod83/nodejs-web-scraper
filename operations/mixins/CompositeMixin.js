@@ -19,7 +19,7 @@ const CompositeMixin = {
 
   },
 
- 
+
 
   _addOperation: function (operationObject) {//Adds a reference to an operation object     
 
@@ -42,18 +42,18 @@ const CompositeMixin = {
    * @param {Operation[]} childOperations 
    * @param {*} passedData 
    * @param {CustomResponse} responseObjectFromParent 
-   * @return {Promise<Object>} scrapedData
+   * @return {Promise<[]>} scrapedData
    */
   scrapeChildren: async function (childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
 
-    
-    const scrapedData = {}
+
+    const scrapedData = []
     for (let operation of childOperations) {
       const dataFromChild = await operation.scrape(passedData, responseObjectFromParent);
 
-      scrapedData[operation.config.name] = dataFromChild;
+      scrapedData.push(dataFromChild);
     }
-    responseObjectFromParent = null;
+    // responseObjectFromParent = null;
     return scrapedData;
   }
 

@@ -17,7 +17,8 @@ class Operation {//Base class for all operations.
             }
         }
 
-
+        if(!this.config.name)
+            this.config.name = `Default ${this.constructor.name} name`
 
         // this.querySelector = querySelector;
         // this.config.name = this.getOperationName(this.config.name);
@@ -27,18 +28,7 @@ class Operation {//Base class for all operations.
 
     }
 
-    getOperationName(providedName) {
-        debugger;
-        // return this.querySelector;
-        if (!providedName) {
-            debugger;
-            console.warn(`Providing a "name" argument in the config object of  ${this.constructor.name} is highly recommended,
-            for better readability of the final output!`)
-            // this.config.name = this.querySelector;
-            return this.querySelector;
-        }
-        return providedName;
-    }
+    
 
 
     /**
@@ -76,6 +66,10 @@ class Operation {//Base class for all operations.
 
 
 
+    /**
+     * Get the entire data collected by this operation
+     * @return {Array}
+     */
     getData() {
         // debugger;
         return this.data;
@@ -87,7 +81,7 @@ class Operation {//Base class for all operations.
     /**
      * @return {string[]}
      */
-    getErrors() {//gets overall errors of the operation, in all "contexts".
+    getErrors() {//gets overall errors of the operation.
         return this.errors;
     }
 

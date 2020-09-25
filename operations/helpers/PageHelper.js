@@ -1,7 +1,10 @@
 const Operation = require('../Operation');//For jsdoc
 const { request } = require('../../request/request.js');
 const { stripTags } = require('../../utils/html');
+const { mapPromisesWithLimitation } = require('../../utils/concurrency');
+const { getDictionaryKey } = require('../../utils/objects');
 const { CustomResponse } = require('../../request/request')//For jsdoc
+// require('../typedef.js'); 
 
 class PageHelper {
 
@@ -18,11 +21,11 @@ class PageHelper {
 
     /**
     * 
-    * @param {string} scrapingAction      
+    * @param {string} href      
     * @param {boolean} shouldPaginate   
-    * @return {Promise<{_address:string,dataFromChildren:[]}>}   
+    * @return {Promise<{data:[],address:string}>}   
     */
-    async processOneScrapingAction(href, shouldPaginate) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
+    async processOneIteration(href, shouldPaginate) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
         // debugger;
         if (shouldPaginate) {//If the scraping object is actually a pagination one, a different function is called. 
             return this.paginate(href);
@@ -30,9 +33,9 @@ class PageHelper {
 
         try {
 
-
-            var scrapingActionResult = {
-                _address:href
+            var iteration = {
+                address: href,
+                data: []
             }
             // debugger
             var response = await this.getPage(href);
@@ -42,27 +45,55 @@ class PageHelper {
             // debugger;
             var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, response)
 
-            scrapingActionResult = {
-                ...scrapingActionResult,
-                ...dataFromChildren
-                // data:dataFromChildren
-            }
-           
+            await this.runGetPageObjectHook(href, dataFromChildren)
+
+            iteration.data = dataFromChildren
         }
         catch (error) {
-           
+
             debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
-            scrapingActionResult._error= errorString;
-            scrapingActionResult._successful= false;
+            iteration.error = errorString;
+            iteration.successful = false;
             this.Operation.errors.push(errorString);
-            this.Operation.handleFailedScrapingAction(errorString);
-        }finally{
-            // debugger;
-           
-            return scrapingActionResult
+            this.Operation.handleFailedScrapingIteraeration(errorString);
+        } finally {
+            return iteration
         }
     }
+
+    
+
+
+    /**
+     * 
+     * @param {string} address 
+     * @param {Object} config
+     * @return {string[]}
+     */
+    getPaginationUrls(address, { numPages, begin, end, offset = 1, queryString, routingString }) {
+        // const numPages = pagination.numPages;
+        const firstPage = typeof begin !== 'undefined' ? begin : 1;
+        const lastPage = end || numPages;
+        // const offset = offset || 1;
+        const paginationUrls = []
+        for (let i = firstPage; i <= lastPage; i = i + offset) {
+
+            const mark = address.includes('?') ? '&' : '?';
+            var paginationUrl;
+
+            if (queryString) {
+                paginationUrl = `${address}${mark}${queryString}=${i}`;
+            } else {
+                paginationUrl = `${address}/${routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
+            }
+            paginationUrls.push(paginationUrl)
+
+        }
+
+        return paginationUrls;
+    }
+
 
 
     /**
@@ -71,40 +102,22 @@ class PageHelper {
      * @return {Promise<string[]>} paginationUrls
      */
     async paginate(address) {//Divides a given page to multiple pages.
-        const pagination = this.Operation.config.pagination;
+        const paginationConfig = this.Operation.config.pagination;
+        const paginationUrls = this.getPaginationUrls(address, paginationConfig)
 
-        const numPages = pagination.numPages;
-        const firstPage = typeof pagination.begin !== 'undefined' ? pagination.begin : 1;
-        const lastPage = pagination.end || numPages;
-        const offset = pagination.offset || 1;
-        const paginationUrls = []
-        for (let i = firstPage; i <= lastPage; i = i + offset) {
-
-            const mark = address.includes('?') ? '&' : '?';
-            var paginationUrl;
-            // var paginationObject;
-            // debugger;
-            if (pagination.queryString) {
-                paginationUrl = `${address}${mark}${pagination.queryString}=${i}`;
-            } else {
-                paginationUrl = `${address}/${pagination.routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
-            }            
-            paginationUrls.push(paginationUrl)
-
-        }
 
         const dataFromChildren = [];
 
-        await this.Operation.executeScrapingActions(paginationUrls, async (url) => {
-            const data = await this.processOneScrapingAction(url, false);
+        await mapPromisesWithLimitation(paginationUrls, async (url) => {
+            const data = await this.processOneIteration(url, false);
 
             dataFromChildren.push(data);
 
         }, 3);//The argument 3 forces lower promise limitation on pagination.
         // return dataFromChildren;
         return {
-            _address:address,
-            _pagination:dataFromChildren
+            address: address,
+            data: dataFromChildren
         }
     }
 
@@ -137,6 +150,7 @@ class PageHelper {
                 }
 
                 if (this.Operation.config.getPageHtml) {
+                    // debugger;
                     await this.Operation.config.getPageHtml(resp.data, resp.url)
                 }
 
@@ -154,8 +168,31 @@ class PageHelper {
     }
 
 
+    /**
+     * 
+     * @param {string} address 
+     * @param {Array} dataFromChildren 
+     */
+    async runGetPageObjectHook(address, dataFromChildren) {
+        if (this.Operation.config.getPageObject) {
+            // debugger;
+
+            const tree = {
+                _address:address
+            }
+            for (let child of dataFromChildren) {
+                // debugger;
+                // tree[child.name] = child.data
+                const func = getDictionaryKey(child.name);
+                tree[func(child.name, tree)] = child.data
+            }
+            await this.Operation.config.getPageObject(tree)
+        }
+    }
 
     
+
+
 
     /**
      * 
@@ -172,17 +209,7 @@ class PageHelper {
         }
     }
 
-    async runGetPageDataHook(ScrapingAction) {
-        const getPageData = this.Operation.config.getPageData;
-        if (getPageData) {
-            // debugger;
-            if (typeof getPageData !== 'function')
-                throw "callback must be a function";
 
-            // const cleanData = ScrapingAction.getCleanData();
-            await getPageData(ScrapingAction);
-        }
-    }
 
 }
 

@@ -1,8 +1,8 @@
 const { Qyu } = require('qyu');
 /**
      * 
-     * @param {itterable[]} scrapingActions 
-     * @param {Function} overwriteConcurrency 
+     * @param {Array} itterable 
+     * @param {Function} promiseFunction 
      * @param {number} concurrency 
      */
 async function mapPromisesWithLimitation(itterable, promiseFunction, concurrency) {//Will execute scraping objects with concurrency limitation.
