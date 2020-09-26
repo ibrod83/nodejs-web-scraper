@@ -25,7 +25,6 @@
     "https-proxy-agent": "^5.0.0",
     "mime-types": "^2.1.20",
     "node-fetch": "^2.6.0",
-    "nodejs-file-downloader": "^1.2.0",
     "qyu": "^0.4.7",
     "repeat-promise-until-resolved": "^1.0.8",
     "sanitize-filename": "^1.6.1"

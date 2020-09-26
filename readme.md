@@ -15,6 +15,7 @@ $ npm install nodejs-web-scraper
 # Table of Contents
 - [Basic examples](#basic-examples)     
   * [Collect articles from a news site](#collect-articles-from-a-news-site)  
+  * [Get data of every page as a dictionary](#Get-data-of-every-page-as-a-dictionary)  
   * [Download images](#download-all-images-in-a-page)  
   * [Use multiple selectors](#use-multiple-selectors)  
 - [Advanced](#advanced-examples) 
@@ -28,7 +29,6 @@ $ npm install nodejs-web-scraper
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling)  
 - [Automatic Logs](#automatic-logs) 
-- [Memory consumption](#memory-consumption) 
 - [Concurrency](#concurrency) 
 - [License](#license) 
 - [Disclaimer](#disclaimer) 
@@ -54,16 +54,7 @@ const fs = require('fs');
         maxRetries: 3,//The scraper will try to repeat a failed request few times(excluding 404). Default is 5.       
         logPath: './logs/'//Highly recommended: Creates a friendly JSON for each operation object, with all the relevant data. 
     }
-
-    const articles = [];//Holds all article objects.
-
-    const getPageObject =async (pageObject) => {//This will create an object for each page, with "title", "story" and "image" properties(The names we chose for our scraping operations below)
-
-        //Every hook supports async operations
-        await Promise.resolve()//Just demonstrating..
-
-        articles.push(pageObject)
-    }
+    
 
     const scraper = new Scraper(config);//Create a new Scraper instance, and pass config to it.
 
@@ -74,9 +65,9 @@ const fs = require('fs');
     //Any valid cheerio-advanced-selectors selector can be passed. For further reference: https://cheerio.js.org/
     const category = new OpenLinks('.css-1wjnrbv',{name:'category'});//Opens each category page.
 
-    const article = new OpenLinks('article a', {name:'article', getPageObject });//Opens each article page, and calls the getPageObject hook.
-    const image = new DownloadContent('img', { name: 'image' });//Downloads images. *It's important to choose a name, for the
-    //getPageObject hook to produce the expected results.*  
+    const article = new OpenLinks('article a', {name:'article' });//Opens each article page.
+
+    const image = new DownloadContent('img', { name: 'image' });//Downloads images.
 
     const title = new CollectContent('h1', { name: 'title' });//"Collects" the text from each H1 element.
 
@@ -90,7 +81,16 @@ const fs = require('fs');
 
     await scraper.scrape(root);
 
+    const articles = article.getData()//Will return an array of all article objects(from all categories), each
+    //containing its "children"(titles,stories and the downloaded image urls) 
+
+    //If you just want to get the stories, do the same with the "story" variable:
+    const stories = story.getData();
+
     fs.writeFile('./articles.json', JSON.stringify(articles), () => { })//Will produce a formatted JSON containing all article pages and their selected data.
+
+    fs.writeFile('./stories.json', JSON.stringify(stories), () => { })
+    
 
 })();    
 
@@ -99,7 +99,58 @@ This basically means: "go to www.nytimes.com; Open every category; Then open eve
 
 &nbsp;
 
-#### Download all images in a page
+#### Get data of every page as a dictionary
+
+An alternative, perhaps more firendly way to collect the data from a page, would be to use the "getPageObject" hook. 
+
+```javascript
+
+const { Scraper, Root, OpenLinks, CollectContent, DownloadContent } = require('nodejs-web-scraper');
+const fs = require('fs');
+
+(async () => {
+
+    const pages = [];//All ad pages.
+
+    //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
+    //This hook is called after every page finished scraping.
+    //It will also have an _address key.    
+    const getPageObject = (pageObject) => {                  
+        pages.push(pageObject)
+    }
+
+    const config = {
+        baseSiteUrl: `https://www.profesia.sk`,
+        startUrl: `https://www.profesia.sk/praca/`,
+        filePath: './images/',
+        logPath: './logs/'
+    }
+
+    const scraper = new Scraper(config);
+
+    const root = new Root();//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+
+    const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted dictionary.
+
+    const phones = new CollectContent('.details-desc a.tel', { name: 'phone' })//Important to choose a name, for the getPageObject to produce the expected results.
+
+    const titles = new CollectContent('h1', { name: 'title' });
+
+    root.addOperation(jobAds);
+     jobAds.addOperation(titles);
+     jobAds.addOperation(phones);
+
+    await scraper.scrape(root);
+    
+    fs.writeFile('./pages.json', JSON.stringify(pages), () => { });//Produces a formatted JSON with all job ads.
+})()
+
+```
+Let's describe again in words, what's going on here: "Go to https://www.profesia.sk/praca/; Then paginate the root page, from 1 to 10; Then, on each pagination page, open every job ad; Then, collect the title, phone and images of each ad."
+
+&nbsp;
+
+#### Download all images from a page
 
 A simple task to download all images in a page(including base64)
 
@@ -112,7 +163,7 @@ const { Scraper, Root, DownloadContent } = require('nodejs-web-scraper');
         baseSiteUrl: `https://spectator.sme.sk`,//Important to provide the base url, which is the same as the starting url, in this example.
         startUrl: `https://spectator.sme.sk/`,
         filePath: './images/',
-        cloneImages: true,//Will create a new image file with an appended name, if the name already exists. Default is false. 
+        cloneFiles: true,//Will create a new image file with an appended name, if the name already exists. Default is false. 
        }
 
     const scraper = new Scraper(config);
@@ -169,6 +220,9 @@ const { Scraper, Root, CollectContent } = require('nodejs-web-scraper');
 
 
 ## Advanced Examples
+
+
+
 
 #### Pagination
 
@@ -239,7 +293,7 @@ const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
     let directoryExists;
 
-    const getHtml = (html, pageAddress) => {//Saving the HTML file, using the page address as a name.
+    const getPageHtml = (html, pageAddress) => {//Saving the HTML file, using the page address as a name.
 
         if(!directoryExists){
             fs.mkdirSync('./html');
@@ -253,7 +307,7 @@ const { Scraper, Root, OpenLinks } = require('nodejs-web-scraper');
 
     const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 100 } });
 
-    const jobAds = new OpenLinks('.list-row h2 a', { getHtml });//Opens every job ad, and calls a hook after every page is done.
+    const jobAds = new OpenLinks('.list-row h2 a', { getPageHtml });//Opens every job ad, and calls a hook after every page is done.
 
     root.addOperation(jobAds);
 
@@ -405,7 +459,7 @@ const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
             logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
-            cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
+            cloneFiles: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
             maxRetries: 5,//Maximum number of retries of a failed request.      
@@ -440,8 +494,7 @@ The optional config takes these properties:
 {    
     pagination:{},//In case your root page is paginated.    
     getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
-    getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
-    getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
+    getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.  
     getPageData:(cleanData)=>{}//Called after all data was collected by the root and its children.
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
     getException:(error)=>{}//Get every exception thrown by Root.  
@@ -472,12 +525,11 @@ The optional config can have these properties:
     pagination:{},//Look at the pagination API for more details.
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
     getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
-    getHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
+    getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
     getException:(error)=>{}//Get every exception throw by this openLinks operation, even if this was later repeated successfully.
-    afterScrape:(data)=>{},//Is called after all scraping associated with the current "OpenLinks" operation is completed(like opening 10 pages, and downloading all images form them). Notice that if this operation was added as a child(via "addOperation()") in more than one place, then this hook will be called multiple times, each time with its corresponding data.
     slice:[start,end]//You can define a certain range of elements from the node list.Also possible to pass just a number, instead of an array, if you only want to specify the start. This uses the Cheerio/Jquery slice method.
 }
 
@@ -501,8 +553,8 @@ The optional config can receive these properties:
     contentType:'text',//Either 'text' or 'html'. Default is text.   
     shouldTrim:true,//Default is true. Applies JS String.trim() method.
     getElementList:(elementList)=>{},  
-    getElementContent:(elementContentString,pageAddress)=>{}//Called with each element collected.  
-    afterScrape:(data)=>{},//In the case of CollectContent, it will be called with each page, this operation collects content from.
+    getElementContent:(elementContentString,pageAddress)=>{}//Called with each element collected.
+    getAllElements:(elements,address)=>{}//Called after an entire page has its elements collected.  
     slice:[start,end]
 }
 
@@ -526,8 +578,7 @@ The optional config can receive these properties:
     //If the "src" attribute is undefined or is a dataUrl. If no matching alternative is found, the dataUrl is used. 
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
     getElementList:(elementList)=>{},
-    getException:(error)=>{}//Get every exception throw by this downloadContent operation, even if this was later repeated successfully.    
-    afterScrape:(data)=>{},//In this case, it will just return a list of downloaded items.
+    getException:(error)=>{}//Get every exception throw by this downloadContent operation, even if this was later repeated successfully.
     filePath:'./somePath',//Overrides the global filePath passed to the Scraper config.  
     slice:[start,end]
 }
@@ -542,34 +593,6 @@ Public methods:
 | getData()   | Gets all file names that were downloaded, and their relevant data |
 | getErrors() | Gets all errors encountered by this operation.                    |
 
-
-&nbsp;
-
-#### class Inquiry(conditionFunction)
-Allows you to perform a simple inquiry on a page, to see if it meets your conditions. Accepts a function, that should return true if the condition is met. Example:
-```javascript
-
- const condition = (response) => {
-        if (response.data.includes('perfume') || (response.data.includes('Perfume') ){
-            return true;
-        }
-    }
-
- const products = new OpenLinks('.product')
- const productHasAPerfumeString = new Inquiry(condition)
-
- products.addOperation(productHasAPerfumeString);
-
-```
-In the scraping tree log, you will see a boolean field "meetsCondition", for each page.
-
-Notice that this whole thing could also be achieved simply by using hooks, with the OpenLinks operation.
-
-Public methods:
-
-| Name      | Description        |
-| --------- | ------------------ |
-| getData() | Gets all inquiries |
 
 &nbsp;
 
@@ -597,24 +620,16 @@ nodejs-web-scraper covers most scenarios of pagination(assuming it's server-side
 
 ## Error Handling
 
-#### Repeating failed requests on the fly
-
-nodejs-web-scraper will automatically repeat every failed request(except 404,400,403 and invalid images). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped, and an object representing it will be pushed into a "failedRequests" array. After the entire scraping process is complete, all failed objects will be printed as a JSON into a file called **"failedRepeatableRequests.json"**(assuming you provided a logPath). 
-
-#### Repeating all failedRepeatableRequests again, after scraping process has ended
-After Scraper.scrape() has has come to an end, You can call the Scraper.repeatAllFailedRequests(numCycles), to retry those requests. Notice that this is totally separate from the automatic repetition of failed requests, discussed before. At the end of this process, log files will be overwritten, with the fresh situation. 
+nodejs-web-scraper will automatically repeat every failed request(except 404,400,403 and invalid images). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped. After the entire scraping process is complete, all "final" errors will be printed as a JSON into a file called **"finalErrors.json"**(assuming you provided a logPath). 
 
 
 ## Automatic logs
-If a logPath was provided, the scraper will create a log for each operation object you create, and also the following ones: "log.json"(summary of the entire scraping tree), "allErrors.json"(an array of all errors encountered) and "failedRepeatableRequests.json"(an array of all errors that can be repeated). I really recommend using this feature, along side your own hooks and data handling.
+If a logPath was provided, the scraper will create a log for each operation object you create, and also the following ones: "log.json"(summary of the entire scraping tree), and "finalErrors.json"(an array of all FINAL errors encountered). I really recommend using this feature, along side your own hooks and data handling.
 
-## Memory consumption
-
-In scraping jobs that require the "opening" of many large HTML pages at the same time(some sites completely bloat their HTML. I'm using regex to clean-up scripts and CSS), memory consumption can reach about 250MB. This is of course fine, **but if you're using Chrome devtools for debugging,  consumption can sky-rocket**. I do not know why this happens, but the solution is to shutdown the devtools. 
 
 ## Concurrency
 
-The program uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most.
+The program uses a rather complex concurrency management. Being that the memory consumption can get very high in certain scenarios, I've force-limited the concurrency of pagination and "nested" OpenLinks operations. It should still be very quick. As a general note, i recommend to limit the concurrency to 10 at most. Also the config.delay is a key a factor.
 
 ## License
 
