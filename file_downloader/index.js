@@ -1,5 +1,5 @@
 counter = 0;
-const request = require('../request/request.js');
+const {request} = require('../request/request.js');
 // const sanitize = require('sanitize-filename');
 const path = require('path');
 const FileProcessor = require('./file_processor');
@@ -14,10 +14,10 @@ const getFileNameFromResponse = require('./fileNameFromResponse')
 
 
 class FileDownloader {
-    constructor({ url,  shouldBufferResponse = false, dest, clone,  auth, timeout, headers, proxy }) {
+    constructor({ url,  shouldBufferResponse = false, directory, cloneFiles,  auth, timeout, headers, proxy }) {
         this.url = url;
-        this.dest = dest;
-        this.clone = clone;
+        this.directory = directory;
+        this.cloneFiles = cloneFiles;
         this.shouldBufferResponse = shouldBufferResponse//Whether the readableStream should be cached in memory.
         // //If true, the readableStream will be assembled in a buffer, and only then streamed to the destination. 
         this.auth = auth;
@@ -59,8 +59,8 @@ class FileDownloader {
         const originalFileName = getFileNameFromResponse(this.url,this.response.headers);
 
         let finalFileName;
-        const fileProcessor = new FileProcessor({ fileName: originalFileName, path: this.dest });
-        if (this.clone) {
+        const fileProcessor = new FileProcessor({ fileName: originalFileName, path: this.directory });
+        if (this.cloneFiles) {
 
             finalFileName = fileProcessor.getAvailableFileName();
         } else {
@@ -89,9 +89,9 @@ class FileDownloader {
             if (this.shouldBufferResponse) {
 
                 const buffer = await this.getBufferFromResponse();
-                await this.saveFromBuffer(path.join(this.dest, finalFileName), buffer);
+                await this.saveFromBuffer(path.join(this.directory, finalFileName), buffer);
             } else {
-                const write = fs.createWriteStream(path.join(this.dest, finalFileName));
+                const write = fs.createWriteStream(path.join(this.directory, finalFileName));
                 await this.saveFromStream(this.data, write)
             }
 

@@ -1,8 +1,4 @@
-
-//For intelissence
-const HttpOperation = require('../HttpOperation')
-const Scraper = require('../../Scraper')
-
+const { CustomResponse } = require('../../request/request')//For jsdoc
 
 /**
  * Used by composite operations(operations that contain other operations)
@@ -10,15 +6,8 @@ const Scraper = require('../../Scraper')
  */
 const CompositeMixin = {
 
-  /**
-   * 
-   * @param {Scraper} ScraperInstance 
-   */
-  injectScraper:function(ScraperInstance) {//Override the original init function of Operation
-    debugger;
-    // this.reset()
+  injectScraper: function (ScraperInstance) {//Override the original init function of Operation
     this.scraper = ScraperInstance;
-    // this.handleNewOperationCreation(this)
     ScraperInstance.registerOperation(this);
     for (let operation of this.operations) {
       operation.injectScraper(ScraperInstance);
@@ -29,25 +18,40 @@ const CompositeMixin = {
   },
 
 
-  addOperation: function (operationObject) {//Adds a reference to an operation object     
-    // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
-    if (!(operationObject instanceof Object.getPrototypeOf(HttpOperation))) {
-      throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
-    }
 
-    this.operations.push(operationObject)
+  _addOperation: function (operationObject) {//Adds a reference to an operation object     
+
+    let next = Object.getPrototypeOf(operationObject);
+
+    while (next.constructor.name !== "Object") {
+      if (next.constructor.name === 'Operation') {
+        this.operations.push(operationObject)
+        return;
+      }
+
+      next = Object.getPrototypeOf(next);
+    }
+    throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
+
   },
 
-  scrapeChildren: async function (responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
+  /**
+   * 
+   * @param {Operation[]} childOperations 
+   * @param {*} passedData 
+   * @param {CustomResponse} responseObjectFromParent 
+   * @return {Promise<[]>} scrapedData
+   */
+  scrapeChildren: async function (childOperations, passedData, responseObjectFromParent) {//Scrapes the child operations of this OpenLinks object.
+
 
     const scrapedData = []
     for (let operation of this.operations) {
       const dataFromChild = await operation.scrape(responseObjectFromParent);
 
-      scrapedData.push(dataFromChild);//Pushes the data from the child
-
+      scrapedData.push(dataFromChild);
     }
-    responseObjectFromParent = null;
+    // responseObjectFromParent = null;
     return scrapedData;
   }
 

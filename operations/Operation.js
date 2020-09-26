@@ -1,109 +1,87 @@
 
+const Scraper = require('../Scraper');//For jsdoc
+
+/**
+ * Base class for all operations(not including limitedSpa).
+ * Every Operation must implement its own scrape() method.
+ */
 class Operation {//Base class for all operations.
 
     constructor(objectConfig) {
 
 
-        this.scraper = null;//Will hold the reference to the current Scraper instance.
-
+        this.config = {}
         if (objectConfig) {
             for (let i in objectConfig) {
-                this[i] = objectConfig[i];
+                this.config[i] = objectConfig[i];
             }
         }
-        if (!this.name)
-            this.name = `Default ${this.constructor.name} name`;
-   
-        this.data = [];//All collected data by this operation.
+
+        if(!this.config.name)
+            this.config.name = `Default ${this.constructor.name} name`
+
+        // this.querySelector = querySelector;
+        // this.config.name = this.getOperationName(this.config.name);
+        this.scraper = null; //Scraper instance is passed later on.
+        this.data = []; //Holds all data collected by this operation, in the form of possibly multiple "ScrapingWrappers".       
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
     }
 
-    reset(){
-        // const name = this.constructor.name;
-        // debugger;
-        this.data = [];
-        this.errors = [];
-    }
+    
 
-
-   
 
     /**
-     * Inject the operation with the Scraper instance. This cannot be done in the constructor, due to the nature of the API
-     * Exposed to the client.
+     * Being that all Operation objects are created independetly from the Scraper, a Scraper reference must be passed to them.
+     * Due to the nature of the API, this cannot be done in the Operation constructor. 
      * @param {Scraper} ScraperInstance 
      */
-    injectScraper(ScraperInstance){
-        debugger;
-        // this.reset()
+    injectScraper(ScraperInstance) {
+
         this.scraper = ScraperInstance;
-        ScraperInstance.registerOperation(this);
 
-        this.validateOperationArguments();
-        
+        this.handleNewOperationCreation(this)
+
+        this.validateOperationArguments();//Implemented by all Operation objects
+
     }
 
 
-    validateOperationArguments() {
 
-        // debugger;
-        // console.log('VALIDATING!', this.constructor.name)
-        const operationClassName = this.constructor.name;
-        switch (operationClassName) {
-
-            case 'Inquiry':
-                if (typeof this.condition !== 'function')
-                    throw 'Inquiry operation must be provided with a condition function.';
-                break;
-
-            case 'DownloadContent':
-                if (!this.scraper.config.filePath && !this.filePath)
-                    throw `DownloadContent operation Must be provided with a filePath, either locally or globally.`;
-                if (!this.querySelector || typeof this.querySelector !== 'string')
-                    throw `DownloadContent operation must be provided with a querySelector.`;
-                break;
-
-            case 'OpenLinks':
-            case 'CollectContent':
-                if (!this.querySelector || typeof this.querySelector !== 'string')
-                    throw `${operationClassName} operation must be provided with a querySelector.`;
-                break;
-
-            default:
-                break;
-        }
-    }
-
-   
-
-    createWrapper(address) {
-        const currentWrapper = {//The envelope of all scraping objects, created by this operation. Relevant when the operation is used as a child, in more than one place.
-            type: this.constructor.name,
-            name: this.name,
-            address,
-            data: []
-        }
-        return currentWrapper;
+    /**
+     * 
+     * @param {Operation} Operation 
+     */
+    handleNewOperationCreation(Operation) {
+        this.scraper.state.registeredOperations.push(Operation);
     }
 
 
-    referenceToOperationObject() {//Gives a scraping object reference to the operation object, in which it was created. Used only in "repeatErrors()", after the initial scraping procedure is done.
+    /**
+     * @return {Operation} this 
+     */
+    referenceToOperationObject() {
         return this;
     }
 
 
+
+    /**
+     * Get the entire data collected by this operation
+     * @return {Array}
+     */
     getData() {
+        // debugger;
         return this.data;
     }
 
-    createMinimalData(currentWrapper) {
-
-        return { type: currentWrapper.type, name: currentWrapper.name, data: currentWrapper.data };
-    }
 
 
-    getErrors() {//gets overall errors of the operation, in all "contexts".
+
+    /**
+     * @return {string[]}
+     */
+    getErrors() {//gets overall errors of the operation.
         return this.errors;
     }
 
