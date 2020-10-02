@@ -1,5 +1,5 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages, with **limited** support for dynamic, Javascript-driven sites.
-It supports features like recursive scraping(pages that "open" other pages), file download and handling, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Ubuntu).
+It supports features like recursive scraping(pages that "open" other pages), file download and handling, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Mint).
 
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
@@ -26,9 +26,9 @@ $ npm install nodejs-web-scraper
   * [Add additional conditions](#add-additional-conditions)  
   * [Scraping an auth protected site](#scraping-an-auth-protected-site)    
 - [Scraping Dynamic Pages](#scraping-dynamic-pages) 
+  * [Scrape site that loads additional content via ajax](#scrape-site-that-loads-additional-content-via-ajax)  
   * [Scroll down few times and scrape](#scroll-down-few-times-and-scrape)    
-  * [Scrape site that loads additional content via ajax](#scrape-site-that-loads-additional-content-via-ajax)    
-  * [Click load more button](#click-load-more-button)    
+  * [Collect content after every ScrollToBottom repetition](#collect-content-after-every-scrolltobottom-repetition)    
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling)  
@@ -451,21 +451,70 @@ Please refer to this guide: [https://nodejs-web-scraper.ibrod83.com/blog/2020/05
 &nbsp;
 
 ## Scraping dynamic pages
-nodejs-web-scraper was not built with the ability to scrape dynamic("single page apps") sites in mind. With that said, It now provides limited ability to perform such tasks, which can be sufficient for many sites. 
+nodejs-web-scraper was not originally built to scrape dynamic (a.k.a., "single page apps") sites. However, it now has the limited ability to do so, which should prove sufficient for many sites. Please keep in mind that this feature is still experimental and hasn't been thoroughly tested yet, but there are plans to extend and improve its functionality in the future. Kindly report any bugs encountered.
 
 Once you pass ***usePuppeteer:true*** to the Scraper config object, the program will just use Puppeteer behind the scenes, to "get the page", instead of a "normal" Nodejs http request. Nothing else changes in the scraping flow. If you "open" 10 pages using OpenLinks, it means 10 different tabs will be opened in the Puppeteer instance Chromium. **It will not "navigate" within the page, but open separate ones**. Therefore The API stays virtually the same.
 
 When you should use ***usePuppeteer:true***:
 - If you know/suspect that your site loads some additional content via ajax(some news sites load additional sections this way), after the initial page load.
-- If you're scraping a site that simply loads more content when you scroll to the bottom(this will work only if the site doesn't use "DOM virtualization").
-- If you need to click some button, like "load more".
+- If you're scraping a site that simply loads more content when you scroll to the bottom.
+
 
 When you **shouldn't** use ***usePuppeteer:true***:
 - If you know your site is "static"(meaning the entire content of the page is rendered by the server, no ajax). Most news and WP sites are like this. Using Puppeteer will just make the process much slower.
-- If the single page app uses DOM virtualization, meaning it replaces the contents of the DOM to only contain what you have visible in the view port. Some social networks do this. Using  ***usePuppeteer:true*** will just yield partial results in this case.
-- If you need to perform complex operations that are driven by javascript, like typing or navigating into virtual "pages" within the app.
 
-If one of the last two cases is true, you should learn to use Puppeteer directly, because currently nodejs-web-scraper would be quite useless for that.
+
+**If you need to perform a highly customized task on a SPA site, that requires complex in-browser operations, you should learn to use Puppeteer directly.** 
+
+#### Scrape site that loads additional content via ajax
+Let's say you have a site, whose pages perform some ajax requests, right after the DOM is loaded, with its initial html.
+In this case, all that needs to be done, is to use the usePuppeteer option. All the rest stays the same.
+
+```javascript
+
+const { Scraper, Root, OpenLinks, CollectContent, DownloadContent } = require('nodejs-web-scraper');
+const fs = require('fs');
+
+(async () => {
+
+    const pages = [];//All ad pages.
+
+    //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
+    const getPageObject = (pageObject) => {                  
+        pages.push(pageObject)
+    }
+
+    const config = {
+        usePuppeteer:true,//This is the only difference.
+        baseSiteUrl: `https://www.profesia.sk`,
+        startUrl: `https://www.profesia.sk/praca/`,
+        filePath: './images/',
+        logPath: './logs/'
+    }
+
+    const scraper = new Scraper(config);
+
+    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+
+    const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
+
+    const phones = new CollectContent('.details-desc a.tel', { name: 'phone' })//Important to choose a name, for the getPageObject to produce the expected results.
+
+    const images = new DownloadContent('img', { name: 'images' })
+
+    const titles = new CollectContent('h1', { name: 'title' });
+
+    root.addOperation(jobAds);
+     jobAds.addOperation(titles);
+     jobAds.addOperation(phones);
+     jobAds.addOperation(images);
+
+    await scraper.scrape(root);
+    
+    fs.writeFile('./pages.json', JSON.stringify(pages), () => { });//Produces a formatted JSON with all job ads.
+})()
+
+```
 
 #### Scroll down few times and scrape
 
@@ -508,61 +557,12 @@ If one of the last two cases is true, you should learn to use Puppeteer directly
 This means: go to the site, scroll down 100 times with a delay of 2 seconds between each, and then collect all the posts
 from the html.
 
-#### Scrape site that loads additional content via ajax
-Let's say you have a site, whose pages perform some ajax requests, right after the DOM is loaded, with its initial html.
-In this case, all that needs to be done, is to use the usePuppeteer option.
-
-```javascript
-
-const { Scraper, Root, OpenLinks, CollectContent, DownloadContent } = require('nodejs-web-scraper');
-const fs = require('fs');
-
-(async () => {
-
-    const pages = [];//All ad pages.
-
-    //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
-    const getPageObject = (pageObject) => {                  
-        pages.push(pageObject)
-    }
-
-    const config = {
-        usePuppeteer:true,
-        baseSiteUrl: `https://www.profesia.sk`,
-        startUrl: `https://www.profesia.sk/praca/`,
-        filePath: './images/',
-        logPath: './logs/'
-    }
-
-    const scraper = new Scraper(config);
-
-    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
-
-    const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
-
-    const phones = new CollectContent('.details-desc a.tel', { name: 'phone' })//Important to choose a name, for the getPageObject to produce the expected results.
-
-    const images = new DownloadContent('img', { name: 'images' })
-
-    const titles = new CollectContent('h1', { name: 'title' });
-
-    root.addOperation(jobAds);
-     jobAds.addOperation(titles);
-     jobAds.addOperation(phones);
-     jobAds.addOperation(images);
-
-    await scraper.scrape(root);
-    
-    fs.writeFile('./pages.json', JSON.stringify(pages), () => { });//Produces a formatted JSON with all job ads.
-})()
-
-```
-
-#### Click load more button
+#### Collect content after every ScrollToBottom repetition.
+In some cases, single page apps use a thing called DOM virtualizaion, meaning that the DOM contains only the portion of HTML that is currently being viewed(or a bit more). In such a case, the above example would be useless, being that the data must be collected after each scrolling down repetition. Therefore, ScrollToBottom can be used as a "parent":
 
 ```javascript  
 
-    const { Scraper, Root, Click } = require('nodejs-web-scraper');
+    const { Scraper, Root, ScrollToBottom } = require('nodejs-web-scraper');
 
     
     const config = {      
@@ -584,13 +584,15 @@ const fs = require('fs');
 
     const root = new Root();
 
-    const Click = new Click({numRepetitions:100,delay:2000})//Scroll to bottom 100 times, with a delay of 2 seconds.
+    const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})//Scroll to bottom 100 times, with a delay of 2 seconds.
     
     const collectPosts = new CollectContent('.post',{getElementContent});//Will be called after every "myDiv" element is collected.
 
 
     root.addOperation(scrollToBottom);   
-    root.addOperation(collectPosts);      
+    scrollToBottom.addOperation(collectPosts);//This is the difference from the previous example.
+    //Here, scrollToBottom will have "collectPosts" as a child, meaning that after each scrolling cycle, the current posts in the DOM will be collected. Note that this might cause duplicate data, being that more content might be present in the DOM,
+    //Than what the last scrolling down repetition actually loaded.      
           
 
    await scraper.scrape(root);
@@ -598,6 +600,9 @@ const fs = require('fs');
 ```
 This means: go to the site, scroll down 100 times with a delay of 2 seconds between each, and then collect all the posts
 from the html.
+
+
+
 
 ## API
 
@@ -620,9 +625,11 @@ const config ={
             delay: 200,
             timeout: 6000,
             filePath: null,//Needs to be provided only if a "downloadContent" operation is created.
-            auth: null,//Can provide basic auth credentials(no clue what sites actually use it).
+            auth: null,//Can provide basic auth credentials(no clue what sites actually use it). Wont work in Puppeteer mode.
             headers: null,//Provide custom headers for the requests.
+            // Note that this feature will not work when setting the usePuppeteer flag to true!
             proxy:null//Use a proxy. Pass a full proxy URL, including the protocol and the port.
+            // Note that this feature will not work when setting the usePuppeteer flag to true!
         }
 ```
 Public methods:
@@ -750,33 +757,6 @@ Public methods:
 
 &nbsp;
 
-#### class Inquiry(conditionFunction)
-Allows you to perform a simple inquiry on a page, to see if it meets your conditions. Accepts a function, that should return true if the condition is met. Example:
-```javascript
-
- const condition = (response) => {
-        if (response.data.includes('perfume') || (response.data.includes('Perfume') ){
-            return true;
-        }
-    }
-
- const products = new OpenLinks('.product')
- const productHasAPerfumeString = new Inquiry(condition)
-
- products.addOperation(productHasAPerfumeString);
-
-```
-In the scraping tree log, you will see a boolean field "meetsCondition", for each page.
-
-Notice that this whole thing could also be achieved simply by using hooks, with the OpenLinks operation.
-
-Public methods:
-
-| Name      | Description        |
-| --------- | ------------------ |
-| getData() | Gets all inquiries |
-
-&nbsp;
 
 #### class ScrollToBottom([config])
 Relevant only when operating under usePuppeteer:true(global Scraper config).
@@ -793,23 +773,6 @@ The optional config can receive these properties:
 
 
 &nbsp;
-
-#### class Click(querySelector,[config])
-Relevant only when operating under usePuppeteer:true(global Scraper config).
-Clicks a button. **important: Do not use this on a link, this will yield unexpected results**. Should be used on buttons like "load more", "fetch data", etc.
-
-The optional config can receive these properties:
-```javascript
-{
-    numRepetitions:1,//Number of times this will be performed within a given Puppeteer page/tab. Default is 1.
-    delay:0//The delay between each scroll. Default is 0.
-}
-
-```
-
-
-&nbsp;
-
 
 
 

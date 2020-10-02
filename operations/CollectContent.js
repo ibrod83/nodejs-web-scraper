@@ -3,7 +3,7 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors')
 cheerio = cheerioAdv.wrap(cheerio)
 const { createElementList, getNodeContent } = require('../utils/cheerio')
-const {CustomResponse} = require('../request/request')
+// const { CustomResponse } = require('../request/request')
 
 class CollectContent extends Operation {
 
@@ -36,25 +36,23 @@ class CollectContent extends Operation {
 
         if (!this.querySelector || typeof this.querySelector !== 'string')
             throw new Error(`CollectContent operation must be provided with a querySelector.`);
-   }
-  
-    
+    }
 
 
-     /**
-     * 
-     * @param {CustomResponse} responseObjectFromParent 
-     * @return {Promise<{type:string,name:string,data:[]}>} 
-     */
-    async scrape(responseObjectFromParent) {
-
-        const parentAddress = responseObjectFromParent.url
+    /**
+    * 
+    * @param {{url:string,html:string}} params 
+    * @return {Promise<{type:string,name:string,data:[]}>} 
+    */
+    async scrape({ html, url }) {
+        debugger;
+        const parentAddress = url
 
 
         this.config.contentType = this.config.contentType || 'text';
-        !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
-
-        var $ = cheerio.load(responseObjectFromParent.data);
+        // !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
+        // debugger;
+        var $ = cheerio.load(html);
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
 
         if (this.config.getElementList) {
@@ -71,26 +69,22 @@ class CollectContent extends Operation {
             }
 
             iterations.push(content);
-   
+
         }
 
         if (this.config.getAllItems) {
             // await this.config.afterScrape(currentWrapper);
-            await this.config.getAllItems(iterations,parentAddress);
+            await this.config.getAllItems(iterations, parentAddress);
         }
-
-        
 
         this.data.push(...iterations)
 
-        return {type:this.constructor.name,name:this.config.name,data:iterations};
-        
-
+        return { type: this.constructor.name, name: this.config.name, data: iterations };
 
 
     }
 
-    
+
 
 
 }

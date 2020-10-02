@@ -5,6 +5,7 @@ const path = require('path');
 const {verifyDirectoryExists} = require('./utils/files')
 const {Root} = require('./');//For jsdoc
 // const PathQueue = require('./utils/PathQueue');
+const PuppeteerSimple = require('puppeteer-simple').default
 
 
 
@@ -126,7 +127,7 @@ class Scraper {
         this.referenceToRoot = rootObject;
         // debugger;
         // rootObject.injectScraper(this)
-        debugger;
+        // debugger;
         rootObject.injectScraper(this)
 
         if(this.config.usePuppeteer){
@@ -153,7 +154,10 @@ class Scraper {
         console.log('overall files: ', this.state.downloadedFiles)
 
         if (this.config.usePuppeteer) {
-            await this.puppeteerSimple.close()
+            // setTimeout(()=>{
+               await this.puppeteerSimple.close() 
+            // },1000)
+            
         }
 
 
@@ -187,7 +191,7 @@ class Scraper {
     saveFile(data,fileName) {
         // verifyDirectoryExists(this.config.logPath);
         return new Promise(async (resolve, reject) => {
-            // await verifyDirectoryExists(this.config.logPath);
+            await verifyDirectoryExists(this.config.logPath);
 
             console.log('saving file')
             // debugger;

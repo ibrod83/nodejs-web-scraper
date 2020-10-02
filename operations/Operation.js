@@ -41,6 +41,7 @@ class Operation {//Base class for all operations.
         this.scraper = ScraperInstance;
 
         this.handleNewOperationCreation(this)
+        // debugger;
 
         this.validateOperationArguments();//Implemented by all Operation objects
 
@@ -54,6 +55,19 @@ class Operation {//Base class for all operations.
      */
     handleNewOperationCreation(Operation) {
         this.scraper.state.registeredOperations.push(Operation);
+    }
+
+    /**
+     * 
+     * @param {string} errorString    
+     *     
+     */
+    handleFailedScrapingIteration(errorString) {
+        // handleFailedScrapingIteration(error) {
+        console.error(errorString);
+        // scrapingAction.setError(errorString, errorCode)
+        this.scraper.reportFailedScrapingAction(errorString);
+
     }
 
 

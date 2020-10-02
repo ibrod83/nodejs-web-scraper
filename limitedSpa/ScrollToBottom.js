@@ -1,96 +1,98 @@
-const CollectContentAdapter = require('./adapters/CollectContentAdapter')
-const DownloadContentAdapter = require('./adapters/DownloadContentAdapter')
-const Operation  = require('../operations/Operation');
 
-const adapterMap = {
-    'CollectContent':CollectContentAdapter,
-    'DownloadContent':DownloadContentAdapter,
-}
+const Operation = require('../operations/Operation');
+// const Adapter = require('./Adapter')
 
-class ScrollToBottom extends Operation{
-    constructor(config={numRepetitions:1,delay:0}){
+
+
+class ScrollToBottom extends Operation {
+    constructor(config = { numRepetitions: 1, delay: 0 }) {
         super(config)
-        this.scraperInstance = null;
+        // this.scraper = null;
         this.puppeteerSimplePage = null;
         this.operations = [];
-        // this.scraper = null;
-        // this.puppeteerSimplePage = puppeteerSimplePage;
-        this.config={};
-        for(let i in config){
-            this.config[i] = config[i];
-        }
+
     }
 
-    // init(ScraperInstance){
-    //     debugger;
-    //     // this.reset()
-    //     this.scraper = ScraperInstance;
-    //     // this.handleNewOperationCreation(this)
-    //     for(let operation of this.operations){
-    //         operation.init(ScraperInstance);
-    //     }
 
-    //     // this.validateOperationArguments();
-        
-    // }
 
-    init(ScraperInstance){
-        debugger;
-        // this.reset()
+    injectScraper(ScraperInstance) {//Override the original init function of Operation
         this.scraper = ScraperInstance;
-        this.handleNewOperationCreation(this)
-        for(let operation of this.operations){
-            operation.init(ScraperInstance);
+        // debugger;
+        ScraperInstance.registerOperation(this);
+        for (let operation of this.operations) {
+            operation.injectScraper(ScraperInstance);
         }
 
-        // for(let operation of this.virtualOperations){
-        //     operation.init(ScraperInstance);
-        // }
+        // this.validateOperationArguments();
 
-        this.validateOperationArguments();
-        
     }
+
+
 
     addOperation(operation) {
-        const operationName = operation.constructor.name;
-        if(adapterMap[operationName]){
-            const adapter = new adapterMap[operationName](operation)//Create the adapter, and pass the original object.
-            this.operations.push(adapter)    
-        }else{
-          this.operations.push(operation)  
-        }
 
-        
+        this.operations.push(operation);
     }
 
     async scrapeChildren() {
-        console.log('scrtaping children of scrollToBottom')
-        for (let operation of this.operations) {
-            // debugger;
-            await operation.scrape(this.puppeteerSimplePage);
-        }
-    }
-
-    async performSelfIteration(){
-        await this.puppeteerSimplePage.scrollToBottom({numRepetitions:1,delay:this.config.delay});
-        await this.scrapeChildren()
-    }
-
-    async scrape(puppeteerSimplePage,scraperInstance){
         // debugger;
-        this.scraperInstance = scraperInstance;
-        for(let childOperation of this.operations){
-            childOperation.init(scraperInstance);
-        }
-        this.puppeteerSimplePage = puppeteerSimplePage;
-        const {numRepetitions} = this.config;
-        for(let i=0;i<numRepetitions;i++){
-            // await puppeteerSimplePage.scrollToBottom({numRepetitions:1,delay});    
-            await this.performSelfIteration()
+        const { url } = this.puppeteerSimplePage
+        const html = await this.puppeteerSimplePage.getHtml()
+        const scrapedData = []
+        for (let operation of this.operations) {
+            const dataFromChild = await operation.scrape({ html, url }, this.puppeteerSimplePage);
+
+            scrapedData.push(dataFromChild);
         }
 
+        return scrapedData;
+
+    }
+
+    async processOneIteration() {
+
+        try {
+            var dataFromChildren = [];
+            await this.puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
+            dataFromChildren = await this.scrapeChildren()
+        } catch (error) {
+            const errorString = `There was an error scrolling down:, ${this.puppeteerSimplePage.url}, ${error}`
+            this.errors.push(errorString);
+            this.handleFailedScrapingIteration(errorString);
+        } finally {
+            return dataFromChildren;
+        }
+
+
+
+    }
+
+    /**
+     * The first parameter is not actually used. It's here to conform with the Operation.scrape() interface.    
+     * @param {*} puppeteerSimplePage 
+     */
+    async scrape({ html, url }, puppeteerSimplePage) {
+
+        const iterations = []
+        this.puppeteerSimplePage = puppeteerSimplePage;
+        const { numRepetitions } = this.config;
+        for (let i = 0; i < numRepetitions; i++) {
+            // await puppeteerSimplePage.scrollToBottom({numRepetitions:1,delay});    
+            const dataFromIteration = await this.processOneIteration();
+            iterations.push(dataFromIteration);
+        }
+
+        this.data.push(...iterations)
+        // debugger;
+        return { type: this.constructor.name, name: this.config.name, data: iterations };
         // await puppeteerSimplePage.scrollToBottom({numRepetitions,delay});
     }
+
+    validateOperationArguments() {
+
+    }
+
+
 }
 
 

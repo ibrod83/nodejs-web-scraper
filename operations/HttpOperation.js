@@ -14,7 +14,7 @@ class HttpOperation extends Operation {
     constructor(config) {
         super(config)
 
-        this.virtualOperations = [];//Will hold "virtual operations" performed by Puppeteer, which are out of the normal scraping flow.
+        // this.virtualOperations = [];//Will hold "virtual operations" performed by Puppeteer, which are out of the normal scraping flow.
 
         if (this.condition) {
             const type = typeof this.condition;
@@ -44,16 +44,10 @@ class HttpOperation extends Operation {
         // debugger;
         const maxAttempts = this.scraper.config.maxRetries + 1;//Note that "maxRetries refers" to the number of retries, whereas 
         //"maxAttempts" is the overall number of iterations, therefore adding 1.
-        const onError = async (error, attempts) => {
-            console.log('Retrying failed request, error: ', error, 'href:', href);
-
-            console.log('Attempt number: ', attempts)
-            await this.emitError(error);
-
-        }
+       
 
         const shouldStop = (error) => {
-            debugger;
+            // debugger;
             const errorCode = error.response ? error.response.status : error
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
                 // debugger;
@@ -81,20 +75,6 @@ class HttpOperation extends Operation {
     }
 
 
-
-
-    /**
-     * 
-     * @param {Error} href    
-     *     
-     */
-    handleFailedScrapingIteration(errorString) {
-        // handleFailedScrapingIteration(error) {
-        console.error(errorString);
-        // scrapingAction.setError(errorString, errorCode)
-        this.scraper.reportFailedScrapingAction(errorString);
-
-    }
 
 
     /**

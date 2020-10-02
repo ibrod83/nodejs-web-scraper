@@ -68,11 +68,11 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
     /**
      * 
-     * @param {CustomResponse} responseObjectFromParent 
+      * @param {{url:string,html:string}} params 
      * @return {Promise<{type:string,name:string,data:[]}>}
      */
-    async scrape(responseObjectFromParent) {
-        debugger;
+    async scrape({html,url}) {
+        // debugger;
         if (!this.directoryVerified) {
             await verifyDirectoryExists(this.config.filePath || this.scraper.config.filePath);
             this.directoryVerified = true;
@@ -80,7 +80,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
 
 
         this.config.contentType = this.config.contentType || 'image';
-        var $ = cheerio.load(responseObjectFromParent.data);
+        var $ = cheerio.load(html);
         const baseUrlFromBaseTag = getBaseUrlFromBaseTag($, this.scraper.config.baseSiteUrl);
 
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
@@ -89,8 +89,29 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             await this.config.getElementList(elementList);
         }
         // debugger;config.
-        const fileRefs = [];
+        const fileRefs = this.getFileRefs(url,elementList,baseUrlFromBaseTag)
 
+
+        await mapPromisesWithLimitation(fileRefs, (ref) => {
+            return this.processOneIteration(ref)
+        }, this.scraper.config.concurrency)
+
+        const iterations = fileRefs;
+        this.data.push(...iterations)
+        return { type: this.constructor.name, name: this.config.name, data: iterations };
+    }
+
+
+
+    /**
+     * 
+     * @param {string} url 
+     * @param {Array} elementList 
+     * @param {string} baseUrlFromBaseTag 
+     * @return {string[]} fileRefs
+     */
+    getFileRefs(url,elementList,baseUrlFromBaseTag){
+        const fileRefs = []
         elementList.forEach((element) => {
 
             var src;
@@ -103,29 +124,19 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     src = element.attr(alternativeAttrib);
                 } else {
                     if (!src) {
-                        const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.url}, alternative srcs: ${this.alternativeSrc}`;
+                        const errorString = `Invalid image href:' ${src}, on page: ${url}, alternative srcs: ${this.alternativeSrc}`;
                         console.error(errorString);
                         this.errors.push(errorString);
                         return;
                     }
-
                 }
             }
-
-            const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, src);
-            fileRefs.push(absoluteUrl);
-            
+            const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || url, src);
+            fileRefs.push(absoluteUrl);            
 
         })
 
-
-        await mapPromisesWithLimitation(fileRefs, (ref) => {
-            return this.processOneIteration(ref)
-        }, this.scraper.config.concurrency)
-
-        const iterations = fileRefs;
-        this.data.push(...iterations)
-        return { type: this.constructor.name, name: this.config.name, data: iterations };
+        return fileRefs;
     }
 
     /**
@@ -215,7 +226,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     await downloader.save();
                     this.scraper.state.downloadedFiles++
 
-                    console.log('images:', this.scraper.state.downloadedFiles)
+                    console.log('Files:', this.scraper.state.downloadedFiles)
 
 
                 } catch (err) {
