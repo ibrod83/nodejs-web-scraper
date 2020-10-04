@@ -43,7 +43,7 @@ class CollectContent extends Operation {
         const currentWrapper = this.createWrapper(parentAddress);
 
         this.contentType = this.contentType || 'text';
-        !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
+        !responseObjectFromParent && this.scraper.log(`Empty response from content operation ${responseObjectFromParent}`)
 
         var $ = cheerio.load(responseObjectFromParent.data);
         // const elementList = await this.createElementList($);

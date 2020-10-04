@@ -406,6 +406,7 @@ const config ={
             startUrl: '',//Mandatory. The page from which the process begins.   
             logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
             cloneImages: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
+            showConsoleLogs:true,//Whether to show or hide messages.
             removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
             concurrency: 3,//Maximum concurrent requests.Highly recommended to keep it at 10 at most. 
             maxRetries: 5,//Maximum number of retries of a failed request.      

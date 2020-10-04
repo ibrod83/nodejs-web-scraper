@@ -101,7 +101,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 } else {
                     if (!src) {
                         const errorString = `Invalid image href:' ${src}, on page: ${responseObjectFromParent.url}, alternative srcs: ${this.alternativeSrc}`;
-                        console.error(errorString);
+                        this.scraper.log(errorString);
                         this.errors.push(errorString);
                         return;
                     }
@@ -149,7 +149,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 if (this.alternativeSrc.includes(attrib)) {
                     // debugger;
 
-                    // console.log('alternative attrib:')
+                    // this.scraper.log('alternative attrib:')
                     return attrib;
                 }
             } else {
@@ -164,7 +164,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     saveDataUrlPromiseFactory(url) {
 
         return async () => {
-            console.log('Src is base64. Creating a file form it, with a hashed name.')
+            this.scraper.log('Src is base64. Creating a file form it, with a hashed name.')
 
             const extension = getDataUrlExtension(url);
             const split = url.split(';base64,');
@@ -184,7 +184,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             await writeFile(`${this.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
-            // console.log('images:', this.scraper.state.downloadedFiles)
+            // this.scraper.log('images:', this.scraper.state.downloadedFiles)
 
         }
 
@@ -197,7 +197,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             try {
                 url = await this.processUrl(url)
             } catch (error) {
-                console.error('Error processing URL, continuing with original one: ', url);
+                this.scraper.log(`Error processing URL, continuing with original one: ${url}`);
             }
 
         }
@@ -260,7 +260,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     //     // newFileCreated && this.scraper.state.downloadedFiles++;
                     //     this.scraper.state.downloadedFiles++
 
-                    //     console.log('images:', this.scraper.state.downloadedFiles)
+                    //     this.scraper.log('images:', this.scraper.state.downloadedFiles)
                     // }
                     // debugger;
                     const downloader = new Downloader(options)
@@ -270,13 +270,13 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     await downloader.download();
                     this.scraper.state.downloadedFiles++
 
-                    console.log('images:', this.scraper.state.downloadedFiles)
+                    this.scraper.log(`images: ${this.scraper.state.downloadedFiles}`)
 
                 } catch (err) {
                     // debugger;
                     if (err.code === 'EEXIST') {
                         // debugger;
-                        // console.log('File already exists in the directory, NOT overwriting it:', url);
+                        // this.scraper.log('File already exists in the directory, NOT overwriting it:', url);
                     } else {
                         throw err;
                     }

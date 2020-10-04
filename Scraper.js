@@ -32,6 +32,7 @@ class Scraper {
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = null] 
      * @param {Object} [globalConfig.proxy = null] 
+     * @param {boolean} [globalConfig.showConsoleLogs = true] 
      */
     constructor(globalConfig) {
         // debugger;
@@ -48,7 +49,8 @@ class Scraper {
             filePath: null,//Needs to be provided only if an image operation is created.
             auth: null,
             headers: null,
-            proxy: null
+            proxy: null,
+            showConsoleLogs:true
         }
         // this.state = new State();
         this.state = {
@@ -82,7 +84,7 @@ class Scraper {
     }
 
     destroy() {
-        console.error('Scraper.destroy() is deprecated. You can now have multiple instances, without calling this method.')
+        this.log('Scraper.destroy() is deprecated. You can now have multiple instances, without calling this method.')
     }
 
     
@@ -112,20 +114,20 @@ class Scraper {
         rootObject.init(this)
         await rootObject.scrape();
         if (this.areThereRepeatableErrors()) {
-            console.error('Number of repeatable failed requests: ', this.state.failedScrapingObjects.length);
+            this.log(`Number of repeatable failed requests:  ${this.state.failedScrapingObjects.length}`);
         } else {
-            console.log('All done, no repeatable errors');
+            this.log('All done, no repeatable errors');
         }
         // this.outPutErrors();
         if (this.config.logPath) {
             try {
                 await this.createLogs();
             } catch (error) {
-                console.error('Error creating logs', error)
+                this.log(`Error creating logs ${error}`)
             }
         }
-        // console.log('global.counter of alternative src ',global.counter)
-        console.log('overall files: ', this.state.downloadedFiles)
+        // this.log('global.counter of alternative src ',global.counter)
+        this.log(`overall files: ${this.state.downloadedFiles}`)
 
 
     }
@@ -133,9 +135,9 @@ class Scraper {
     // outPutErrors() {
     //     const numErrors = this.state.failedScrapingObjects.length;
     //     if (numErrors > 0) {
-    //         console.error('Number of repeatable failed requests: ', numErrors);
+    //         this.log('Number of repeatable failed requests: ', numErrors);
     //     } else {
-    //         console.log('All done, no repeatable errors');
+    //         this.log('All done, no repeatable errors');
     //     }
     // }
 
@@ -152,12 +154,12 @@ class Scraper {
         return new Promise(async (resolve, reject) => {
             // await verifyDirectoryExists(this.config.logPath);
 
-            console.log('saving file')
+            this.log('saving file')
             fs.writeFile(path.join(this.config.logPath, `${obj.fileName}.json`), JSON.stringify(obj.data), (error) => {
                 if (error) {
                     reject(error)
                 } else {
-                    console.log(`Log file ${obj.fileName} saved`);
+                    this.log(`Log file ${obj.fileName} saved`);
                     resolve();
                 }
 
@@ -198,7 +200,7 @@ class Scraper {
                 await this.createLogs();
 
             } else {
-                console.log('No repeatable errors');
+                this.log('No repeatable errors');
                 break;
             }
         }
@@ -208,10 +210,10 @@ class Scraper {
 
     async repeatErrors() {
         // debugger;
-        // console.log('Beginning a cycle of repetition');
+        // this.log('Beginning a cycle of repetition');
         this.state.repetitionCycles++
-        console.log('Repetition cycle number:', this.state.repetitionCycles);
-        console.log('Number of failed objects before repetition cycle:', this.state.failedScrapingObjects.length)
+        this.log('Repetition cycle number:', this.state.repetitionCycles);
+        this.log('Number of failed objects before repetition cycle:', this.state.failedScrapingObjects.length)
 
         await Promise.all(
             this.state.failedScrapingObjects.map(async (failedObject) => {
@@ -225,7 +227,13 @@ class Scraper {
             })
         )
 
-        console.log('One cycle of error repetition is done!')
+        this.log('One cycle of error repetition is done!')
+    }
+
+    log(message){
+        if(this.config.showConsoleLogs){
+            console.log(message);
+        }
     }
 
 

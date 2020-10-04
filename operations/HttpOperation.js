@@ -50,7 +50,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         const maxAttempts = this.scraper.config.maxRetries + 1;
         const shouldStop = (error) => {
             const errorCode = error.response ? error.response.status : error
-            // console.log('Error code', errorCode);
+            // this.scraper.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
                 // debugger;
                 const error = new Error();
@@ -64,10 +64,10 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         const onError = async (error, retries) => {
 
 
-            console.log('Retrying failed promise...error:', error, 'href:', href);
-            // console.log('Retrying failed promise...error:', error);
+            this.scraper.log(`Retrying failed promise...error: ${error}, href: ${href}`);
+            // this.scraper.log('Retrying failed promise...error:', error);
             const newRetries = retries + 1;
-            console.log('Retreis', newRetries)
+            this.scraper.log(`Retreis ${newRetries}`)
             await this.emitError(error)
         }
 
@@ -104,10 +104,10 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             if (this.pagination.processPaginationUrl) {
                 try {
                     paginationUrl = await this.pagination.processPaginationUrl(paginationUrl)
-                    // console.log('new href', url)
+                    // this.scraper.log('new href', url)
                 } catch (error) {
 
-                    console.error('Error processing URL, continuing with original one: ', paginationUrl);
+                    this.scraper.log(`Error processing URL, continuing with original one: ${paginationUrl}`);
 
                 }
 
@@ -141,7 +141,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
     // async executeScrapingObjects(scrapingObjects, overwriteConcurrency) {//Will execute scraping objects with concurrency limitation.
-    //     // console.log('overwriteConcurrency', overwriteConcurrency)
+    //     // this.scraper.log('overwriteConcurrency', overwriteConcurrency)
     //     // debugger;
     //     await Promise.map(scrapingObjects, (scrapingObject) => {
     //         return this.processOneScrapingObject(scrapingObject);
@@ -160,13 +160,13 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     handleFailedScrapingObject(scrapingObject, errorString, errorCode) {
         // debugger;
-        // console.log('error code from handle', errorCode);
-        console.error(errorString);
+        // this.scraper.log('error code from handle', errorCode);
+        this.scraper.log(errorString);
         scrapingObject.error = errorString;
         // debugger;
         const shouldNotBeSkipped = !this.scraper.config.errorCodesToSkip.includes(errorCode);
         if (!this.scraper.state.failedScrapingObjects.includes(scrapingObject) && shouldNotBeSkipped) {
-            // console.log('scrapingObject not included,pushing it!')
+            // this.scraper.log('scrapingObject not included,pushing it!')
             this.scraper.state.failedScrapingObjects.push(scrapingObject);
         }
     }
@@ -183,16 +183,16 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     async beforePromiseFactory(message) {//Runs at the beginning of the promise-returning function, that is sent to repeatPromiseUntilResolved().
 
         this.scraper.state.currentlyRunning++;
-        console.log(message);
-        console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+        this.scraper.log(message);
+        this.scraper.log(`currentlyRunning: ${this.scraper.state.currentlyRunning}`);
         await this.createDelay()
         this.scraper.state.numRequests++
-        console.log('overall requests', this.scraper.state.numRequests)
+        this.scraper.log(`overall requests ${this.scraper.state.numRequests}`)
     }
 
     afterPromiseFactory() {//Runs at the end of the promise-returning function, that is sent to repeatPromiseUntilResolved().
         this.scraper.state.currentlyRunning--;
-        console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+        this.scraper.log(`currentlyRunning: ${this.scraper.state.currentlyRunning}`);
     }
 
     async createDelay() {
@@ -206,7 +206,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
 
     addOperation(operationObject) {//Adds a reference to an operation object     
-        // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
+        // this.scraper.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
         if (!(operationObject instanceof Object.getPrototypeOf(HttpOperation))) {
             throw 'Child operation must be of type Operation! Check your "addOperation" calls.'
         }
@@ -290,9 +290,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, href, bypassError));
         // const maxAttempts = this.scraper.config.maxRetries;
         // const onError= (error,retries)=>{
-        //     console.log('Retrying failed promise...error:', error, 'href:', href);
+        //     this.scraper.log('Retrying failed promise...error:', error, 'href:', href);
         //     const newRetries = retries + 1;
-        //     console.log('Retreis', newRetries)
+        //     this.scraper.log('Retreis', newRetries)
         // }
 
         // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
@@ -318,9 +318,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             if (this.processUrl) {
                 try {
                     href = await this.processUrl(href)
-                    // console.log('new href', href)
+                    // this.scraper.log('new href', href)
                 } catch (error) {
-                    console.error('Error processing URL, continuing with original one: ', href);
+                    this.scraper.log(`Error processing URL, continuing with original one: ${href}`);
                 }
 
             }
@@ -345,7 +345,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
         } catch (error) {
             // debugger;
-            // console.log(error)
+            // this.scraper.log(error)
             const errorCode = error.code
             const errorString = `There was an error opening page ${href}, ${error}`;
             this.errors.push(errorString);
@@ -397,7 +397,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
                         continue;
                     }
                     // const type = typeof child
-                    // console.log(type)
+                    // this.scraper.log(type)
                     tree[child.name] = child.data.length <= 1 ? child.data[0] : child.data
                 }
                 await this.getPageObject(tree)
@@ -410,7 +410,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             //     debugger;
             // }
             // debugger;
-            console.error(error);
+            this.scraper.log(error);
         }
 
     }
@@ -428,7 +428,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     //     const maxRetries = this.scraper.config.maxRetries;
     //     try {
     //         // overallRequests++
-    //         // console.log('overallRequests', overallRequests)
+    //         // this.scraper.log('overallRequests', overallRequests)
 
     //         return await promiseFactory();
     //     } catch (error) {
@@ -437,7 +437,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     //         // debugger;
     //         const errorCode = error.response ? error.response.status : error
-    //         // console.log('Error code', errorCode);
+    //         // this.scraper.log('Error code', errorCode);
     //         if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
     //             // debugger;
     //             const error = new Error();
@@ -447,9 +447,9 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     //             throw error;
     //         }
 
-    //         console.log('Retrying failed promise...error:', error, 'href:', href);
+    //         this.scraper.log('Retrying failed promise...error:', error, 'href:', href);
     //         const newRetries = retries + 1;
-    //         console.log('Retreis', newRetries)
+    //         this.scraper.log('Retreis', newRetries)
     //         if (newRetries > maxRetries) {//If it reached the maximum allowed number of retries, it throws an error.
     //             throw error;
     //         }
