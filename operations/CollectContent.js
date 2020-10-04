@@ -45,7 +45,9 @@ class CollectContent extends Operation {
     * @return {Promise<{type:string,name:string,data:[]}>} 
     */
     async scrape({ html, url }) {
-        debugger;
+        // if(this.config.name === 'videoLabel')
+        // debugger;
+        
         const parentAddress = url
 
 
@@ -54,6 +56,9 @@ class CollectContent extends Operation {
         // debugger;
         var $ = cheerio.load(html);
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
+
+        if(this.config.name === 'videoLabel')
+        console.log(url,' Number of video elements: ',elementList.length)
 
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);

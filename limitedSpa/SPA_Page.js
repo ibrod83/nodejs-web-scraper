@@ -16,7 +16,7 @@ class SPA_Page {
         this.url = url;
         this.puppeteerSimplePage = null;//The PuppeteerSimple PAGE instance
         this.operations = [];
-        this.html = null;
+        // this.html = null;
         this.respone = null;//
     }
 
@@ -42,7 +42,7 @@ class SPA_Page {
             throw error;
         }
         this.response = response;
-        this.html = await this.getHtml();
+        // this.html = await this.getHtml();
     }
 
     async scrapeChild(operation) {
@@ -68,13 +68,15 @@ class SPA_Page {
     /**
      * Returns a mocked response, to conform with the normal API
      */
-    getResponse() {
+    async getResponse() {
         const { _status, _statusText, _headers, _url } = this.response;
         // debugger;
+        const html = await this.getHtml();
+        
         return {
             config: {},
             originalResponse: this.respone,
-            data: this.html,
+            data: html,
             status: _status,
             statusText: _statusText,
             url: _url,
@@ -87,7 +89,7 @@ class SPA_Page {
      */
     async getHtml() {
         const html = await this.puppeteerSimplePage.getHtml();
-        this.html = html;
+        // this.html = html;
         // if(!this.html){
         //     debugger;
         // }
@@ -102,9 +104,10 @@ class SPA_Page {
         try {
             await this.puppeteerSimplePage.close()
         } catch (error) {
+            console.log('error closing puppeteerSimplePage caught in SPA_Page')
             // process.kill()
             // debugger;
-            throw error;
+            // throw error;
         }
 
     }

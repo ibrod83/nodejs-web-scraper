@@ -93,7 +93,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         const iterations = [];
 
         await mapPromisesWithLimitation(refs, async (href) => {
-            debugger;
+            // debugger;
             const data = await this.pageHelper.processOneIteration(href, shouldPaginate)
 
             if (this.config.getPageData)

@@ -8,7 +8,7 @@ class ScrollToBottom extends Operation {
     constructor(config = { numRepetitions: 1, delay: 0 }) {
         super(config)
         // this.scraper = null;
-        this.puppeteerSimplePage = null;
+        // this.puppeteerSimplePage = null;
         this.operations = [];
 
     }
@@ -34,13 +34,13 @@ class ScrollToBottom extends Operation {
         this.operations.push(operation);
     }
 
-    async scrapeChildren() {
+    async scrapeChildren(puppeteerSimplePage) {
         // debugger;
-        const { url } = this.puppeteerSimplePage
-        const html = await this.puppeteerSimplePage.getHtml()
+        const { url } = puppeteerSimplePage
+        const html = await puppeteerSimplePage.getHtml()
         const scrapedData = []
         for (let operation of this.operations) {
-            const dataFromChild = await operation.scrape({ html, url }, this.puppeteerSimplePage);
+            const dataFromChild = await operation.scrape({ html, url }, puppeteerSimplePage);
 
             scrapedData.push(dataFromChild);
         }
@@ -49,14 +49,14 @@ class ScrollToBottom extends Operation {
 
     }
 
-    async processOneIteration() {
+    async processOneIteration(puppeteerSimplePage) {
 
         try {
             var dataFromChildren = [];
-            await this.puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
-            dataFromChildren = await this.scrapeChildren()
+            await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
+            dataFromChildren = await this.scrapeChildren(puppeteerSimplePage)
         } catch (error) {
-            const errorString = `There was an error scrolling down:, ${this.puppeteerSimplePage.url}, ${error}`
+            const errorString = `There was an error scrolling down:, ${puppeteerSimplePage.url}, ${error}`
             this.errors.push(errorString);
             this.handleFailedScrapingIteration(errorString);
         } finally {
@@ -74,16 +74,18 @@ class ScrollToBottom extends Operation {
     async scrape({ html, url }, puppeteerSimplePage) {
 
         const iterations = []
-        this.puppeteerSimplePage = puppeteerSimplePage;
+        // this.puppeteerSimplePage = puppeteerSimplePage;
         const { numRepetitions } = this.config;
         for (let i = 0; i < numRepetitions; i++) {
+            // debugger;
             // await puppeteerSimplePage.scrollToBottom({numRepetitions:1,delay});    
-            const dataFromIteration = await this.processOneIteration();
+            const dataFromIteration = await this.processOneIteration(puppeteerSimplePage);
+            // debugger;
             iterations.push(dataFromIteration);
         }
 
         this.data.push(...iterations)
-        // debugger;
+        debugger;
         return { type: this.constructor.name, name: this.config.name, data: iterations };
         // await puppeteerSimplePage.scrollToBottom({numRepetitions,delay});
     }

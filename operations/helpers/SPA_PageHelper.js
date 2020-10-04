@@ -114,7 +114,7 @@ class SPA_PageHelper extends PageHelper {
 
                 if (this.Operation.config.getPageHtml) {
                     // debugger;
-                    await this.Operation.config.getPageHtml(page.html, page.url)
+                    await this.Operation.config.getPageHtml(await page.getHtml(), page.url)
                 }
 
             } catch (error) {
