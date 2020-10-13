@@ -45,7 +45,7 @@ const CompositeMixin = {
   },
 
   // _addOperation: function (operationObject) {//Adds a reference to an operation object     
-  //   // console.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
+  //   // this.scraper.log(operationObject instanceof Object.getPrototypeOf(HttpOperation))
   //   // debugger;
 
   //   const SPA_operationNames = ['ScrollToBottom', 'Click'];

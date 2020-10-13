@@ -46,7 +46,7 @@ class CollectContent extends Operation {
     * @return {Promise<{type:string,name:string,data:[]}>} 
     */
     async scrape({ html, url }) {
-        // console.log('colelcting content',url)
+        // this.scraper.log('colelcting content',url)
         // debugger;
         // if(this.config.name === 'videoLabel')
         // debugger;
@@ -58,13 +58,13 @@ class CollectContent extends Operation {
 
 
         this.config.contentType = this.config.contentType || 'text';
-        // !responseObjectFromParent && console.log('Empty response from content operation', responseObjectFromParent)
+        // !responseObjectFromParent && this.scraper.log('Empty response from content operation', responseObjectFromParent)
         // debugger;
         var $ = cheerio.load(html);
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
 
         // if(this.config.name === 'videoLabel')
-        // console.log(url,' Number of video elements: ',elementList.length)
+        // this.scraper.log(url,' Number of video elements: ',elementList.length)
 
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);

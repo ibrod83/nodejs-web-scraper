@@ -53,7 +53,7 @@ class ScrollToBottom extends Operation {
 
     async performScroll(puppeteerSimplePage) {
         await puppeteerSimplePage.focus();
-        await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });//problem with delay
+        await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
     }
 
     async processOneIteration(puppeteerSimplePage) {

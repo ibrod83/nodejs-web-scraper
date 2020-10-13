@@ -64,7 +64,7 @@ class Operation {//Base class for all operations.
      */
     handleFailedScrapingIteration(errorString) {
         // handleFailedScrapingIteration(error) {
-        console.error(errorString);
+        this.scraper.log(errorString);
         // scrapingAction.setError(errorString, errorCode)
         this.scraper.reportFailedScrapingAction(errorString);
 

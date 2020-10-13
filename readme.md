@@ -549,7 +549,7 @@ const fs = require('fs');
     const collectPosts = new CollectContent('.post',{getElementContent});//Will be called after every "myDiv" element is collected.
 
 
-    root.addOperation(scrollToBottom);   
+    root.addOperation(scrollToBottom);//Add scrollToBottom first. The order matters.   
     root.addOperation(collectPosts);      
           
 
@@ -574,13 +574,7 @@ In some cases, single page apps use a thing called DOM virtualizaion, meaning th
         startUrl: `https://www.nice-site/some-section`,       
        }
 
-     
-    const posts=[];
-
-    const getElementContent = (content, pageAddress) => {
-               
-        posts.push(content)
-    } 
+   
 
     const scraper = new Scraper(config);
 
@@ -588,20 +582,21 @@ In some cases, single page apps use a thing called DOM virtualizaion, meaning th
 
     const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})//Scroll to bottom 100 times, with a delay of 2 seconds.
     
-    const collectPosts = new CollectContent('.post',{getElementContent});//Will be called after every "myDiv" element is collected.
+    const collectPosts = new CollectContent('.post');
 
 
     root.addOperation(scrollToBottom);   
-    scrollToBottom.addOperation(collectPosts);//This is the difference from the previous example.
+      scrollToBottom.addOperation(collectPosts);//This is the difference from the previous example.
     //Here, scrollToBottom will have "collectPosts" as a child, meaning that after each scrolling cycle, the current posts in the DOM will be collected. Note that this might cause duplicate data, being that more content might be present in the DOM,
     //Than what the last scrolling down repetition actually loaded.      
-          
+   
+   const posts= collectPosts.getData();
+   fs.writeFileSync('./posts.json',JSON.stringify(posts))
 
    await scraper.scrape(root);
     
 ```
-This means: go to the site, scroll down 100 times with a delay of 2 seconds between each, and then collect all the posts
-from the html.
+This means: go to the site, scroll down 100 times with a delay of 2 seconds. Between each scroll, collect all the CURRENT posts present in the DOM.
 
 
 

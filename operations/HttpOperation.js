@@ -62,10 +62,10 @@ class HttpOperation extends Operation {
         const onError = async (error, retries) => {
 
 
-            console.log('Retrying failed promise...error:', error, 'href:', href);
-            // console.log('Retrying failed promise...error:', error);
+            this.scraper.log(`Retrying failed promise...error: ${error}, 'href:' ${href}`);
+            // this.scraper.log('Retrying failed promise...error:', error);
             const newRetries = retries + 1;
-            console.log('Retreis', newRetries)
+            this.scraper.log(`Retreis ${newRetries}`)
             await this.emitError(error)
         }
 
@@ -98,16 +98,16 @@ class HttpOperation extends Operation {
     async beforePromiseFactory(message) {//Runs at the beginning of the promise-returning function, that is sent to repeatPromiseUntilResolved().
 
         this.scraper.state.currentlyRunning++;
-        console.log(message);
-        console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+        this.scraper.log(message);
+        this.scraper.log(`currentlyRunning: ${this.scraper.state.currentlyRunning}`);
         await this.createDelay()
         this.scraper.state.numRequests++
-        console.log('overall requests', this.scraper.state.numRequests)
+        this.scraper.log(`overall requests: ${this.scraper.state.numRequests}`)
     }
 
     afterPromiseFactory() {//Runs at the end of the promise-returning function, that is sent to repeatPromiseUntilResolved().
         this.scraper.state.currentlyRunning--;
-        console.log('currentlyRunning:', this.scraper.state.currentlyRunning);
+        this.scraper.log(`currentlyRunning: ${this.scraper.state.currentlyRunning}`);
     }
 
     async createDelay() {

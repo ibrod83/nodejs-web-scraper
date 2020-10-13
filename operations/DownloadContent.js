@@ -125,7 +125,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 } else {
                     if (!src) {
                         const errorString = `Invalid image href:' ${src}, on page: ${url}, alternative srcs: ${this.alternativeSrc}`;
-                        console.error(errorString);
+                        this.scraper.log(errorString);
                         this.errors.push(errorString);
                         return;
                     }
@@ -163,7 +163,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
     saveDataUrlPromiseFactory(url) {
 
         return async () => {
-            console.log('Src is base64. Creating a file form it, with a hashed name.')
+            this.scraper.log('Src is base64. Creating a file form it, with a hashed name.')
 
             const extension = getDataUrlExtension(url);
             const split = url.split(';base64,');
@@ -183,7 +183,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             await writeFile(`${this.config.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
-            // console.log('images:', this.scraper.state.downloadedFiles)
+            // this.scraper.log('images:', this.scraper.state.downloadedFiles)
 
         }
 
@@ -226,7 +226,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                     await downloader.save();
                     this.scraper.state.downloadedFiles++
 
-                    console.log('Files:', this.scraper.state.downloadedFiles)
+                    this.scraper.log(`Files: ${this.scraper.state.downloadedFiles}`)
 
 
                 } catch (err) {
