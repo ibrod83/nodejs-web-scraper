@@ -1,11 +1,11 @@
 
-// const Promise = require('bluebird');
 const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
-const {verifyDirectoryExists} = require('./utils/files')
-const {Root} = require('./');//For jsdoc
+const { verifyDirectoryExists } = require('./utils/files')
+const { Root } = require('./');//For jsdoc
 // const PathQueue = require('./utils/PathQueue');
+const PuppeteerSimple = require('puppeteer-simple').default
 
 
 
@@ -22,17 +22,23 @@ class Scraper {
      * @param {number} [globalConfig.maxRetries = 5]         
      * @param {number} [globalConfig.delay = 200] 
      * @param {number} [globalConfig.timeout = 6000] 
-     * @param {string} [globalConfig.filePath= null] 
-     * @param {Object} [globalConfig.auth = null] 
-     * @param {Object} [globalConfig.headers = null] 
-     * @param {Object} [globalConfig.proxy = null] 
+     * @param {string} [globalConfig.filePath= undefined] 
+     * @param {Object} [globalConfig.auth = undefined] 
+     * @param {Object} [globalConfig.headers = undefined] 
+     * @param {Object} [globalConfig.proxy = undefined] 
+     * @param {boolean} [globalConfig.usePuppeteer = false] 
+     * @param {object} [globalConfig.puppeteerConfig]
+     * @param {boolean} [globalConfig.puppeteerConfig.headless = false] 
+     * @param {number} [globalConfig.puppeteerConfig.timeout = 30000] 
      */
+
+
     constructor(globalConfig) {
-        // debugger;
-        // global.counter=0;
+        
+        //Default config
         this.config = {
             cloneFiles: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-            removeStyleAndScriptTags: true,           
+            removeStyleAndScriptTags: true,
             concurrency: 3,//Maximum concurrent requests.
             maxRetries: 5,//Maximum number of retries of a failed request.            
             startUrl: '',
@@ -42,11 +48,16 @@ class Scraper {
             filePath: null,//Needs to be provided only if a DownloadContent operation is created.
             auth: null,
             headers: null,
-            proxy: null
+            proxy: null,
+            usePuppeteer: false,
+            puppeteerConfig : {
+                headless: false,
+                timeout:30000
+            }
         }
         // this.state = new State();
         this.state = {
-            existingUserFileDirectories: [],
+            // existingUserFileDirectories: [],
             failedScrapingIterations: [],
             downloadedFiles: 0,
             currentlyRunning: 0,
@@ -63,18 +74,35 @@ class Scraper {
             this.config[prop] = globalConfig[prop];
         }
 
-        this.config.fakeErrors = false;
+        const puppeteerConfig = globalConfig.puppeteerConfig; 
+
+        if (puppeteerConfig) {
+            for (let prop in puppeteerConfig) {
+                this.config.puppeteerConfig[prop] = puppeteerConfig[prop];
+            }
+        }
+
         this.config.errorCodesToSkip = [404, 403, 400];
-        // this.config.useQyu = true;
-        this.config.mockImages = false;
+
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
+        // debugger;
+        if (this.config.usePuppeteer) {
+            // debugger;
+            const puppeteerConfig = this.config.puppeteerConfig;
+            this.puppeteerSimple = new PuppeteerSimple({ headless: puppeteerConfig.headless,timeout:puppeteerConfig.timeout })
+            this.isBrowserReady = this.puppeteerSimple.createBrowser();
+        }
+
+
+
+
         // this.pathQueue = new PathQueue();
         this.referenceToRoot = null;
 
     }
 
-    registerOperation(Operation){
+    registerOperation(Operation) {
         this.state.registeredOperations.push(Operation)
     }
 
@@ -82,7 +110,15 @@ class Scraper {
         console.error('Scraper.destroy() is deprecated. You can now have multiple instances, without calling this method.')
     }
 
-    
+    async awaitBrowserReady() {
+        await this.isBrowserReady;
+    }
+
+    getPuppeteerSimpleInstance() {
+        return this.puppeteerSimple;
+    }
+
+
 
     validateGlobalConfig(conf) {
         if (!conf || typeof conf !== 'object')
@@ -91,8 +127,8 @@ class Scraper {
             throw 'Please provide both baseSiteUrl and startUrl';
     }
 
-     
-   
+
+
 
 
     /**
@@ -106,9 +142,17 @@ class Scraper {
 
         this.referenceToRoot = rootObject;
         // debugger;
+        // rootObject.injectScraper(this)
+        // debugger;
         rootObject.injectScraper(this)
-        // rootObject.init(this)
+
+        if (this.config.usePuppeteer) {
+            await this.awaitBrowserReady();
+        }
+
+
         await rootObject.scrape();
+
         if (this.areThereRepeatableErrors()) {
             console.error('Number of requests that failed, in their last attempt: ', this.state.failedScrapingIterations.length);
         } else {
@@ -124,6 +168,13 @@ class Scraper {
         }
         // console.log('global.counter of alternative src ',global.counter)
         console.log('overall files: ', this.state.downloadedFiles)
+
+        if (this.config.usePuppeteer) {
+            // setTimeout(()=>{
+            await this.puppeteerSimple.close()
+            // },1000)
+
+        }
 
 
     }
@@ -142,7 +193,7 @@ class Scraper {
      * @param {string} errorString 
      * @return {void}
      */
-    reportFailedScrapingAction(errorString){
+    reportFailedScrapingAction(errorString) {
         this.state.failedScrapingIterations.push(errorString);
     }
 
@@ -153,7 +204,7 @@ class Scraper {
      * @param {string} fileName  
      * @return {Promise<void>}  
      */
-    saveFile(data,fileName) {
+    saveFile(data, fileName) {
         // verifyDirectoryExists(this.config.logPath);
         return new Promise(async (resolve, reject) => {
             await verifyDirectoryExists(this.config.logPath);
@@ -196,7 +247,7 @@ class Scraper {
      * @param {ScrapingAction | ScrapingAction[]} obj.data    
      */
     async createLog(obj) {
-        await this.saveFile(obj.data,obj.fileName);
+        await this.saveFile(obj.data, obj.fileName);
     }
 
 

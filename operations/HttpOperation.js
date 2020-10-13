@@ -3,20 +3,30 @@ var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const { createDelay } = require('../utils/delay');
-const rpur = require('repeat-promise-until-resolved')
+const rpur = require('../utils/rpur')
 
 
-
-class HttpOperation extends Operation {//Base class for all operations that require reaching out to the internet.
+/**
+ * Base class for all operations that require reaching out to the internet.
+ */
+class HttpOperation extends Operation {
 
     constructor(config) {
-        // debugger;
         super(config)
-        if (config && config.condition) {
-            const type = typeof config.condition;
-            if (type !== 'function') {
-                throw new Error(`"condition" hook must receive a function, got: ${type}`)
+
+        // this.virtualOperations = [];//Will hold "virtual operations" performed by Puppeteer, which are out of the normal scraping flow.
+
+        if (this.condition) {
+            const type = typeof this.condition;
+            if (config && config.condition) {
+                const type = typeof config.condition;
+                if (type !== 'function') {
+                    throw new Error(`"condition" hook must receive a function, got: ${type}`)
+                }
             }
+
+            this.counter = 0;
+
         }
     }
 
@@ -31,17 +41,21 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
     async repeatPromiseUntilResolved(promiseFactory, href) {
-        const maxAttempts = this.scraper.config.maxRetries + 1;
+        // debugger;
+        const maxAttempts = this.scraper.config.maxRetries + 1;//Note that "maxRetries refers" to the number of retries, whereas 
+        //"maxAttempts" is the overall number of iterations, therefore adding 1.
+       
+
         const shouldStop = (error) => {
+            // debugger;
             const errorCode = error.response ? error.response.status : error
-            // console.log('Error code', errorCode);
             if (this.scraper.config.errorCodesToSkip.includes(errorCode)) {
                 // debugger;
                 const error = new Error();
                 error.message = `Skipping error ${errorCode}`;
                 // debugger;
                 error.code = errorCode;
-                return true;
+                return true
             }
             return false;
         }
@@ -55,27 +69,12 @@ class HttpOperation extends Operation {//Base class for all operations that requ
             await this.emitError(error)
         }
 
-        // return await this.repeatPromiseUntilResolved(() => { return this.qyuFactory(promiseFactory) }, url)
         // return await this.qyuFactory(() => this.repeatPromiseUntilResolved(promiseFactory, url));
-        return await rpur(promiseFactory, { maxAttempts, onError, shouldStop });
+
+        return await rpur(promiseFactory, { maxAttempts, shouldStop, onError, timeout: 0 });
     }
 
 
-
-
-
-    /**
-     * 
-     * @param {Error} href    
-     *     
-     */
-    handleFailedScrapingIteration(errorString) {
-    // handleFailedScrapingIteration(error) {
-        console.error(errorString);
-        // scrapingAction.setError(errorString, errorCode)
-        this.scraper.reportFailedScrapingAction(errorString);
-
-    }
 
 
     /**
@@ -90,7 +89,7 @@ class HttpOperation extends Operation {//Base class for all operations that requ
 
     }
 
-    
+
 
     /**
      * 
@@ -120,8 +119,6 @@ class HttpOperation extends Operation {//Base class for all operations that requ
     }
 
 
-
-   
 
 
 }

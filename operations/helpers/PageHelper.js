@@ -3,7 +3,10 @@ const { request } = require('../../request/request.js');
 const { stripTags } = require('../../utils/html');
 const { mapPromisesWithLimitation } = require('../../utils/concurrency');
 const { getDictionaryKey } = require('../../utils/objects');
+const { getPaginationUrls } = require('../../utils/pagination');
 const { CustomResponse } = require('../../request/request')//For jsdoc
+// const SPA_page = require('../../limitedSpa/SPA_Page');
+
 // require('../typedef.js'); 
 
 class PageHelper {
@@ -37,13 +40,13 @@ class PageHelper {
                 address: href,
                 data: []
             }
-            // debugger
+
             var response = await this.getPage(href);
             // debugger
             await this.runAfterResponseHooks(response)
 
             // debugger;
-            var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, response)
+            var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, {html:response.data,url:response.url})
 
             await this.runGetPageObjectHook(href, dataFromChildren)
 
@@ -51,47 +54,15 @@ class PageHelper {
         }
         catch (error) {
 
-            debugger;
+            // debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
             iteration.error = errorString;
             iteration.successful = false;
             this.Operation.errors.push(errorString);
-            this.Operation.handleFailedScrapingIteraeration(errorString);
+            this.Operation.handleFailedScrapingIteration(errorString);
         } finally {
             return iteration
         }
-    }
-
-    
-
-
-    /**
-     * 
-     * @param {string} address 
-     * @param {Object} config
-     * @return {string[]}
-     */
-    getPaginationUrls(address, { numPages, begin, end, offset = 1, queryString, routingString }) {
-        // const numPages = pagination.numPages;
-        const firstPage = typeof begin !== 'undefined' ? begin : 1;
-        const lastPage = end || numPages;
-        // const offset = offset || 1;
-        const paginationUrls = []
-        for (let i = firstPage; i <= lastPage; i = i + offset) {
-
-            const mark = address.includes('?') ? '&' : '?';
-            var paginationUrl;
-
-            if (queryString) {
-                paginationUrl = `${address}${mark}${queryString}=${i}`;
-            } else {
-                paginationUrl = `${address}/${routingString}/${i}`.replace(/([^:]\/)\/+/g, "$1");
-            }
-            paginationUrls.push(paginationUrl)
-
-        }
-
-        return paginationUrls;
     }
 
 
@@ -103,7 +74,7 @@ class PageHelper {
      */
     async paginate(address) {//Divides a given page to multiple pages.
         const paginationConfig = this.Operation.config.pagination;
-        const paginationUrls = this.getPaginationUrls(address, paginationConfig)
+        const paginationUrls = getPaginationUrls(address, paginationConfig)
 
 
         const dataFromChildren = [];
@@ -122,11 +93,10 @@ class PageHelper {
     }
 
 
-
     /**
      * 
      * @param {string} href 
-     * @return {Promise<CustomResponse>}
+     * @return {Promise<string>}
      */
     async getPage(href) {//Fetches the html of a given page.
 
@@ -178,7 +148,7 @@ class PageHelper {
             // debugger;
 
             const tree = {
-                _address:address
+                
             }
             for (let child of dataFromChildren) {
                 // debugger;
@@ -186,11 +156,11 @@ class PageHelper {
                 const func = getDictionaryKey(child.name);
                 tree[func(child.name, tree)] = child.data
             }
-            await this.Operation.config.getPageObject(tree)
+            await this.Operation.config.getPageObject(tree,address)
         }
     }
 
-    
+
 
 
 

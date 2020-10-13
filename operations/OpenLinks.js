@@ -7,6 +7,7 @@ cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
 const { getAbsoluteUrl } = require('../utils/url');
 const PageHelper = require('./helpers/PageHelper');
+const SPA_PageHelper = require('./helpers/SPA_PageHelper');
 const { CustomResponse } = require('../request/request');//For jsdoc
 const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
@@ -28,7 +29,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Function} [config.condition = null] Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
      * @param {Function} [config.getElementList = null] Receives an elementList array    
      * @param {Function} [config.getPageData = null] 
-     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an _address
+     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an address argument
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
@@ -38,9 +39,10 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     constructor(querySelector, config) {
 
         super(config);
-        this.pageHelper = new PageHelper(this);
+        // this.pageHelper = new PageHelper(this);
+        this.pageHelper = null;
         // this.compositeHelper = new CompositeHelper(this);
-
+        // this.virtualOperations = []
         this.operations = [];//References to child operation objects.
         this.querySelector = querySelector;
 
@@ -54,6 +56,14 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         this._addOperation(Operation);
     }
 
+    initPageHelper() {
+        if (!this.scraper.config.usePuppeteer) {
+            this.pageHelper = new PageHelper(this)
+        }else{
+            this.pageHelper = new SPA_PageHelper(this);
+        }
+    }
+
 
     validateOperationArguments() {
         if (!this.querySelector || typeof this.querySelector !== 'string')
@@ -64,14 +74,15 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
     /**
      * 
-     * @param {CustomResponse} responseObjectFromParent 
+     * @param {{url:string,html:string}} params 
      * @return {Promise<{type:string,name:string,data:[]}>}
      */
-    async scrape(responseObjectFromParent) {
+    async scrape({url,html}) {
+        if (!this.pageHelper)
+            this.initPageHelper();
+        // debugger;
+        const refs = await this.createLinkList(html,url)
 
-
-        const refs = await this.createLinkList(responseObjectFromParent)
-        
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
         if (hasOpenLinksOperation) {
@@ -81,36 +92,38 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         const shouldPaginate = this.config.pagination ? true : false;
         const iterations = [];
 
-        await mapPromisesWithLimitation(refs, async(href) => {
+        await mapPromisesWithLimitation(refs, async (href) => {
+            // debugger;
             const data = await this.pageHelper.processOneIteration(href, shouldPaginate)
 
             if (this.config.getPageData)
                 await this.config.getPageData(data);
-               
+
 
             iterations.push(data)
         }, forceConcurrencyLimit ? forceConcurrencyLimit : this.scraper.config.concurrency)
-      
+
 
         this.data.push(...iterations)
-        return {type:this.constructor.name,name:this.config.name,data:iterations};
+        return { type: this.constructor.name, name: this.config.name, data: iterations };
 
     }
 
 
-    async createLinkList(responseObjectFromParent) {
-        var $ = cheerio.load(responseObjectFromParent.data);
-
+    async createLinkList(html,url) {
+        // debugger;
+        var $ = cheerio.load(html);
+        // debugger;
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);
         }
         const baseUrlFromBaseTag = getBaseUrlFromBaseTag($, this.scraper.config.baseSiteUrl);
-      
+
         const refs = [];
         elementList.forEach((link) => {
 
-            const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || responseObjectFromParent.url, link[0].attribs.href)
+            const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || url, link[0].attribs.href)
             refs.push(absoluteUrl)
 
         })

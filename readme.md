@@ -1,5 +1,5 @@
-nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
-It supports features like recursive scraping(pages that "open" other pages), file download and handling, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Ubuntu).
+nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages, with **limited** support for dynamic, Javascript-driven sites.
+It supports features like recursive scraping(pages that "open" other pages), file download and handling, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Mint).
 
 The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
 
@@ -25,6 +25,10 @@ $ npm install nodejs-web-scraper
   * [getElementContent and getPageResponse hooks](#getelementcontent-and-getpageresponse-hooks)  
   * [Add additional conditions](#add-additional-conditions)  
   * [Scraping an auth protected site](#scraping-an-auth-protected-site)    
+- [Scraping Dynamic Pages](#scraping-dynamic-pages) 
+  * [Scrape site that loads additional content via ajax](#scrape-site-that-loads-additional-content-via-ajax)  
+  * [Scroll down few times and scrape](#scroll-down-few-times-and-scrape)    
+  * [Collect content after every ScrollToBottom repetition](#collect-content-after-every-scrolltobottom-repetition)    
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling)  
@@ -113,9 +117,10 @@ const fs = require('fs');
     const pages = [];//All ad pages.
 
     //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
+    //Note that each key is an array, because there might be multiple elements fitting the querySelector.
     //This hook is called after every page finished scraping.
-    //It will also have an _address key.    
-    const getPageObject = (pageObject) => {                  
+    //It will also get an address argument. 
+    const getPageObject = (pageObject,address) => {                  
         pages.push(pageObject)
     }
 
@@ -238,7 +243,7 @@ const fs = require('fs');
     const pages = [];//All ad pages.
 
     //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
-    const getPageObject = (pageObject) => {                  
+    const getPageObject = (pageObject,address) => {                  
         pages.push(pageObject)
     }
 
@@ -251,7 +256,8 @@ const fs = require('fs');
 
     const scraper = new Scraper(config);
 
-    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10.
+    // YOU NEED TO SUPPLY THE QUERYSTRING that the site uses(more details in the API docs). "page_num" is just the string used on this example site.
 
     const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
 
@@ -446,6 +452,160 @@ Please refer to this guide: [https://nodejs-web-scraper.ibrod83.com/blog/2020/05
 
 &nbsp;
 
+## Scraping dynamic pages
+nodejs-web-scraper was not originally built to scrape dynamic (a.k.a., "single page apps") sites. However, it now has the limited ability to do so, which should prove sufficient for many sites. Please keep in mind that this feature is still experimental and hasn't been thoroughly tested yet, but there are plans to extend and improve its functionality in the future. Kindly report any bugs encountered.
+
+Once you pass ***usePuppeteer:true*** to the Scraper config object, the program will just use Puppeteer behind the scenes, to "get the page", instead of a "normal" Nodejs http request. Nothing else changes in the scraping flow. If you "open" 10 pages using OpenLinks, it means 10 different tabs will be opened in the Puppeteer instance Chromium. **It will not "navigate" within the page, but open separate ones**. Therefore The API stays virtually the same.
+
+When you should use ***usePuppeteer:true***:
+- If you know/suspect that your site loads some additional content via ajax(some news sites load additional sections this way), after the initial page load.
+- If you're scraping a site that simply loads more content when you scroll to the bottom.
+
+
+When you **shouldn't** use ***usePuppeteer:true***:
+- If you know your site is "static"(meaning the entire content of the page is rendered by the server, no ajax). Most news and WP sites are like this. Using Puppeteer will just make the process much slower.
+
+
+**If you need to perform a highly customized task on a SPA site, that requires complex in-browser operations, you should learn to use Puppeteer directly.** 
+
+#### Scrape site that loads additional content via ajax
+Let's say you have a site, whose pages perform some ajax requests, right after the DOM is loaded, with its initial html.
+In this case, all that needs to be done, is to use the usePuppeteer option. All the rest stays the same.
+
+```javascript
+
+const { Scraper, Root, OpenLinks, CollectContent, DownloadContent } = require('nodejs-web-scraper');
+const fs = require('fs');
+
+(async () => {
+
+    const pages = [];//All ad pages.
+
+    //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
+    const getPageObject = (pageObject,address) => {                  
+        pages.push(pageObject)
+    }
+
+    const config = {
+        usePuppeteer:true,//This is the only difference.
+        baseSiteUrl: `https://www.profesia.sk`,
+        startUrl: `https://www.profesia.sk/praca/`,
+        filePath: './images/',
+        logPath: './logs/'
+    }
+
+    const scraper = new Scraper(config);
+
+    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+
+    const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
+
+    const phones = new CollectContent('.details-desc a.tel', { name: 'phone' })//Important to choose a name, for the getPageObject to produce the expected results.
+
+    const images = new DownloadContent('img', { name: 'images' })
+
+    const titles = new CollectContent('h1', { name: 'title' });
+
+    root.addOperation(jobAds);
+     jobAds.addOperation(titles);
+     jobAds.addOperation(phones);
+     jobAds.addOperation(images);
+
+    await scraper.scrape(root);
+    
+    fs.writeFile('./pages.json', JSON.stringify(pages), () => { });//Produces a formatted JSON with all job ads.
+})()
+
+```
+
+#### Scroll down few times and scrape
+
+```javascript  
+
+    const { Scraper, Root, ScrollToBottom } = require('nodejs-web-scraper');
+
+    
+    const config = {      
+        usePuppeteer:true,//This will cause the program to run in Puppeteer mode.
+        //Notice that this will open an actual Chromium in your pc. Do not shut it down, or one of its tabs!  
+        baseSiteUrl: `https://www.nice-site`,
+        startUrl: `https://www.nice-site/some-section`,       
+       }
+
+     
+    const posts=[];
+
+    const getElementContent = (content, pageAddress) => {
+               
+        posts.push(content)
+    } 
+
+    const scraper = new Scraper(config);
+
+    const root = new Root();
+
+    const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})//Scroll to bottom 100 times, with a delay of 2 seconds.
+    
+    const collectPosts = new CollectContent('.post',{getElementContent});//Will be called after every "myDiv" element is collected.
+
+
+    root.addOperation(scrollToBottom);   
+    root.addOperation(collectPosts);      
+          
+
+   await scraper.scrape(root);
+    
+```
+This means: go to the site, scroll down 100 times with a delay of 2 seconds between each, and then collect all the posts
+from the html.
+
+#### Collect content after every ScrollToBottom repetition.
+In some cases, single page apps use a thing called DOM virtualizaion, meaning that the DOM contains only the portion of HTML that is currently being viewed(or a bit more). In such a case, the above example would be useless, being that the data must be collected after each scrolling down repetition. Therefore, ScrollToBottom can be used as a "parent":
+
+```javascript  
+
+    const { Scraper, Root, ScrollToBottom } = require('nodejs-web-scraper');
+
+    
+    const config = {      
+        usePuppeteer:true,//This will cause the program to run in Puppeteer mode.
+        //Notice that this will open an actual Chromium in your pc. Do not shut it down, or one of its tabs!  
+        baseSiteUrl: `https://www.nice-site`,
+        startUrl: `https://www.nice-site/some-section`,       
+       }
+
+     
+    const posts=[];
+
+    const getElementContent = (content, pageAddress) => {
+               
+        posts.push(content)
+    } 
+
+    const scraper = new Scraper(config);
+
+    const root = new Root();
+
+    const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})//Scroll to bottom 100 times, with a delay of 2 seconds.
+    
+    const collectPosts = new CollectContent('.post',{getElementContent});//Will be called after every "myDiv" element is collected.
+
+
+    root.addOperation(scrollToBottom);   
+    scrollToBottom.addOperation(collectPosts);//This is the difference from the previous example.
+    //Here, scrollToBottom will have "collectPosts" as a child, meaning that after each scrolling cycle, the current posts in the DOM will be collected. Note that this might cause duplicate data, being that more content might be present in the DOM,
+    //Than what the last scrolling down repetition actually loaded.      
+          
+
+   await scraper.scrape(root);
+    
+```
+This means: go to the site, scroll down 100 times with a delay of 2 seconds between each, and then collect all the posts
+from the html.
+
+
+
+
 ## API
 
 #### class Scraper(config)
@@ -458,6 +618,8 @@ These are the available options for the scraper, with their default values:
 const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
+            usePuppeteer:false,//Whether the program should use Puppeteer behind the scenes(A new feature, with limited functionality),
+            puppeteerConfig:{timeout:30000,headless:false}//Only relevant if usePuppeteer is true.
             logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
             cloneFiles: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
@@ -466,9 +628,11 @@ const config ={
             delay: 200,
             timeout: 6000,
             filePath: null,//Needs to be provided only if a "downloadContent" operation is created.
-            auth: null,//Can provide basic auth credentials(no clue what sites actually use it).
+            auth: null,//Can provide basic auth credentials(no clue what sites actually use it). Wont work in Puppeteer mode.
             headers: null,//Provide custom headers for the requests.
+            // Note that this feature will not work when setting the usePuppeteer flag to true!
             proxy:null//Use a proxy. Pass a full proxy URL, including the protocol and the port.
+            // Note that this feature will not work when setting the usePuppeteer flag to true!
         }
 ```
 Public methods:
@@ -493,7 +657,7 @@ The optional config takes these properties:
 ```javascript
 {    
     pagination:{},//In case your root page is paginated.    
-    getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
+    getPageObject:(pageObject,address)=>{},//Gets a formatted page object with all the data we choose in our scraping setup. Also gets an address argument.
     getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.  
     getPageData:(cleanData)=>{}//Called after all data was collected by the root and its children.
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
@@ -524,7 +688,7 @@ The optional config can have these properties:
     name:'some name',//Like every operation object, you can specify a name, for better clarity in the logs.
     pagination:{},//Look at the pagination API for more details.
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
-    getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
+    getPageObject:(pageObject,address)=>{},//Gets a formatted page object with all the data we choose in our scraping setup. Also gets an address argument.
     getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).
@@ -595,6 +759,25 @@ Public methods:
 
 
 &nbsp;
+
+
+#### class ScrollToBottom([config])
+Relevant only when operating under usePuppeteer:true(global Scraper config).
+Simply scrolls to the bottom of the document.
+
+The optional config can receive these properties:
+```javascript
+{
+    numRepetitions:1,//Number of times this will be performed within a given Puppeteer page/tab. Default is 1.
+    delay:0//The delay between each scroll. Default is 0.
+}
+
+```
+
+
+&nbsp;
+
+
 
 ## Pagination explained
 nodejs-web-scraper covers most scenarios of pagination(assuming it's server-side rendered of course).
