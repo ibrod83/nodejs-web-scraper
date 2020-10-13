@@ -54,7 +54,7 @@ class PageHelper {
         }
         catch (error) {
 
-            debugger;
+            // debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
             iteration.error = errorString;
             iteration.successful = false;
@@ -148,7 +148,7 @@ class PageHelper {
             // debugger;
 
             const tree = {
-                _address: address
+                
             }
             for (let child of dataFromChildren) {
                 // debugger;
@@ -156,7 +156,7 @@ class PageHelper {
                 const func = getDictionaryKey(child.name);
                 tree[func(child.name, tree)] = child.data
             }
-            await this.Operation.config.getPageObject(tree)
+            await this.Operation.config.getPageObject(tree,address)
         }
     }
 

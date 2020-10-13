@@ -29,7 +29,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Function} [config.condition = null] Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
      * @param {Function} [config.getElementList = null] Receives an elementList array    
      * @param {Function} [config.getPageData = null] 
-     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an _address
+     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an address argument
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 

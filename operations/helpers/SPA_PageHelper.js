@@ -1,6 +1,6 @@
 const Operation = require('../Operation');//For jsdoc
 const { stripTags } = require('../../utils/html');
-const { CustomResponse } = require('../../request/request')//For jsdoc
+// const { CustomResponse } = require('../../request/request')//For jsdoc
 const SPA_page = require('../../limitedSpa/SPA_Page');
 const PageHelper = require('./PageHelper');
 
@@ -25,11 +25,10 @@ class SPA_PageHelper extends PageHelper {
     * @return {Promise<{data:[],address:string}>}   
     */
     async processOneIteration(href, shouldPaginate) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
-        // debugger;
+
         if (shouldPaginate) {//If the scraping object is actually a pagination one, a different function is called. 
             return this.paginate(href);
         }
-
         try {
 
             var iteration = {
@@ -38,27 +37,17 @@ class SPA_PageHelper extends PageHelper {
             }
 
             var SPA_Page = await this.getPage(href)
-            // page = page;
-            // const scrollToBottom = new ScrollToBottom({ numRepetitions: 10, delay: 1500 })
+
             for (let operation of this.Operation.operations) {
                 SPA_Page.addOperation(operation)
             }
 
-            // await page.scrape(page);
             const dataFromChildren = await SPA_Page.scrapeChildren();
-            // debugger;
-            const response = SPA_Page.getResponse();
-            // debugger
-            // const { status, statusText, headers, url } = response;
 
+            const response = await SPA_Page.getResponse();
 
-            // debugger
-            // var response = await this.getPage(href);
-            // debugger
             await this.runAfterResponseHooks(response)
 
-            // debugger;
-            // var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, response)
 
             await this.runGetPageObjectHook(href, dataFromChildren)
 
@@ -73,17 +62,30 @@ class SPA_PageHelper extends PageHelper {
             this.Operation.errors.push(errorString);
             this.Operation.handleFailedScrapingIteration(errorString);
         } finally {
-            // debugger;
-            if(SPA_Page){
-            //   SPA_Page.close();  
-              await SPA_Page.close();  
+            if (SPA_Page) {
+                await SPA_Page.close();
             }
-            
+
             return iteration
         }
     }
 
-    
+    /**
+     * 
+     * @param {SPA_page} Page 
+     */
+    async runGetPageHtmlHook(Page){
+        if (this.Operation.config.getPageHtml) {
+            let html = await Page.getHtml();
+            if (this.Operation.scraper.config.removeStyleAndScriptTags) {
+                html = stripTags(html);
+            }
+            // debugger;
+            await this.Operation.config.getPageHtml(html, Page.url)
+        }
+    }
+
+
     /**
      * 
      * @param {string} href 
@@ -100,26 +102,13 @@ class SPA_PageHelper extends PageHelper {
 
                 var page = new SPA_page(this.Operation.scraper.getPuppeteerSimpleInstance(), href);
                 await page.init();
-                // resp = await request({
-                //     method: 'get', url: href,
-                //     timeout: this.Operation.scraper.config.timeout,
-                //     auth: this.Operation.scraper.config.auth,
-                //     headers: this.Operation.scraper.config.headers,
-                //     proxy: this.Operation.scraper.config.proxy
 
-                // })
-                // if (this.Operation.scraper.config.removeStyleAndScriptTags) {
-                //     resp.data = stripTags(resp.data);
-                // }
+                await this.runGetPageHtmlHook(page)
 
-                if (this.Operation.config.getPageHtml) {
-                    // debugger;
-                    await this.Operation.config.getPageHtml(await page.getHtml(), page.url)
-                }
 
             } catch (error) {
                 // debugger;
-                if(page){
+                if (page) {
                     await page.close();
                 }
                 throw error;
@@ -134,7 +123,7 @@ class SPA_PageHelper extends PageHelper {
     }
 
 
-   
+
 
 
 }

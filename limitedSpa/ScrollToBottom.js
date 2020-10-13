@@ -1,6 +1,8 @@
 
 const Operation = require('../operations/Operation');
 // const Adapter = require('./Adapter')
+// const { createDelay } = require('../utils/delay')
+
 
 
 
@@ -30,7 +32,7 @@ class ScrollToBottom extends Operation {
 
 
     addOperation(operation) {
-
+        // debugger;
         this.operations.push(operation);
     }
 
@@ -49,16 +51,27 @@ class ScrollToBottom extends Operation {
 
     }
 
+    async performScroll(puppeteerSimplePage) {
+        await puppeteerSimplePage.focus();
+        await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });//problem with delay
+    }
+
     async processOneIteration(puppeteerSimplePage) {
 
         try {
             var dataFromChildren = [];
-            await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
+            await this.performScroll(puppeteerSimplePage);
+
             dataFromChildren = await this.scrapeChildren(puppeteerSimplePage)
         } catch (error) {
+            // debugger;
             const errorString = `There was an error scrolling down:, ${puppeteerSimplePage.url}, ${error}`
             this.errors.push(errorString);
             this.handleFailedScrapingIteration(errorString);
+            if (this.config.getException)
+                await this.getException(error)
+
+
         } finally {
             return dataFromChildren;
         }
@@ -72,20 +85,30 @@ class ScrollToBottom extends Operation {
      * @param {*} puppeteerSimplePage 
      */
     async scrape({ html, url }, puppeteerSimplePage) {
+        // debugger;
 
         const iterations = []
         // this.puppeteerSimplePage = puppeteerSimplePage;
-        const { numRepetitions } = this.config;
+        const { numRepetitions, delay } = this.config;
         for (let i = 0; i < numRepetitions; i++) {
             // debugger;
             // await puppeteerSimplePage.scrollToBottom({numRepetitions:1,delay});    
+
             const dataFromIteration = await this.processOneIteration(puppeteerSimplePage);
+            // console.log('scroll iteration',i+1,puppeteerSimplePage.url)
             // debugger;
             iterations.push(dataFromIteration);
         }
 
+        if (puppeteerSimplePage.url.includes('/1')) {
+            // debugger;
+        }
+        // await puppeteerSimplePage.scrollToBottom({numRepetitions,delay});
+
+        // console.log('finished scrolling ',puppeteerSimplePage.url)
+
         this.data.push(...iterations)
-        debugger;
+        // debugger;
         return { type: this.constructor.name, name: this.config.name, data: iterations };
         // await puppeteerSimplePage.scrollToBottom({numRepetitions,delay});
     }

@@ -117,9 +117,10 @@ const fs = require('fs');
     const pages = [];//All ad pages.
 
     //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
+    //Note that each key is an array, because there might be multiple elements fitting the querySelector.
     //This hook is called after every page finished scraping.
-    //It will also have an _address key.    
-    const getPageObject = (pageObject) => {                  
+    //It will also get an address argument. 
+    const getPageObject = (pageObject,address) => {                  
         pages.push(pageObject)
     }
 
@@ -242,7 +243,7 @@ const fs = require('fs');
     const pages = [];//All ad pages.
 
     //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
-    const getPageObject = (pageObject) => {                  
+    const getPageObject = (pageObject,address) => {                  
         pages.push(pageObject)
     }
 
@@ -255,7 +256,8 @@ const fs = require('fs');
 
     const scraper = new Scraper(config);
 
-    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10. You need to supply the querystring that the site uses(more details in the API docs).
+    const root = new Root({ pagination: { queryString: 'page_num', begin: 1, end: 10 } });//Open pages 1-10.
+    // YOU NEED TO SUPPLY THE QUERYSTRING that the site uses(more details in the API docs). "page_num" is just the string used on this example site.
 
     const jobAds = new OpenLinks('.list-row h2 a', { name: 'Ad page', getPageObject });//Opens every job ad, and calls the getPageObject, passing the formatted object.
 
@@ -480,7 +482,7 @@ const fs = require('fs');
     const pages = [];//All ad pages.
 
     //pageObject will be formatted as {title,phone,images}, becuase these are the names we chose for the scraping operations below.
-    const getPageObject = (pageObject) => {                  
+    const getPageObject = (pageObject,address) => {                  
         pages.push(pageObject)
     }
 
@@ -616,7 +618,8 @@ These are the available options for the scraper, with their default values:
 const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
-            usePuppeteer:false,//Whether the program should use Puppeteer behind the scenes(A new feature, with limited functionality)
+            usePuppeteer:false,//Whether the program should use Puppeteer behind the scenes(A new feature, with limited functionality),
+            puppeteerConfig:{timeout:30000,headless:false}//Only relevant if usePuppeteer is true.
             logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
             cloneFiles: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
@@ -654,7 +657,7 @@ The optional config takes these properties:
 ```javascript
 {    
     pagination:{},//In case your root page is paginated.    
-    getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
+    getPageObject:(pageObject,address)=>{},//Gets a formatted page object with all the data we choose in our scraping setup. Also gets an address argument.
     getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.  
     getPageData:(cleanData)=>{}//Called after all data was collected by the root and its children.
     getPageResponse:(response)=>{}//Will be called after a link's html was fetched, but BEFORE the child operations are performed on it(like, collecting some data from it). Is passed the response object(a custom response object, that also contains the original node-fetch response). Notice that any modification to this object, might result in an unexpected behavior with the child operations of that page.
@@ -685,7 +688,7 @@ The optional config can have these properties:
     name:'some name',//Like every operation object, you can specify a name, for better clarity in the logs.
     pagination:{},//Look at the pagination API for more details.
     condition:(cheerioNode)=>{},//Use this hook to add additional filter to the nodes that were received by the querySelector. Return true to include, falsy to exclude.
-    getPageObject:(pageObject)=>{},//Gets a formatted page object with all the data we choose in our scraping setup.
+    getPageObject:(pageObject,address)=>{},//Gets a formatted page object with all the data we choose in our scraping setup. Also gets an address argument.
     getPageHtml:(htmlString,pageAddress)=>{}//Get the entire html page, and also the page address. Called with each link opened by this OpenLinks object.
     getElementList:(elementList)=>{},//Is called each time an element list is created. In the case of OpenLinks, will happen with each list of anchor tags that it collects. Those elements all have Cheerio methods available to them.
     getPageData:(cleanData)=>{}//Called after all data was collected from a link, opened by this object.(if a given page has 10 links, it will be called 10 times, with the child data).

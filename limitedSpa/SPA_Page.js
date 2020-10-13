@@ -46,20 +46,26 @@ class SPA_Page {
     }
 
     async scrapeChild(operation) {
+        // debugger;
         const html = await this.getHtml();
+        // debugger;
         // const html = this.html;
         // console.log('fresh html')
         const data = await operation.scrape({ html, url: this.url }, this.puppeteerSimplePage);
+        // debugger;
         return data;
     }
 
     async scrapeChildren() {
+        // debugger;
         // const html = await this.getHtml()
         const dataFromChildren = [];
         for (let operation of this.operations) {            
             const dataFromChild =  await this.scrapeChild(operation);
+            // debugger;
             dataFromChildren.push(dataFromChild)
         }
+        
 
         return dataFromChildren;
     }

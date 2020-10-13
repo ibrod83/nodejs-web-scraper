@@ -2,6 +2,7 @@ const Operation = require('./Operation')
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors')
 cheerio = cheerioAdv.wrap(cheerio)
+// const fs = require('fs')
 const { createElementList, getNodeContent } = require('../utils/cheerio')
 // const { CustomResponse } = require('../request/request')
 
@@ -45,8 +46,13 @@ class CollectContent extends Operation {
     * @return {Promise<{type:string,name:string,data:[]}>} 
     */
     async scrape({ html, url }) {
+        // console.log('colelcting content',url)
+        // debugger;
         // if(this.config.name === 'videoLabel')
         // debugger;
+        // const arr = url.split('/');
+        // const fileName = arr[arr.length-1]
+        // fs.writeFile(`${this.scraper.config.logPath}/${fileName}.html`,html,()=>{})
         
         const parentAddress = url
 
@@ -57,8 +63,8 @@ class CollectContent extends Operation {
         var $ = cheerio.load(html);
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
 
-        if(this.config.name === 'videoLabel')
-        console.log(url,' Number of video elements: ',elementList.length)
+        // if(this.config.name === 'videoLabel')
+        // console.log(url,' Number of video elements: ',elementList.length)
 
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);

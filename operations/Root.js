@@ -15,7 +15,7 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
      * @param {Object} [config]    
      * @param {Object} [config.pagination = null] Look at the pagination API for more details.      
      * @param {Function} [config.getPageData = null] 
-     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an _address
+     * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an address argument
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
@@ -57,7 +57,7 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
         // debugger;
         const data = await this.pageHelper.processOneIteration(this.scraper.config.startUrl, shouldPaginate);
 
-        debugger;
+        // debugger;
         this.data = data
         if (this.config.getPageData) {
             await this.config.getPageData(data)
