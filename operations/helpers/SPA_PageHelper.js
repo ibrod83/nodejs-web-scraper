@@ -54,7 +54,9 @@ class SPA_PageHelper extends PageHelper {
             iteration.data = dataFromChildren
         }
         catch (error) {
-            this.scraper.log(error)
+            // debugger;
+            
+            // this.Operation.scraper.log(error)
             // debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
             iteration.error = errorString;
@@ -62,6 +64,7 @@ class SPA_PageHelper extends PageHelper {
             this.Operation.errors.push(errorString);
             this.Operation.handleFailedScrapingIteration(errorString);
         } finally {
+            // debugger;
             if (SPA_Page) {
                 if(!this.Operation.scraper.config.puppeteerDebugMode){
                     await SPA_Page.close(); 
@@ -107,13 +110,13 @@ class SPA_PageHelper extends PageHelper {
                 await page.init();
 
                 await this.runGetPageHtmlHook(page)
-
+              
 
             } catch (error) {
-                // debugger;
+
                 if (page) {
                     if(!this.Operation.scraper.config.puppeteerDebugMode){
-                        await SPA_Page.close(); 
+                        await page.close(); 
                     }
                    
                 }
@@ -121,6 +124,8 @@ class SPA_PageHelper extends PageHelper {
             }
             finally {
                 this.Operation.afterPromiseFactory();
+                
+                
             }
             return page;
         }

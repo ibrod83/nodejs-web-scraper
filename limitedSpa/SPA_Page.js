@@ -110,7 +110,7 @@ class SPA_Page {
         try {
             await this.puppeteerSimplePage.close()
         } catch (error) {
-            console.log('error closing puppeteerSimplePage caught in SPA_Page')
+            console.log('error closing puppeteerSimplePage caught in SPA_Page',error)
             // process.kill()
             // debugger;
             // throw error;

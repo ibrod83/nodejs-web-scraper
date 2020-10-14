@@ -29,7 +29,7 @@ class Scraper {
      * @param {boolean} [globalConfig.usePuppeteer = false] 
      * @param {object} [globalConfig.puppeteerConfig]
      * @param {boolean} [globalConfig.puppeteerConfig.headless = false] 
-     * @param {number} [globalConfig.puppeteerConfig.timeout = 30000] 
+     * @param {number} [globalConfig.puppeteerConfig.timeout = 40000] 
      */
 
 
@@ -54,7 +54,7 @@ class Scraper {
             puppeteerDebugMode: false,//For debugging
             puppeteerConfig: {
                 headless: false,
-                timeout: 30000
+                timeout: 40000//40 seconds for full page load(network idle)
             }
         }
         // this.state = new State();
@@ -156,7 +156,7 @@ class Scraper {
         await rootObject.scrape();
 
         if (this.areThereRepeatableErrors()) {
-            this.log('Number of requests that failed, in their last attempt: ', this.state.failedScrapingIterations.length);
+            this.log(`Number of requests that failed, in their last attempt: ${this.state.failedScrapingIterations.length}`);
         } else {
             this.log('All done, no final errors');
         }

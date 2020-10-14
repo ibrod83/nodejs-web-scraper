@@ -626,8 +626,9 @@ const config ={
             auth: null,//Can provide basic auth credentials(no clue what sites actually use it). Wont work in Puppeteer mode.
             headers: null,//Provide custom headers for the requests.
             // Note that this feature will not work when setting the usePuppeteer flag to true!
-            proxy:null//Use a proxy. Pass a full proxy URL, including the protocol and the port.
+            proxy:null,//Use a proxy. Pass a full proxy URL, including the protocol and the port.
             // Note that this feature will not work when setting the usePuppeteer flag to true!
+            showConsoleLogs:true//Set to false, if you want to disable the messages
         }
 ```
 Public methods:

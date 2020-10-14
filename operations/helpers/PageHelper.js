@@ -53,7 +53,7 @@ class PageHelper {
             iteration.data = dataFromChildren
         }
         catch (error) {
-
+            // this.Operation.scraper.log(error)
             // debugger;
             const errorString = `There was an error opening page ${href}, ${error}`;
             iteration.error = errorString;
