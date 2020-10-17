@@ -15,51 +15,7 @@ function request(config) {
 }
 
 
-class CustomResponse {
-    constructor({ url, config, originalResponse, data, status, statusText, headers }) {
-        this.url = url
-        this.config = config
-        this.originalResponse = originalResponse
-        this.data = data
-        this.status = status
-        this.statusText = statusText
-        this.headers = headers
-        // this.aborted = false
-        // this.signal = new Signal();
-    }
 
-    // abort() {
-    //     // debugger;
-    //     // this.originalResponse.body.destroy();
-    //     // this.originalResponse.abort();
-    //     this.aborted = true;
-    //     this.config.signal.abort();
-    // }
-
-    // isAborted() {
-    //     return this.aborted
-    // }
-}
-
-// export interface AxiosError<T = any> extends Error {
-//     config: AxiosRequestConfig;
-//     code?: string;
-//     request?: any;
-//     response?: AxiosResponse<T>;
-//     isAxiosError: boolean;
-//     toJSON: () => object;
-//   }
-
-class CustomError extends Error {
-    // debugger;
-    constructor({ code, response, message, errno }) {
-        super(message)
-        // this.config = config;//The config object of the failing request
-        this.errno = errno//Error constant. Will be set Only in the case of network errors.
-        this.code = code;//http code.Null if network error
-        this.response = response//Reference to the customResponse. Will not be set in network errors.
-    }
-}
 // module.exports = class Request {
 class Request {
 
@@ -81,6 +37,12 @@ class Request {
             auth: null
         }
         // debugger;
+        if(config.headers){
+            const isEmpty = Object.keys(config.headers).length === 0 && config.headers.constructor === Object;
+            if(isEmpty){
+                config.headers = null;
+            }
+        }
         this.config = { ...defaultConfig, ...config };
         if (this.config.auth) {
             const { username, password } = this.config.auth;
@@ -103,9 +65,6 @@ class Request {
 
     }
 
-    // abort = ()=>{
-    //     this.response.body.destroy();
-    // }
     async performRequest(config) {
 
         // controller.abort()
@@ -125,7 +84,8 @@ class Request {
         // console.log(this)
         return {
             "Accept-Encoding": "gzip,deflate",
-            'User-Agent': "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+            // 'User-Agent': "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+            'User-Agent': "node-fetch/1.0",
             "Accept": "*/*",
             ...this.config.headers,
 
@@ -214,6 +174,34 @@ class Request {
         return customResponse;
 
 
+    }
+}
+
+class CustomResponse {
+    constructor({ url, config, originalResponse, data, status, statusText, headers }) {
+        this.url = url
+        this.config = config
+        this.originalResponse = originalResponse
+        this.data = data
+        this.status = status
+        this.statusText = statusText
+        this.headers = headers
+        // this.aborted = false
+        // this.signal = new Signal();
+    }
+
+}
+
+
+
+class CustomError extends Error {
+    // debugger;
+    constructor({ code, response, message, errno }) {
+        super(message)
+        // this.config = config;//The config object of the failing request
+        this.errno = errno//Error constant. Will be set Only in the case of network errors.
+        this.code = code;//http code.Null if network error
+        this.response = response//Reference to the customResponse. Will not be set in network errors.
     }
 }
 

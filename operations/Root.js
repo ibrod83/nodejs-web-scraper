@@ -1,12 +1,14 @@
 const HttpOperation = require('./HttpOperation');
-const CompositeMixin = require('./mixins/CompositeMixin');
+const CompositeInjectMixin = require('./mixins/CompositeInjectMixin');
+const CompositeScrapeMixin = require('./mixins/CompositeScrapeMixin');
 const PageHelper = require('./helpers/PageHelper');
 const SPA_PageHelper = require('./helpers/SPA_PageHelper');
 
 
 /**
- * //Methods are added after class declaration.
- * @mixes CompositeMixin
+ * 
+ * @mixes CompositeInjectMixin
+ * @mixes CompositeScrapeMixin
  */
 class Root extends HttpOperation {//Fetches the initial page, and starts the scraping process.
 
@@ -34,7 +36,8 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
      * @param {Operation} Operation 
      */
     addOperation(Operation) {
-        this._addOperation(Operation);
+        // this._addOperation(Operation);
+        this.operations.push(Operation)
     }
 
 
@@ -89,6 +92,8 @@ class Root extends HttpOperation {//Fetches the initial page, and starts the scr
 
 }
 
-Object.assign(Root.prototype, CompositeMixin)
+
+Object.assign(Root.prototype, CompositeInjectMixin)
+Object.assign(Root.prototype, CompositeScrapeMixin)
 
 module.exports = Root;

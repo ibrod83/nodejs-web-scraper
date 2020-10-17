@@ -1,5 +1,6 @@
 const HttpOperation = require('./HttpOperation');
-const CompositeMixin = require('./mixins/CompositeMixin');
+const CompositeInjectMixin = require('./mixins/CompositeInjectMixin');
+const CompositeScrapeMixin = require('./mixins/CompositeScrapeMixin');
 const Operation = require('./Operation')//For jsdoc
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
@@ -14,7 +15,8 @@ const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 /**
  * 
- * @mixes CompositeMixin
+ * @mixes CompositeInjectMixin
+ * @mixes CompositeScrapeMixin
  */
 class OpenLinks extends HttpOperation {//This operation is responsible for collecting links in a given page, then fetching their HTML and scraping them, according to the child operations.
 
@@ -53,7 +55,8 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Operation} Operation 
      */
     addOperation(Operation) {
-        this._addOperation(Operation);
+        // this._addOperation(Operation);
+        this.operations.push(Operation)
     }
 
     initPageHelper() {
@@ -135,6 +138,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 }
 
-Object.assign(OpenLinks.prototype, CompositeMixin)
+Object.assign(OpenLinks.prototype, CompositeInjectMixin)
+Object.assign(OpenLinks.prototype, CompositeScrapeMixin)
 
 module.exports = OpenLinks;

@@ -11,13 +11,14 @@ class SPA_Page {
      * @param {string} url 
      * @param {object} config 
      */
-    constructor(PuppeteerSimple, url, config = {}) {
+    constructor(PuppeteerSimple, url, config = {waitUntil:'networkidle0',timeout:40000}) {
         this.puppeteerSimple = PuppeteerSimple;//PuppeteerSimple instance.
         this.url = url;
         this.puppeteerSimplePage = null;//The PuppeteerSimple PAGE instance
         this.operations = [];
         // this.html = null;
         this.respone = null;//
+        this.config = config;
     }
 
     // setHtml(html){
@@ -34,7 +35,8 @@ class SPA_Page {
      */
     async init() {
         // debugger;
-        var puppeteerSimplePage = await this.puppeteerSimple.createPage(this.url);
+        const {waitUntil,timeout} = this.config;
+        var puppeteerSimplePage = await this.puppeteerSimple.createPage(this.url,{timeout,waitUntil});
         this.puppeteerSimplePage = puppeteerSimplePage;
         const response = await puppeteerSimplePage.navigate();
         if (response._status >= 400) {

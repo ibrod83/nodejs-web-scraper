@@ -105,8 +105,9 @@ class SPA_PageHelper extends PageHelper {
 
             // let resp;
             try {
-
-                var page = new SPA_page(this.Operation.scraper.getPuppeteerSimpleInstance(), href);
+                const {timeout,waitUntil} = this.Operation.scraper.config.puppeteerConfig;
+                // debugger;
+                var page = new SPA_page(this.Operation.scraper.getPuppeteerSimpleInstance(), href,{timeout,waitUntil});
                 await page.init();
 
                 await this.runGetPageHtmlHook(page)

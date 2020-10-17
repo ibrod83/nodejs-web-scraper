@@ -580,15 +580,14 @@ In some cases, single page apps use a thing called DOM virtualizaion, meaning th
 
     const root = new Root();
 
-    const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})//Scroll to bottom 100 times, with a delay of 2 seconds.
+    const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000,scrapeChildrenAfterNumRepetitions:2})//Scroll to bottom 100 times, with a delay of 2 seconds. After every 2 scroll repetitions, collect the "children".
     
     const collectPosts = new CollectContent('.post');
 
 
     root.addOperation(scrollToBottom);   
-      scrollToBottom.addOperation(collectPosts);//This is the difference from the previous example.
-    //Here, scrollToBottom will have "collectPosts" as a child, meaning that after each scrolling cycle, the current posts in the DOM will be collected. Note that this might cause duplicate data, being that more content might be present in the DOM,
-    //Than what the last scrolling down repetition actually loaded.      
+      scrollToBottom.addOperation(collectPosts);//This is the main difference from the previous example.
+    //Here, scrollToBottom will have "collectPosts" as a child, meaning that after 2 scrolling cycles(scrapeChildrenAfterNumRepetitions), the current posts in the DOM will be collected. Note that in this example scrapeChildrenAfterNumRepetitions is set to 2(instead of default 1), in order to avoid duplicate data(in most sites like this, the DOM is virtualized after more than one cycle).    
    
    const posts= collectPosts.getData();
    fs.writeFileSync('./posts.json',JSON.stringify(posts))
@@ -614,7 +613,11 @@ const config ={
             baseSiteUrl: '',//Mandatory.If your site sits in a subfolder, provide the path WITHOUT it.
             startUrl: '',//Mandatory. The page from which the process begins.   
             usePuppeteer:false,//Whether the program should use Puppeteer behind the scenes(A new feature, with limited functionality),
-            puppeteerConfig:{timeout:30000,headless:false}//Only relevant if usePuppeteer is true.
+            puppeteerConfig:{//Only relevant if usePuppeteer is true.
+                timeout:30000,//How much time until Puppeteer throws "navigation timeout".
+                headless:false,
+                waitUntil:'networkidle0',//Refer to Puppeteer docs.                
+            },
             logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
             cloneFiles: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
             removeStyleAndScriptTags: true,// Removes any <style> and <script> tags found on the page, in order to serve Cheerio with a light-weight string. change this ONLY if you have to.           
@@ -636,7 +639,7 @@ Public methods:
 | Name                                     | Description                                                                                                                                                                                                                                                                                                                   |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | async scrape(Root)                       | After all objects have been created and assembled, you begin the process by calling this method, passing the root object 
-| async repeatAllFailedRequests(numCycles) | The scraper keeps track of all "repeatable" errors(excluding 400,404,403 and invalid images), that failed even after repeating them on the fly. Call this method to give them a last try. numCycles argument allows to run this process more than once(default is 1). If there are no repeatable errors, nothing will happen. |
+
 
 &nbsp;
 
@@ -765,7 +768,8 @@ The optional config can receive these properties:
 ```javascript
 {
     numRepetitions:1,//Number of times this will be performed within a given Puppeteer page/tab. Default is 1.
-    delay:0//The delay between each scroll. Default is 0.
+    delay:0,//The delay between each scroll. Default is 0.
+    scrapeChildrenAfterNumRepetitions:1//If children are passed(addOperation), this will determine after how many cycles, they are processed.
 }
 
 ```

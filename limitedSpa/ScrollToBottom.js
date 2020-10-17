@@ -2,30 +2,30 @@
 const Operation = require('../operations/Operation');
 // const Adapter = require('./Adapter')
 // const { createDelay } = require('../utils/delay')
-
-
-
-
+const SPA_CompositeScrapeMixin = require('./mixins/SPA_CompositeScrapeMixin')
+const CompositeInjectMixin = require('../operations/mixins/CompositeInjectMixin')
+// let counter = 0
+/**
+ * @mixes SPA_CompositeScrapeMixin
+ * @mixes CompositeInjectMixin
+ */
 class ScrollToBottom extends Operation {
-    constructor(config = { numRepetitions: 1, delay: 0 }) {
-        super(config)
-        // this.scraper = null;
-        // this.puppeteerSimplePage = null;
-        this.operations = [];
 
-    }
-
-
-
-    injectScraper(ScraperInstance) {//Override the original init function of Operation
-        this.scraper = ScraperInstance;
-        // debugger;
-        ScraperInstance.registerOperation(this);
-        for (let operation of this.operations) {
-            operation.injectScraper(ScraperInstance);
+    /**
+     * 
+     * @param {Object} [config] 
+     * @param {number} [config.numRepetitions = 1] 
+     * @param {number} [config.delay = 0] 
+     * @param {number} [config.scrapeChildrenAfterNumRepetitions = 1] 
+     */
+    constructor(config = {}) {
+        const defaultConfig = {
+            numRepetitions: 1, delay: 0, scrapeChildrenAfterNumRepetitions: 1
         }
-
-        // this.validateOperationArguments();
+        // debugger;
+        super({ ...defaultConfig, ...config })
+        // debugger;
+        this.operations = [];
 
     }
 
@@ -36,33 +36,31 @@ class ScrollToBottom extends Operation {
         this.operations.push(operation);
     }
 
-    async scrapeChildren(puppeteerSimplePage) {
-        // debugger;
-        const { url } = puppeteerSimplePage
-        const html = await puppeteerSimplePage.getHtml()
-        const scrapedData = []
-        for (let operation of this.operations) {
-            const dataFromChild = await operation.scrape({ html, url }, puppeteerSimplePage);
-
-            scrapedData.push(dataFromChild);
-        }
-
-        return scrapedData;
-
-    }
 
     async performScroll(puppeteerSimplePage) {
         await puppeteerSimplePage.focus();
         await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
     }
 
-    async processOneIteration(puppeteerSimplePage) {
+    /**
+     * 
+     * @param {PuppeteerSimplePage} puppeteerSimplePage 
+     * @param {boolean} scrapeChildren 
+     * @return {Promise<array>}
+     */
+    async processOneIteration(puppeteerSimplePage, scrapeChildren) {
 
         try {
             var dataFromChildren = [];
             await this.performScroll(puppeteerSimplePage);
 
-            dataFromChildren = await this.scrapeChildren(puppeteerSimplePage)
+            if (scrapeChildren && this.operations.length) {
+                // counter++
+                // console.log('counter', counter)
+                dataFromChildren = await this.scrapeChildren(puppeteerSimplePage)
+            }
+
+
         } catch (error) {
             // debugger;
             const errorString = `There was an error scrolling down:, ${puppeteerSimplePage.url}, ${error}`
@@ -82,35 +80,26 @@ class ScrollToBottom extends Operation {
 
     /**
      * The first parameter is not actually used. It's here to conform with the Operation.scrape() interface.    
-     * @param {*} puppeteerSimplePage 
+     * @param {PuppeteerSimplePage} puppeteerSimplePage 
      */
     async scrape({ html, url }, puppeteerSimplePage) {
-        // debugger;
 
         const iterations = []
-        // this.puppeteerSimplePage = puppeteerSimplePage;
-        const { numRepetitions, delay } = this.config;
-        for (let i = 0; i < numRepetitions; i++) {
-            // debugger;
-            // await puppeteerSimplePage.scrollToBottom({numRepetitions:1,delay});    
+        const { numRepetitions, scrapeChildrenAfterNumRepetitions } = this.config;
+        for (let i = 1; i <= numRepetitions; i++) {
 
-            const dataFromIteration = await this.processOneIteration(puppeteerSimplePage);
-            // console.log('scroll iteration',i+1,puppeteerSimplePage.url)
-            // debugger;
+            const div = i / scrapeChildrenAfterNumRepetitions//A whole number means this itteration should also scrape children.
+
+            const scrapeChildren = Number.isInteger(div);
+
+            const dataFromIteration = await this.processOneIteration(puppeteerSimplePage, scrapeChildren);
+
             iterations.push(dataFromIteration);
-        }
 
-        if (puppeteerSimplePage.url.includes('/1')) {
-            // debugger;
         }
-        // await puppeteerSimplePage.scrollToBottom({numRepetitions,delay});
-
-        // console.log('finished scrolling ',puppeteerSimplePage.url)
 
         this.data.push(...iterations)
-        // debugger;
         return { type: this.constructor.name, name: this.config.name, data: iterations };
-        // await puppeteerSimplePage.scrollToBottom({numRepetitions,delay});
     }
 
     validateOperationArguments() {
@@ -120,6 +109,8 @@ class ScrollToBottom extends Operation {
 
 }
 
+Object.assign(ScrollToBottom.prototype, SPA_CompositeScrapeMixin)
+Object.assign(ScrollToBottom.prototype, CompositeInjectMixin)
 
 
 module.exports = ScrollToBottom;

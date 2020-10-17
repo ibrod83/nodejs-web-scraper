@@ -1,20 +1,23 @@
-// class Click{
+// const Operation  = require('../operations/Operation')
+
+// class Click extends Operation{
 //     constructor(querySelector,config={numRepetitions:1,delay:0}){
-//         this.puppeteerSimplePage = null;
+//         super(config)
 //         this.querySelector = querySelector;
-//         // this.puppeteerSimplePage = puppeteerSimplePage;
-//         this.config={};
-//         for(let i in config){
-//             this.config[i] = config[i];
-//         }
 //     }
 
-//     async scrape(puppeteerSimplePage){
+//     async scrape({html,url},puppeteerSimplePage){
 //         // debugger;
-//         this.puppeteerSimplePage = puppeteerSimplePage;
+//         // this.puppeteerSimplePage = puppeteerSimplePage;
 //         const {numRepetitions,delay} = this.config;
-//         await puppeteerSimplePage.click(this.querySelector,{numRepetitions,delay});
+        
+//         await puppeteerSimplePage.click(this.querySelector,{numRepetitions,delay});       
+
+//         // this.data.push(...iterations)
+//         return { type: this.constructor.name, name: this.config.name, data: [] };
 //     }
+
+    
 
 //     validateOperationArguments() {
        

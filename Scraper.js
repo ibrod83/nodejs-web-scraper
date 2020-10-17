@@ -3,6 +3,7 @@ const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
 const { verifyDirectoryExists } = require('./utils/files')
+const { deepSpread } = require('./utils/objects')
 const { Root } = require('./');//For jsdoc
 // const PathQueue = require('./utils/PathQueue');
 const PuppeteerSimple = require('puppeteer-simple').default
@@ -16,16 +17,17 @@ class Scraper {
      * @param {Object} globalConfig 
      * @param {string} globalConfig.startUrl 
      * @param {string} globalConfig.baseSiteUrl 
+     * @param {boolean} [globalConfig.showConsoleLogs = true ]
      * @param {boolean} [globalConfig.cloneFiles = true ]
      * @param {boolean} [globalConfig.removeStyleAndScriptTags = true ]     
      * @param {number} [globalConfig.concurrency = 3] 
      * @param {number} [globalConfig.maxRetries = 5]         
      * @param {number} [globalConfig.delay = 200] 
      * @param {number} [globalConfig.timeout = 6000] 
-     * @param {string} [globalConfig.filePath= undefined] 
-     * @param {Object} [globalConfig.auth = undefined] 
-     * @param {Object} [globalConfig.headers = undefined] 
-     * @param {Object} [globalConfig.proxy = undefined] 
+     * @param {string} [globalConfig.filePath= null] 
+     * @param {Object} [globalConfig.auth = null] 
+     * @param {Object} [globalConfig.headers = {}] 
+     * @param {Object} [globalConfig.proxy = null] 
      * @param {boolean} [globalConfig.usePuppeteer = false] 
      * @param {object} [globalConfig.puppeteerConfig]
      * @param {boolean} [globalConfig.puppeteerConfig.headless = false] 
@@ -47,14 +49,15 @@ class Scraper {
             timeout: 6000,
             filePath: null,//Needs to be provided only if a DownloadContent operation is created.
             auth: null,
-            headers: null,
+            headers: {},
             proxy: null,
             showConsoleLogs: true,
             usePuppeteer: false,
             puppeteerDebugMode: false,//For debugging
             puppeteerConfig: {
                 headless: false,
-                timeout: 40000//40 seconds for full page load(network idle)
+                timeout: 40000,//40 seconds for full page load(network idle)
+                waitUntil: 'networkidle0'
             }
         }
         // this.state = new State();
@@ -71,19 +74,9 @@ class Scraper {
 
 
         this.validateGlobalConfig(globalConfig);
-
-        for (let prop in globalConfig) {
-            this.config[prop] = globalConfig[prop];
-        }
-
-        const puppeteerConfig = globalConfig.puppeteerConfig;
-
-        if (puppeteerConfig) {
-            for (let prop in puppeteerConfig) {
-                this.config.puppeteerConfig[prop] = puppeteerConfig[prop];
-            }
-        }
-
+        deepSpread(this.config,globalConfig)
+        
+        // debugger;
         this.config.errorCodesToSkip = [404, 403, 400];
 
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
@@ -92,7 +85,8 @@ class Scraper {
         if (this.config.usePuppeteer) {
             // debugger;
             const puppeteerConfig = this.config.puppeteerConfig;
-            this.puppeteerSimple = new PuppeteerSimple({ headless: puppeteerConfig.headless, timeout: puppeteerConfig.timeout })
+            const { headless, } = puppeteerConfig;
+            this.puppeteerSimple = new PuppeteerSimple({ headless})
             this.isBrowserReady = this.puppeteerSimple.createBrowser();
         }
 
