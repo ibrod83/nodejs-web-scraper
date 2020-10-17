@@ -22,28 +22,7 @@ function getDictionaryKey(originalKey) {
 
 }
 
-this.config = {
-    cloneFiles: true,//If an image with the same name exists, a new file with a number appended to it is created. Otherwise. it's overwritten.
-    removeStyleAndScriptTags: true,
-    concurrency: 3,//Maximum concurrent requests.
-    maxRetries: 5,//Maximum number of retries of a failed request.            
-    startUrl: '',
-    baseSiteUrl: '',
-    delay: 200,
-    timeout: 6000,
-    filePath: null,//Needs to be provided only if a DownloadContent operation is created.
-    auth: null,
-    headers: null,
-    proxy: null,
-    showConsoleLogs: true,
-    usePuppeteer: false,
-    puppeteerDebugMode: false,//For debugging
-    puppeteerConfig: {
-        headless: false,
-        timeout: 40000,//40 seconds for full page load(network idle)
-        waitUntil: 'networkidle0'
-    }
-}
+
 
 /**
  * 

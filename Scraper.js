@@ -168,7 +168,12 @@ class Scraper {
         if (this.config.usePuppeteer) {
             // setTimeout(()=>{
             if (!this.config.puppeteerDebugMode) {
-                await this.puppeteerSimple.close()
+                try {
+                  await this.puppeteerSimple.close()  
+                } catch (error) {
+                    this.log('Error shutting down puppeteer',error)
+                }
+                
             }
 
             // },1000)
