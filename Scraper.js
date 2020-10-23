@@ -29,8 +29,7 @@ class Scraper {
      * @param {Object} [globalConfig.headers = {}] 
      * @param {Object} [globalConfig.proxy = null] 
      * @param {boolean} [globalConfig.usePuppeteer = false] 
-     * @param {object} [globalConfig.puppeteerConfig]
-     * @param {boolean} [globalConfig.puppeteerConfig.headless = false] 
+     * @param {object} [globalConfig.puppeteerConfig] 
      * @param {number} [globalConfig.puppeteerConfig.timeout = 40000] 
      */
 
@@ -55,7 +54,7 @@ class Scraper {
             usePuppeteer: false,
             puppeteerDebugMode: false,//For debugging
             puppeteerConfig: {
-                headless: false,
+                // headless: false,
                 timeout: 40000,//40 seconds for full page load(network idle)
                 waitUntil: 'networkidle0'
             }
@@ -84,9 +83,9 @@ class Scraper {
         // debugger;
         if (this.config.usePuppeteer) {
             // debugger;
-            const puppeteerConfig = this.config.puppeteerConfig;
-            const { headless, } = puppeteerConfig;
-            this.puppeteerSimple = new PuppeteerSimple({ headless})
+            // const puppeteerConfig = this.config.puppeteerConfig;
+            // const { headless, } = puppeteerConfig;
+            this.puppeteerSimple = new PuppeteerSimple({ headless:false})
             this.isBrowserReady = this.puppeteerSimple.createBrowser();
         }
 

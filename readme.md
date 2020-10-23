@@ -29,6 +29,8 @@ $ npm install nodejs-web-scraper
   * [Scrape site that loads additional content via ajax](#scrape-site-that-loads-additional-content-via-ajax)  
   * [Scroll down few times and scrape](#scroll-down-few-times-and-scrape)    
   * [Collect content after every ScrollToBottom repetition](#collect-content-after-every-scrolltobottom-repetition)    
+  * [Click a button](#click-a-button)    
+  * [Configuring Puppeteer](#configuring-puppeteer)    
 - [API](#api) 
 - [Pagination explained](#pagination-explained) 
 - [Error Handling](#error-handling)  
@@ -51,8 +53,8 @@ const fs = require('fs');
 (async () => {
 
     const config = {
-        baseSiteUrl: `https://www.nytimes.com/`,
-        startUrl: `https://www.nytimes.com/`,
+        baseSiteUrl: `https://www.some-news-site.com/`,
+        startUrl: `https://www.some-news-site.com/`,
         filePath: './images/',
         concurrency: 10,//Maximum concurrent jobs. More than 10 is not recommended.Default is 3.
         maxRetries: 3,//The scraper will try to repeat a failed request few times(excluding 404). Default is 5.       
@@ -67,7 +69,7 @@ const fs = require('fs');
     const root = new Root();//The root object fetches the startUrl, and starts the process.  
  
     //Any valid cheerio-advanced-selectors selector can be passed. For further reference: https://cheerio.js.org/
-    const category = new OpenLinks('.css-1wjnrbv',{name:'category'});//Opens each category page.
+    const category = new OpenLinks('.category',{name:'category'});//Opens each category page.
 
     const article = new OpenLinks('article a', {name:'article' });//Opens each article page.
 
@@ -75,7 +77,7 @@ const fs = require('fs');
 
     const title = new CollectContent('h1', { name: 'title' });//"Collects" the text from each H1 element.
 
-    const story = new CollectContent('section.meteredContent', { name: 'story' });//"Collects" the the article body.
+    const story = new CollectContent('section.content', { name: 'story' });//"Collects" the the article body.
 
     root.addOperation(category);//Then we create a scraping "tree":
       category.addOperation(article);
@@ -99,7 +101,7 @@ const fs = require('fs');
 })();    
 
 ```
-This basically means: "go to www.nytimes.com; Open every category; Then open every article in each category page; Then collect the title, story and image href, and download all images on that page".
+This basically means: "go to https://www.some-news-site.com; Open every category; Then open every article in each category page; Then collect the title, story and image href, and download all images on that page".
 
 &nbsp;
 
@@ -468,6 +470,9 @@ When you **shouldn't** use ***usePuppeteer:true***:
 
 **If you need to perform a highly customized task on a SPA site, that requires complex in-browser operations, you should learn to use Puppeteer directly.** 
 
+&nbsp;
+
+
 #### Scrape site that loads additional content via ajax
 Let's say you have a site, whose pages perform some ajax requests, right after the DOM is loaded, with its initial html.
 In this case, all that needs to be done, is to use the usePuppeteer option. All the rest stays the same.
@@ -517,6 +522,7 @@ const fs = require('fs');
 })()
 
 ```
+&nbsp;
 
 #### Scroll down few times and scrape
 
@@ -559,7 +565,9 @@ const fs = require('fs');
 This means: go to the site, scroll down 100 times with a delay of 2 seconds between each, and then collect all the posts
 from the html.
 
-#### Collect content after every ScrollToBottom repetition.
+&nbsp;
+
+#### Collect content after every ScrollToBottom repetition
 In some cases, single page apps use a thing called DOM virtualizaion, meaning that the DOM contains only the portion of HTML that is currently being viewed(or a bit more). In such a case, the above example would be useless, being that the data must be collected after each scrolling down repetition. Therefore, ScrollToBottom can be used as a "parent":
 
 ```javascript  
@@ -597,12 +605,69 @@ In some cases, single page apps use a thing called DOM virtualizaion, meaning th
 ```
 This means: go to the site, scroll down 100 times with a delay of 2 seconds. Between each scroll, collect all the CURRENT posts present in the DOM.
 
+&nbsp;
+
+#### Click a button
+You can use ClickButton operation for anything that needs to be clicked, given it DOES NOT CAUSE BROWSER NAVIGATION.
+If you click on a link, You will probably encounter unexpected behavior or an error. Use it to click buttons like "load more" and such.
+
+IMPORTANT: Unlike other operations(CollectContent,OpenLinks, etc), ClickButton does not support Cheerio. You can only pass a standart querySelector. Also, only the first element gets picked(document.querySelector is used).
+
+```javascript  
+
+    const { Scraper, Root, ScrollToBottom,DownloadContent,ClickButton } = require('nodejs-web-scraper');
+
+    
+    const config = {      
+        usePuppeteer:true,//This will cause the program to run in Puppeteer mode.
+        //Notice that this will open an actual Chromium in your pc. Do not shut it down, or one of its tabs!  
+        baseSiteUrl: `https://some-social-network`,
+        startUrl: `https://some-social-network/some-user`,       
+       }
+
+   
+
+    const scraper = new Scraper(config);
+
+    const root = new Root();
+
+    const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})
+
+    const click = new ClickButton('#show-more'{numRepetitions:1,delay:3000})//Being that it's only one click, the delay here just serves the purpose of "giving some time" for the page to load further content.    
+    
+    const image = new DownloadContent('.post-image');
 
 
+    //Note that the order is important, it's sequential.
+    root.addOperation(click);   
+    root.addOperation(scrollToBottom);   
+    root.addOperation(image);   
+
+    await scraper.scrape(root);
+    
+```
+This means: go to the site, click some button and wait 3 seconds. Then, scroll down 100 times, with intervals of 2 seconds.
+Then, download all post images.
+
+&nbsp;
+
+#### Configuring Puppeteer
+```javascript
+puppeteerConfig:{//Only relevant if usePuppeteer is true.
+       timeout:40000,//How much time until Puppeteer throws "navigation timeout".     
+       waitUntil:'networkidle0',//Refer to Puppeteer docs.               
+     },
+```
+Currently the program cannot run with Puppeteer in headless mode, until i resolve some issues, so i removed the "headless" 
+option.
+
+pass the puppeteerConfig object to the main config object of the Scraper.
+
+&nbsp;
 
 ## API
 
-#### class Scraper(config)
+### class Scraper(config)
 
 The main nodejs-web-scraper object. Starts the entire scraping process via Scraper.scrape(Root). Holds the configuration and global state.
 
@@ -614,8 +679,7 @@ const config ={
             startUrl: '',//Mandatory. The page from which the process begins.   
             usePuppeteer:false,//Whether the program should use Puppeteer behind the scenes(A new feature, with limited functionality),
             puppeteerConfig:{//Only relevant if usePuppeteer is true.
-                timeout:30000,//How much time until Puppeteer throws "navigation timeout".
-                headless:false,
+                timeout:40000,//How much time until Puppeteer throws "navigation timeout".
                 waitUntil:'networkidle0',//Refer to Puppeteer docs.                
             },
             logPath:null,//Highly recommended.Will create a log for each scraping operation(object).               
@@ -645,7 +709,8 @@ Public methods:
 
  
 
-#### class Root([config])
+### class Root([config])
+
 
 Root is responsible for fetching the first page, and then scrape the children. It can also be paginated, hence the optional config. For instance:
 ```javascript
@@ -670,13 +735,13 @@ Public methods:
 
 | Name        | Description                                                                                               |
 | ----------- | --------------------------------------------------------------------------------------------------------- |
-| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent,CollectContent)                                       |
+| addOperation(Operation)   | (OpenLinks,DownloadContent,CollectContent,ClickButton,ScrollToBottom)                                        |
 | getData()   | Gets all data collected by this operation. In the case of root, it will just be the entire scraping tree. |
 | getErrors() | In the case of root, it will show all errors in every operation.                                          |
 
 &nbsp;
 
-#### class OpenLinks(querySelector,[config])
+### class OpenLinks(querySelector,[config])
 
 Responsible for "opening links" in a given page. Basically it just creates a nodelist of anchor elements, fetches their html, and continues the process of scraping, in those pages - according to the user-defined scraping tree.
 
@@ -701,13 +766,13 @@ Public methods:
 
 | Name        | Description                                                  |
 | ----------- | ------------------------------------------------------------ |
-| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent,CollectContent)  |
+| addOperation(Operation)   | Add a scraping "operation"(OpenLinks,DownloadContent,CollectContent,ClickButton,ScrollToBottom)  |
 | getData()   | Will get the data from all pages processed by this operation |
 | getErrors() | Gets all errors encountered by this operation.               |
 
 &nbsp;
 
-#### class CollectContent(querySelector,[config])
+### class CollectContent(querySelector,[config])
 Responsible for simply collecting text/html from a given page.
 The optional config can receive these properties:
 ```javascript
@@ -730,7 +795,7 @@ Public methods:
 
 &nbsp;
 
-#### class DownloadContent(querySelector,[config])
+### class DownloadContent(querySelector,[config])
 Responsible downloading files/images from a given page.
 The optional config can receive these properties:
 ```javascript
@@ -760,7 +825,7 @@ Public methods:
 &nbsp;
 
 
-#### class ScrollToBottom([config])
+### class ScrollToBottom([config])
 Relevant only when operating under usePuppeteer:true(global Scraper config).
 Simply scrolls to the bottom of the document.
 
@@ -773,6 +838,38 @@ The optional config can receive these properties:
 }
 
 ```
+Public methods:
+
+| Name        | Description                                                  |
+| ----------- | ------------------------------------------------------------ |
+| addOperation(Operation)   | (DownloadContent,CollectContent) 
+| getData()   | Will get the data from all scroll cycles(relevant only if children are passed) |
+| getErrors() | Gets all errors encountered by this operation.               |
+
+
+&nbsp;
+
+### class ClickButton(querySelector,[config])
+Relevant only when operating under usePuppeteer:true(global Scraper config).
+Click a button. DO NOT USE ON ANYTHING THAT CAUSES BROWSER NAVIGATION. Can accept children via addOperation(operation to perform after each click and its delay)
+
+The optional config can receive these properties:
+```javascript
+{
+    numRepetitions:1,//Number of times this will be performed within a given Puppeteer page/tab. Default is 1.
+    delay:0,//The delay between each click. Default is 0.
+    scrapeChildrenAfterNumRepetitions:1//If children are passed(addOperation), this will determine after how many cycles, they are processed.
+}
+
+```
+
+Public methods:
+
+| Name        | Description                                                  |
+| ----------- | ------------------------------------------------------------ |
+| addOperation(Operation)   | (DownloadContent,CollectContent) 
+| getData()   | Will get the data from all click cycles(relevant only if children are passed)  |
+| getErrors() |   Gets all errors encountered by this operation.            |
 
 
 &nbsp;

@@ -42,65 +42,69 @@ class ScrollToBottom extends Operation {
         await puppeteerSimplePage.scrollToBottom({ numRepetitions: 1, delay: this.config.delay });
     }
 
-    /**
-     * 
-     * @param {PuppeteerSimplePage} puppeteerSimplePage 
-     * @param {boolean} scrapeChildren 
-     * @return {Promise<array>}
-     */
-    async processOneIteration(puppeteerSimplePage, scrapeChildren) {
-
-        try {
-            var dataFromChildren = [];
-            await this.performScroll(puppeteerSimplePage);
-
-            if (scrapeChildren && this.operations.length) {
-                // counter++
-                // console.log('counter', counter)
-                dataFromChildren = await this.scrapeChildren(puppeteerSimplePage)
-            }
-
-
-        } catch (error) {
-            // debugger;
-            const errorString = `There was an error scrolling down:, ${puppeteerSimplePage.url}, ${error}`
-            this.errors.push(errorString);
-            this.handleFailedScrapingIteration(errorString);
-            if (this.config.getException)
-                await this.getException(error)
-
-
-        } finally {
-            return dataFromChildren;
-        }
-
-
-
+    async iterationFunc(puppeteerSimplePage){
+        await this.performScroll(puppeteerSimplePage);
     }
 
-    /**
-     * The first parameter is not actually used. It's here to conform with the Operation.scrape() interface.    
-     * @param {PuppeteerSimplePage} puppeteerSimplePage 
-     */
-    async scrape({ html, url }, puppeteerSimplePage) {
+    // /**
+    //  * 
+    //  * @param {PuppeteerSimplePage} puppeteerSimplePage 
+    //  * @param {boolean} scrapeChildren 
+    //  * @return {Promise<array>}
+    //  */
+    // async processOneIteration(puppeteerSimplePage, scrapeChildren) {
 
-        const iterations = []
-        const { numRepetitions, scrapeChildrenAfterNumRepetitions } = this.config;
-        for (let i = 1; i <= numRepetitions; i++) {
+    //     try {
+    //         var dataFromChildren = [];
+    //         await this.performScroll(puppeteerSimplePage);
 
-            const div = i / scrapeChildrenAfterNumRepetitions//A whole number means this itteration should also scrape children.
+    //         if (scrapeChildren && this.operations.length) {
+    //             // counter++
+    //             // console.log('counter', counter)
+    //             dataFromChildren = await this.scrapeChildren(puppeteerSimplePage)
+    //         }
 
-            const scrapeChildren = Number.isInteger(div);
 
-            const dataFromIteration = await this.processOneIteration(puppeteerSimplePage, scrapeChildren);
+    //     } catch (error) {
+    //         // debugger;
+    //         const errorString = `There was an error scrolling down:, ${puppeteerSimplePage.url}, ${error}`
+    //         this.errors.push(errorString);
+    //         this.handleFailedScrapingIteration(errorString);
+    //         if (this.config.getException)
+    //             await this.getException(error)
 
-            iterations.push(dataFromIteration);
 
-        }
+    //     } finally {
+    //         return dataFromChildren;
+    //     }
 
-        this.data.push(...iterations)
-        return { type: this.constructor.name, name: this.config.name, data: iterations };
-    }
+
+
+    // }
+
+    // /**
+    //  * The first parameter is not actually used. It's here to conform with the Operation.scrape() interface.    
+    //  * @param {PuppeteerSimplePage} puppeteerSimplePage 
+    //  */
+    // async scrape({ html, url }, puppeteerSimplePage) {
+
+    //     const iterations = []
+    //     const { numRepetitions, scrapeChildrenAfterNumRepetitions } = this.config;
+    //     for (let i = 1; i <= numRepetitions; i++) {
+
+    //         const div = i / scrapeChildrenAfterNumRepetitions//A whole number means this itteration should also scrape children.
+
+    //         const scrapeChildren = Number.isInteger(div);
+
+    //         const dataFromIteration = await this.processOneIteration(puppeteerSimplePage, scrapeChildren);
+
+    //         iterations.push(dataFromIteration);
+
+    //     }
+
+    //     this.data.push(...iterations)
+    //     return { type: this.constructor.name, name: this.config.name, data: iterations };
+    // }
 
     validateOperationArguments() {
 

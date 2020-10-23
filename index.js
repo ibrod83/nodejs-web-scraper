@@ -3,7 +3,7 @@ const CollectContent = require('./operations/CollectContent'),
     DownloadContent = require('./operations/DownloadContent'),
     Root = require('./operations/Root'),
     ScrollToBottom = require('./limitedSpa/ScrollToBottom'),
-    // Click = require('./limitedSpa/Click'),
+    ClickButton = require('./limitedSpa/ClickButton'),
     Scraper = require('./Scraper.js');
 
 module.exports = {
@@ -13,7 +13,7 @@ module.exports = {
     OpenLinks,
     CollectContent,
     ScrollToBottom,
-    // Click
+    ClickButton
 };
 
 
