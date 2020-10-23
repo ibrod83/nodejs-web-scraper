@@ -633,6 +633,7 @@ IMPORTANT: Unlike other operations(CollectContent,OpenLinks, etc), ClickButton d
 
     const scrollToBottom = new ScrollToBottom({numRepetitions:100,delay:2000})
 
+    //Please note that ClickButton does not support Cheerio. Pass a standart querySelector. Also, only the first element is picked(document.querySelector)
     const click = new ClickButton('#show-more'{numRepetitions:1,delay:3000})//Being that it's only one click, the delay here just serves the purpose of "giving some time" for the page to load further content.    
     
     const image = new DownloadContent('.post-image');
