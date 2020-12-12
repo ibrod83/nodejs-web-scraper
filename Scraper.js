@@ -27,10 +27,11 @@ class Scraper {
      * @param {string} [globalConfig.filePath= null] 
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = {}] 
-     * @param {Object} [globalConfig.proxy = null] 
+     * @param {string} [globalConfig.proxy = null] 
      * @param {boolean} [globalConfig.usePuppeteer = false] 
      * @param {object} [globalConfig.puppeteerConfig] 
      * @param {number} [globalConfig.puppeteerConfig.timeout = 40000] 
+     * @param {string} [globalConfig.puppeteerConfig.waitUntil =  'networkidle0'] 
      */
 
 
@@ -55,8 +56,10 @@ class Scraper {
             puppeteerDebugMode: false,//For debugging
             puppeteerConfig: {
                 // headless: false,
+                // args:[],
                 timeout: 40000,//40 seconds for full page load(network idle)
-                waitUntil: 'networkidle0'
+                waitUntil: 'networkidle0',
+                ...globalConfig.puppeteerConfig
             }
         }
         // this.state = new State();
@@ -70,10 +73,11 @@ class Scraper {
             repetitionCycles: 0,
         }
 
-
+      
 
         this.validateGlobalConfig(globalConfig);
         deepSpread(this.config,globalConfig)
+        
         
         // debugger;
         this.config.errorCodesToSkip = [404, 403, 400];
@@ -83,9 +87,10 @@ class Scraper {
         // debugger;
         if (this.config.usePuppeteer) {
             // debugger;
-            // const puppeteerConfig = this.config.puppeteerConfig;
-            // const { headless, } = puppeteerConfig;
-            this.puppeteerSimple = new PuppeteerSimple({ headless:false})
+            const puppeteerConfig = this.config.puppeteerConfig;
+            // debugger
+            // const { args,headless } = puppeteerConfig;
+            this.puppeteerSimple = new PuppeteerSimple({ ...puppeteerConfig})
             this.isBrowserReady = this.puppeteerSimple.createBrowser();
         }
 

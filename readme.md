@@ -653,14 +653,15 @@ Then, download all post images.
 &nbsp;
 
 #### Configuring Puppeteer
+You can pass any config property that Puppeteer supports(in the used version). Additionally, two other properties are available(timeout, waitUntil), which are actually a part of
+puppeteer.Page config object.
 ```javascript
 puppeteerConfig:{//Only relevant if usePuppeteer is true.
        timeout:40000,//How much time until Puppeteer throws "navigation timeout".     
-       waitUntil:'networkidle0',//Refer to Puppeteer docs.               
+       waitUntil:'networkidle0',//Refer to Puppeteer docs.                      
      },
 ```
-Currently the program cannot run with Puppeteer in headless mode, until i resolve some issues, so i removed the "headless" 
-option.
+You can use Puppeteer in headless:true mode(default is false), but note that this seems to be very slow, and you would probably need to dramatically increase timeout.
 
 pass the puppeteerConfig object to the main config object of the Scraper.
 
