@@ -57,6 +57,7 @@ class Scraper {
             puppeteerConfig: {
                 // headless: false,
                 // args:[],
+                defaultViewport: null,
                 timeout: 40000,//40 seconds for full page load(network idle)
                 waitUntil: 'networkidle0',
                 ...globalConfig.puppeteerConfig
