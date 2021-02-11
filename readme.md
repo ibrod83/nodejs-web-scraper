@@ -782,7 +782,7 @@ The optional config can receive these properties:
     name:'some name',
     contentType:'text',//Either 'text' or 'html'. Default is text.   
     shouldTrim:true,//Default is true. Applies JS String.trim() method.
-    getElementList:(elementList)=>{},  
+    getElementList:(elementList,pageAddress)=>{},  
     getElementContent:(elementContentString,pageAddress)=>{}//Called with each element collected.
     getAllElements:(elements,address)=>{}//Called after an entire page has its elements collected.  
     slice:[start,end]
