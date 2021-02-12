@@ -67,7 +67,7 @@ class CollectContent extends Operation {
         // this.scraper.log(url,' Number of video elements: ',elementList.length)
 
         if (this.config.getElementList) {
-            await this.config.getElementList(elementList);
+            await this.config.getElementList(elementList, parentAddress);
         }
 
         const iterations = [];
