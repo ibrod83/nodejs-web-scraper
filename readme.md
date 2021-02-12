@@ -784,7 +784,7 @@ The optional config can receive these properties:
     shouldTrim:true,//Default is true. Applies JS String.trim() method.
     getElementList:(elementList)=>{},  
     getElementContent:(elementContentString,pageAddress)=>{}//Called with each element collected.
-    getAllElements:(elements,address)=>{}//Called after an entire page has its elements collected.  
+    getAllItems: (items, address)=>{}//Called after an entire page has its elements collected.  
     slice:[start,end]
 }
 
