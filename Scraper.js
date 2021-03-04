@@ -6,7 +6,7 @@ const { verifyDirectoryExists } = require('./utils/files')
 const { deepSpread } = require('./utils/objects')
 const { Root } = require('./');//For jsdoc
 // const PathQueue = require('./utils/PathQueue');
-const PuppeteerSimple = require('puppeteer-simple').default
+// const PuppeteerSimple = require('puppeteer-simple').default
 
 
 
@@ -28,10 +28,6 @@ class Scraper {
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = {}] 
      * @param {string} [globalConfig.proxy = null] 
-     * @param {boolean} [globalConfig.usePuppeteer = false] 
-     * @param {object} [globalConfig.puppeteerConfig] 
-     * @param {number} [globalConfig.puppeteerConfig.timeout = 40000] 
-     * @param {string} [globalConfig.puppeteerConfig.waitUntil =  'networkidle0'] 
      */
 
 
@@ -52,7 +48,7 @@ class Scraper {
             headers: {},
             proxy: null,
             showConsoleLogs: true,
-            usePuppeteer: false,
+            usePuppeteer: false,//Deprecated
             puppeteerDebugMode: false,//For debugging
             puppeteerConfig: {
                 // headless: false,
@@ -87,6 +83,7 @@ class Scraper {
         this.requestSpacer = Promise.resolve();
         // debugger;
         if (this.config.usePuppeteer) {
+            throw new Error('usePuppeteer is deprecated since version 5. If you need it, downgrade to version 4.2.2')
             // debugger;
             const puppeteerConfig = this.config.puppeteerConfig;
             // debugger

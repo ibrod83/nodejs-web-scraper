@@ -1,4 +1,4 @@
-const PuppeteerSimple = require('puppeteer-simple').default;//For intellisense
+// const PuppeteerSimple = require('puppeteer-simple').default;//For intellisense
 
 
 /**
