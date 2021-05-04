@@ -9,17 +9,17 @@ const { createElementList, getNodeContent } = require('../utils/cheerio')
 class CollectContent extends Operation {
 
     /**
-     * 
-     * @param {string} querySelector cheerio-advanced-selectors selector 
-     * @param {Object} [config] 
+     *
+     * @param {string} querySelector cheerio-advanced-selectors selector
+     * @param {Object} [config]
      * @param {string} [config.name = 'Default CollectContent name']
      * @param {string} [config.contentType = 'text']
      * @param {number[]} [config.slice = null]
      * @param {boolean} [config.shouldTrim = true] Will trim the string, if "shouldTrim" is true.
      * @param {Function} [config.getElementList = null] Receives an elementList array
-     * @param {Function} [config.getElementContent = null] Receives elementContentString and pageAddress
+     * @param {Function} [config.getElementContent = null] Receives elementContentString, pageAddress, and element
      * @param {Function} [config.getAllItems = null] Receives all items collected from a specific page. Will run for each page.
-     
+
      */
     constructor(querySelector, config) {
         super(config);
@@ -41,9 +41,9 @@ class CollectContent extends Operation {
 
 
     /**
-    * 
-    * @param {{url:string,html:string}} params 
-    * @return {Promise<{type:string,name:string,data:[]}>} 
+    *
+    * @param {{url:string,html:string}} params
+    * @return {Promise<{type:string,name:string,data:[]}>}
     */
     async scrape({ html, url }) {
         // this.scraper.log('colelcting content',url)
@@ -53,7 +53,7 @@ class CollectContent extends Operation {
         // const arr = url.split('/');
         // const fileName = arr[arr.length-1]
         // fs.writeFile(`${this.scraper.config.logPath}/${fileName}.html`,html,()=>{})
-        
+
         const parentAddress = url
 
 
@@ -75,7 +75,7 @@ class CollectContent extends Operation {
         for (let element of elementList) {
             let content = getNodeContent(element, { shouldTrim: this.config.shouldTrim, contentType: this.config.contentType });
             if (this.config.getElementContent) {
-                const contentFromCallback = await this.config.getElementContent(content, parentAddress)
+                const contentFromCallback = await this.config.getElementContent(content, parentAddress, element)
                 content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
             }
 
