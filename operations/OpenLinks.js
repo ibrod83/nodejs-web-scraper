@@ -14,7 +14,7 @@ const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 
 /**
- * 
+ *
  * @mixes CompositeInjectMixin
  * @mixes CompositeScrapeMixin
  */
@@ -22,20 +22,20 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 
     /**
-     * 
-     * @param {string} querySelector cheerio-advanced-selectors selector 
+     *
+     * @param {string} querySelector cheerio-advanced-selectors selector
      * @param {Object} [config]
-     * @param {string} [config.name = 'Default OpenLinks name']   
-     * @param {Object} [config.pagination = null] Look at the pagination API for more details.  
+     * @param {string} [config.name = 'Default OpenLinks name']
+     * @param {Object} [config.pagination = null] Look at the pagination API for more details.
      * @param {number[]} [config.slice = null]
      * @param {Function} [config.condition = null] Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
-     * @param {Function} [config.getElementList = null] Receives an elementList array    
-     * @param {Function} [config.getPageData = null] 
+     * @param {Function} [config.getElementList = null] Receives an elementList array
+     * @param {Function} [config.getPageData = null]
      * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an address argument
-     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
+     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
-     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
-     *    
+     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object.
+     *
      */
 
     constructor(querySelector, config) {
@@ -48,11 +48,15 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         this.operations = [];//References to child operation objects.
         this.querySelector = querySelector;
 
+        this.transformHref = config?.transformHref ?? function (href) {
+            return href
+        }
+
     }
 
     /**
-     * 
-     * @param {Operation} Operation 
+     *
+     * @param {Operation} Operation
      */
     addOperation(Operation) {
         // this._addOperation(Operation);
@@ -76,8 +80,8 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 
     /**
-     * 
-     * @param {{url:string,html:string}} params 
+     *
+     * @param {{url:string,html:string}} params
      * @return {Promise<{type:string,name:string,data:[]}>}
      */
     async scrape({url,html}) {
@@ -97,7 +101,10 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         await mapPromisesWithLimitation(refs, async (href) => {
             // debugger;
-            const data = await this.pageHelper.processOneIteration(href, shouldPaginate)
+            const data = await this.pageHelper.processOneIteration(
+                this.transformHref(href),
+                shouldPaginate
+            )
 
             if (this.config.getPageData)
                 await this.config.getPageData(data);
