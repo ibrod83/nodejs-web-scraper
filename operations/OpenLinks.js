@@ -35,6 +35,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object.
+     * @param {(href: string) => string} [config.transformHref = undefined] Callback that receives the href before it is opened.
      *
      */
 
@@ -48,10 +49,13 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         this.operations = [];//References to child operation objects.
         this.querySelector = querySelector;
 
-        this.transformHref = config?.transformHref ?? function (href) {
-            return href
+        if (typeof config === 'object' && typeof config.transformHref === 'function') {
+            this.transformHref = config.transformHref
+        } else {
+            this.transformHref = function (href) {
+                return href
+            }
         }
-
     }
 
     /**
@@ -66,7 +70,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     initPageHelper() {
         if (!this.scraper.config.usePuppeteer) {
             this.pageHelper = new PageHelper(this)
-        }else{
+        } else {
             this.pageHelper = new SPA_PageHelper(this);
         }
     }
@@ -78,17 +82,16 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     }
 
 
-
     /**
      *
      * @param {{url:string,html:string}} params
      * @return {Promise<{type:string,name:string,data:[]}>}
      */
-    async scrape({url,html}) {
+    async scrape({ url, html }) {
         if (!this.pageHelper)
             this.initPageHelper();
         // debugger;
-        const refs = await this.createLinkList(html,url)
+        const refs = await this.createLinkList(html, url)
 
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
@@ -120,11 +123,14 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     }
 
 
-    async createLinkList(html,url) {
+    async createLinkList(html, url) {
         // debugger;
         var $ = cheerio.load(html);
         // debugger;
-        const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
+        const elementList = await createElementList($, this.querySelector, {
+            condition: this.config.condition,
+            slice: this.config.slice
+        });
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);
         }
@@ -140,7 +146,6 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         return refs;
     }
-
 
 
 }
