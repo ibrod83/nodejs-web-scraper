@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { verifyDirectoryExists } = require('./utils/files')
 const { deepSpread } = require('./utils/objects')
-const { Root } = require('./');//For jsdoc
+// const { Root } = require('./');//For jsdoc
 // const PathQueue = require('./utils/PathQueue');
 // const PuppeteerSimple = require('puppeteer-simple').default
 

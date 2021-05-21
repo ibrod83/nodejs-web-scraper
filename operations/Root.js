@@ -2,7 +2,7 @@ const HttpOperation = require('./HttpOperation');
 const CompositeInjectMixin = require('./mixins/CompositeInjectMixin');
 const CompositeScrapeMixin = require('./mixins/CompositeScrapeMixin');
 const PageHelper = require('./helpers/PageHelper');
-const SPA_PageHelper = require('./helpers/SPA_PageHelper');
+// const SPA_PageHelper = require('./helpers/SPA_PageHelper');
 
 
 /**

@@ -1,5 +1,5 @@
 
-const Scraper = require('../Scraper');//For jsdoc
+// const Scraper = require('../Scraper');//For jsdoc
 
 /**
  * Base class for all operations(not including limitedSpa).

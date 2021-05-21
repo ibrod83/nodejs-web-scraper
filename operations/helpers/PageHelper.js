@@ -1,10 +1,10 @@
-const Operation = require('../Operation');//For jsdoc
+// const Operation = require('../Operation');//For jsdoc
 const { request } = require('../../request/request.js');
 const { stripTags } = require('../../utils/html');
 const { mapPromisesWithLimitation } = require('../../utils/concurrency');
 const { getDictionaryKey } = require('../../utils/objects');
 const { getPaginationUrls } = require('../../utils/pagination');
-const { CustomResponse } = require('../../request/request')//For jsdoc
+// const { CustomResponse } = require('../../request/request')//For jsdoc
 // const SPA_page = require('../../limitedSpa/SPA_Page');
 
 // require('../typedef.js'); 

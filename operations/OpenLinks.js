@@ -1,15 +1,15 @@
 const HttpOperation = require('./HttpOperation');
 const CompositeInjectMixin = require('./mixins/CompositeInjectMixin');
 const CompositeScrapeMixin = require('./mixins/CompositeScrapeMixin');
-const Operation = require('./Operation')//For jsdoc
+// const Operation = require('./Operation')//For jsdoc
 var cheerio = require('cheerio');
 var cheerioAdv = require('cheerio-advanced-selectors');
 cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
 const { getAbsoluteUrl } = require('../utils/url');
 const PageHelper = require('./helpers/PageHelper');
-const SPA_PageHelper = require('./helpers/SPA_PageHelper');
-const { CustomResponse } = require('../request/request');//For jsdoc
+// const SPA_PageHelper = require('./helpers/SPA_PageHelper');
+// const { CustomResponse } = require('../request/request');//For jsdoc
 const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 
