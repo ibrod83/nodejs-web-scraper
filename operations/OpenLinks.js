@@ -14,7 +14,7 @@ const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 
 /**
- * 
+ *
  * @mixes CompositeInjectMixin
  * @mixes CompositeScrapeMixin
  */
@@ -22,20 +22,21 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 
     /**
-     * 
-     * @param {string} querySelector cheerio-advanced-selectors selector 
+     *
+     * @param {string} querySelector cheerio-advanced-selectors selector
      * @param {Object} [config]
-     * @param {string} [config.name = 'Default OpenLinks name']   
-     * @param {Object} [config.pagination = null] Look at the pagination API for more details.  
+     * @param {string} [config.name = 'Default OpenLinks name']
+     * @param {Object} [config.pagination = null] Look at the pagination API for more details.
      * @param {number[]} [config.slice = null]
      * @param {Function} [config.condition = null] Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
-     * @param {Function} [config.getElementList = null] Receives an elementList array    
-     * @param {Function} [config.getPageData = null] 
+     * @param {Function} [config.getElementList = null] Receives an elementList array
+     * @param {Function} [config.getPageData = null]
      * @param {Function} [config.getPageObject = null] Receives a dictionary of children, and an address argument
-     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object    
+     * @param {Function} [config.getPageResponse = null] Receives an axiosResponse object
      * @param {Function} [config.getPageHtml = null] Receives htmlString and pageAddress
-     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
-     *    
+     * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object.
+     * @param {(href: string) => string} [config.transformHref = undefined] Callback that receives the href before it is opened.
+     *
      */
 
     constructor(querySelector, config) {
@@ -48,11 +49,18 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         this.operations = [];//References to child operation objects.
         this.querySelector = querySelector;
 
+        if (typeof config === 'object' && typeof config.transformHref === 'function') {
+            this.transformHref = config.transformHref
+        } else {
+            this.transformHref = function (href) {
+                return href
+            }
+        }
     }
 
     /**
-     * 
-     * @param {Operation} Operation 
+     *
+     * @param {Operation} Operation
      */
     addOperation(Operation) {
         // this._addOperation(Operation);
@@ -62,7 +70,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     initPageHelper() {
         if (!this.scraper.config.usePuppeteer) {
             this.pageHelper = new PageHelper(this)
-        }else{
+        } else {
             this.pageHelper = new SPA_PageHelper(this);
         }
     }
@@ -74,17 +82,16 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     }
 
 
-
     /**
-     * 
-     * @param {{url:string,html:string}} params 
+     *
+     * @param {{url:string,html:string}} params
      * @return {Promise<{type:string,name:string,data:[]}>}
      */
-    async scrape({url,html}) {
+    async scrape({ url, html }) {
         if (!this.pageHelper)
             this.initPageHelper();
         // debugger;
-        const refs = await this.createLinkList(html,url)
+        const refs = await this.createLinkList(html, url)
 
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
         let forceConcurrencyLimit = false;
@@ -97,7 +104,10 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         await mapPromisesWithLimitation(refs, async (href) => {
             // debugger;
-            const data = await this.pageHelper.processOneIteration(href, shouldPaginate)
+            const data = await this.pageHelper.processOneIteration(
+                this.transformHref(href),
+                shouldPaginate
+            )
 
             if (this.config.getPageData)
                 await this.config.getPageData(data);
@@ -113,11 +123,14 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     }
 
 
-    async createLinkList(html,url) {
+    async createLinkList(html, url) {
         // debugger;
         var $ = cheerio.load(html);
         // debugger;
-        const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
+        const elementList = await createElementList($, this.querySelector, {
+            condition: this.config.condition,
+            slice: this.config.slice
+        });
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);
         }
@@ -133,7 +146,6 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
         return refs;
     }
-
 
 
 }
