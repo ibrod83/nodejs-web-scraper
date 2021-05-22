@@ -1,7 +1,7 @@
 const Operation = require('./Operation')
 var cheerio = require('cheerio');
-var cheerioAdv = require('cheerio-advanced-selectors')
-cheerio = cheerioAdv.wrap(cheerio)
+// var cheerioAdv = require('cheerio-advanced-selectors')
+// cheerio = cheerioAdv.wrap(cheerio)
 // const fs = require('fs')
 const { createElementList, getNodeContent } = require('../utils/cheerio')
 // const { CustomResponse } = require('../request/request')

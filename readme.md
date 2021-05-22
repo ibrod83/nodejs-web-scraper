@@ -1,7 +1,7 @@
 nodejs-web-scraper is a simple tool for scraping/crawling server-side rendered pages.
 It supports features like recursive scraping(pages that "open" other pages), file download and handling, automatic retries of failed requests, concurrency limitation, pagination, request delay, etc. Tested on Node 10 and 12(Windows 7, Linux Mint).
 
-The API uses cheerio-advanced-selectors. [Click here for reference](https://www.npmjs.com/package/cheerio-advanced-selectors) 
+The API uses Cheerio selectors. [Click here for reference](https://www.npmjs.com/package/cheerio) 
 
 For any questions or suggestions, please open a Github issue or contact me via https://nodejs-web-scraper.ibrod83.com/about
 
@@ -62,7 +62,7 @@ const fs = require('fs');
 
     const root = new Root();//The root object fetches the startUrl, and starts the process.  
  
-    //Any valid cheerio-advanced-selectors selector can be passed. For further reference: https://cheerio.js.org/
+    //Any valid cheerio selector can be passed. For further reference: https://cheerio.js.org/
     const category = new OpenLinks('.category',{name:'category'});//Opens each category page.
 
     const article = new OpenLinks('article a', {name:'article' });//Opens each article page.
@@ -402,7 +402,7 @@ Description: "Go to https://www.nice-site/some-section; Open every article link;
 
 #### Add additional conditions
 
-In some cases, using the cheerio-advanced-selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false.
+In some cases, using the cheerio selectors isn't enough to properly filter the DOM nodes. This is where the "condition" hook comes in. Both OpenLinks and DownloadContent can register a function with this hook, allowing you to decide if this DOM node should be scraped, by returning true or false.
 
 ```javascript  
 

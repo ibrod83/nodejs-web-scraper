@@ -1,7 +1,7 @@
 const HttpOperation = require('./HttpOperation');
-var cheerio = require('cheerio');
-var cheerioAdv = require('cheerio-advanced-selectors');
-cheerio = cheerioAdv.wrap(cheerio);
+var cheerio = require('cheerio')
+// var cheerioAdv = require('cheerio-advanced-selectors');
+// cheerio = cheerioAdv.wrap(cheerio);
 const fs = require('fs');
 const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile)

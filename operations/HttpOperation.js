@@ -1,7 +1,7 @@
 const Operation = require('./Operation');
-var cheerio = require('cheerio');
-var cheerioAdv = require('cheerio-advanced-selectors');
-cheerio = cheerioAdv.wrap(cheerio);
+var cheerio = require('cheerio')
+// var cheerioAdv = require('cheerio-advanced-selectors');
+// cheerio = cheerioAdv.wrap(cheerio);
 const { createDelay } = require('../utils/delay');
 const rpur = require('../utils/rpur')
 

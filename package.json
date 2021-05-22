@@ -1,6 +1,6 @@
 {
   "name": "nodejs-web-scraper",
-  "version": "5.1.0",
+  "version": "6.0.0",
   "description": "A web scraper for NodeJs",
   "main": "index.js",
   "scripts": {
@@ -20,8 +20,7 @@
   "author": "ibrod83",
   "license": "ISC",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.2",
-    "cheerio-advanced-selectors": "^2.0.1",
+    "cheerio": "^1.0.0-rc.9",
     "https-proxy-agent": "^5.0.0",
     "mime-types": "^2.1.20",
     "node-fetch": "^2.6.1",
