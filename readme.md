@@ -3,7 +3,7 @@ It supports features like recursive scraping(pages that "open" other pages), fil
 
 The API uses Cheerio selectors. [Click here for reference](https://www.npmjs.com/package/cheerio) 
 
-For any questions or suggestions, please open a Github issue or contact me via https://nodejs-web-scraper.ibrod83.com/about
+For any questions or suggestions, please open a Github issue.
 
 
 
