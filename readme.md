@@ -472,7 +472,8 @@ const config ={
             auth: null,//Can provide basic auth credentials(no clue what sites actually use it)
             headers: null,//Provide custom headers for the requests.           
             proxy:null,//Use a proxy. Pass a full proxy URL, including the protocol and the port.           
-            showConsoleLogs:true//Set to false, if you want to disable the messages
+            showConsoleLogs:true,//Set to false, if you want to disable the messages
+            onError:null//callback function that is called whenever an error occurs - signature is: onError(errorString) => {}
         }
 ```
 Public methods:
@@ -627,6 +628,8 @@ nodejs-web-scraper covers most scenarios of pagination(assuming it's server-side
 ## Error Handling
 
 nodejs-web-scraper will automatically repeat every failed request(except 404,400,403 and invalid images). Number of repetitions depends on the global config option "maxRetries", which you pass to the Scraper. If a request fails "indefinitely", it will be skipped. After the entire scraping process is complete, all "final" errors will be printed as a JSON into a file called **"finalErrors.json"**(assuming you provided a logPath). 
+
+Alternatively, use the `onError` callback function in the scraper's global config.
 
 
 ## Automatic logs

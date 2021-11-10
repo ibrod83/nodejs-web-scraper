@@ -8,6 +8,10 @@ const { deepSpread } = require('./utils/objects')
 // const PathQueue = require('./utils/PathQueue');
 // const PuppeteerSimple = require('puppeteer-simple').default
 
+/**
+ * @callback errorCallback
+ * @param {string} errorString
+ */
 
 
 class Scraper {
@@ -28,6 +32,7 @@ class Scraper {
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = {}] 
      * @param {string} [globalConfig.proxy = null] 
+     * @param {errorCallback} [globalConfig.onError = null]
      */
 
 
@@ -57,7 +62,8 @@ class Scraper {
                 timeout: 40000,//40 seconds for full page load(network idle)
                 waitUntil: 'networkidle0',
                 ...globalConfig.puppeteerConfig
-            }
+            },
+            onError: null //callback runs whenever any error occurs during scraping
         }
         // this.state = new State();
         this.state = {
@@ -201,6 +207,7 @@ class Scraper {
      */
     reportFailedScrapingAction(errorString) {
         this.state.failedScrapingIterations.push(errorString);
+        if(this.config.onError) this.config.onError(errorString);
     }
 
 
