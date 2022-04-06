@@ -32,7 +32,7 @@ class Scraper {
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = {}] 
      * @param {string} [globalConfig.proxy = null] 
-     * @param {errorCallback} [globalConfig.onError = null]
+     * @param {Function} [globalConfig.onError = null]
      */
 
 
