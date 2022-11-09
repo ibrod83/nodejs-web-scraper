@@ -80,6 +80,9 @@ class Scraper {
 
         this.validateGlobalConfig(globalConfig);
         deepSpread(this.config,globalConfig)
+        if (globalConfig.agent) {
+            this.config.agent = globalConfig.agent;
+        }
         
         
         // debugger;

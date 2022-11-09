@@ -112,7 +112,8 @@ class PageHelper {
                     timeout: this.Operation.scraper.config.timeout,
                     auth: this.Operation.scraper.config.auth,
                     headers: this.Operation.scraper.config.headers,
-                    proxy: this.Operation.scraper.config.proxy
+                    proxy: this.Operation.scraper.config.proxy,
+                    agent: this.Operation.scraper.config.agent
 
                 })
                 if (this.Operation.scraper.config.removeStyleAndScriptTags) {
