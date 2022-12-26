@@ -60,7 +60,7 @@ class CollectContent extends Operation {
             let content = getNodeContent(element, { shouldTrim: this.config.shouldTrim, contentType: this.config.contentType });
             if (this.config.getElementContent) {
                 const contentFromCallback = await this.config.getElementContent(content, parentAddress, element)
-                content = typeof contentFromCallback === 'string' ? contentFromCallback : content;
+                content = contentFromCallback ? contentFromCallback : content;
             }
 
             iterations.push(content);
