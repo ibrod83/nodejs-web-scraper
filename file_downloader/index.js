@@ -1,6 +1,4 @@
-counter = 0;
-const {request} = require('../request/request.js');
-// const sanitize = require('sanitize-filename');
+const { request } = require('../request/request.js');
 const path = require('path');
 const FileProcessor = require('./file_processor');
 const util = require('util');
@@ -9,12 +7,12 @@ const pipeline = util.promisify(stream.pipeline);
 const fs = require('fs');
 const writeFile = util.promisify(fs.writeFile)
 const getFileNameFromResponse = require('./fileNameFromResponse')
-// var mime = require('mime-types')
+
 
 
 
 class FileDownloader {
-    constructor({ url,  shouldBufferResponse = false, directory, cloneFiles,  auth, timeout, headers, proxy }) {
+    constructor({ url, shouldBufferResponse = false, directory, cloneFiles, auth, timeout, headers, proxy }) {
         this.url = url;
         this.directory = directory;
         this.cloneFiles = cloneFiles;
@@ -27,7 +25,7 @@ class FileDownloader {
     }
 
     async download() {
-        // debugger;
+
         try {
 
             const response = await request({
@@ -40,25 +38,21 @@ class FileDownloader {
                 proxy: this.proxy
 
             })
-
             this.response = response;
             this.data = response.data;
 
         } catch (error) {
-
             throw error;
         }
+    }
 
-    }   
-
-   
 
     getFileNameData() {
 
-
-        const originalFileName = getFileNameFromResponse(this.url,this.response.headers);
+        const originalFileName = getFileNameFromResponse(this.url, this.response.headers);
 
         let finalFileName;
+
         const fileProcessor = new FileProcessor({ fileName: originalFileName, path: this.directory });
         if (this.cloneFiles) {
 
@@ -67,8 +61,6 @@ class FileDownloader {
             finalFileName = originalFileName;
         }
         const initialFileNameExists = fileProcessor.didInitialFileNameExist();
-        if (initialFileNameExists) counter++
-        // console.log('initialFileNameExists',counter)
 
         return {//Return an object with both the "original"(deduced from the URL and headers) file name, and the final one
             finalFileName,
@@ -80,11 +72,8 @@ class FileDownloader {
 
 
     async save() {
-        // debugger;
         try {
-            // debugger;
-            const { originalFileName, finalFileName, initialFileNameExists } = this.getFileNameData();          
-
+            const { finalFileName } = this.getFileNameData();
 
             if (this.shouldBufferResponse) {
 
@@ -94,10 +83,8 @@ class FileDownloader {
                 const write = fs.createWriteStream(path.join(this.directory, finalFileName));
                 await this.saveFromStream(this.data, write)
             }
-
         }
         catch (error) {
-            // debugger;
             throw error
         }
 

@@ -1,13 +1,9 @@
-// const Operation = require('../Operation');//For jsdoc
 const { request } = require('../../request/request.js');
 const { stripTags } = require('../../utils/html');
 const { mapPromisesWithLimitation } = require('../../utils/concurrency');
 const { getDictionaryKey } = require('../../utils/objects');
 const { getPaginationUrls } = require('../../utils/pagination');
-// const { CustomResponse } = require('../../request/request')//For jsdoc
-// const SPA_page = require('../../limitedSpa/SPA_Page');
 
-// require('../typedef.js'); 
 
 class PageHelper {
 
@@ -20,8 +16,6 @@ class PageHelper {
     }
 
 
-
-
     /**
     * 
     * @param {string} href      
@@ -29,7 +23,7 @@ class PageHelper {
     * @return {Promise<{data:[],address:string}>}   
     */
     async processOneIteration(href, shouldPaginate) {//Will process one scraping object, including a pagination object. Used by Root and OpenLinks.
-        // debugger;
+
         if (shouldPaginate) {//If the scraping object is actually a pagination one, a different function is called. 
             return this.paginate(href);
         }
@@ -42,19 +36,17 @@ class PageHelper {
             }
 
             var response = await this.getPage(href);
-            // debugger
             await this.runAfterResponseHooks(response)
 
-            // debugger;
-            var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, {html:response.data,url:response.url})
+
+            var dataFromChildren = await this.Operation.scrapeChildren(this.Operation.operations, { html: response.data, url: response.url })
 
             await this.runGetPageObjectHook(href, dataFromChildren)
 
             iteration.data = dataFromChildren
         }
         catch (error) {
-            // this.Operation.scraper.log(error)
-            // debugger;
+
             const errorString = `There was an error opening page ${href}, ${error}`;
             iteration.error = errorString;
             iteration.successful = false;
@@ -120,12 +112,12 @@ class PageHelper {
                 }
 
                 if (this.Operation.config.getPageHtml) {
-                    // debugger;
+
                     await this.Operation.config.getPageHtml(resp.data, resp.url)
                 }
 
             } catch (error) {
-                // debugger;
+
                 throw error;
             }
             finally {
@@ -145,18 +137,14 @@ class PageHelper {
      */
     async runGetPageObjectHook(address, dataFromChildren) {
         if (this.Operation.config.getPageObject) {
-            // debugger;
 
-            const tree = {
-                
-            }
+            const tree = {}
             for (let child of dataFromChildren) {
-                // debugger;
-                // tree[child.name] = child.data
+
                 const func = getDictionaryKey(child.name);
                 tree[func(child.name, tree)] = child.data
             }
-            await this.Operation.config.getPageObject(tree,address)
+            await this.Operation.config.getPageObject(tree, address)
         }
     }
 
@@ -171,7 +159,7 @@ class PageHelper {
      */
     async runAfterResponseHooks(response) {
         if (this.Operation.config.getPageResponse) {//If a "getResponse" callback was provided, it will be called
-            // debugger;
+
             if (typeof this.Operation.config.getPageResponse !== 'function')
                 throw "'getPageResponse' callback must be a function";
             await this.Operation.config.getPageResponse(response);

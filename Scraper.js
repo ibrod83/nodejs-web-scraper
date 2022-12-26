@@ -4,16 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const { verifyDirectoryExists } = require('./utils/files')
 const { deepSpread } = require('./utils/objects')
-// const { Root } = require('./');//For jsdoc
-// const PathQueue = require('./utils/PathQueue');
-// const PuppeteerSimple = require('puppeteer-simple').default
 
 /**
  * @callback errorCallback
  * @param {string} errorString
  */
-
-
 class Scraper {
 
     /**
@@ -53,21 +48,9 @@ class Scraper {
             headers: {},
             proxy: null,
             showConsoleLogs: true,
-            usePuppeteer: false,//Deprecated
-            puppeteerDebugMode: false,//For debugging
-            puppeteerConfig: {
-                // headless: false,
-                // args:[],
-                defaultViewport: null,
-                timeout: 40000,//40 seconds for full page load(network idle)
-                waitUntil: 'networkidle0',
-                ...globalConfig.puppeteerConfig
-            },
             onError: null //callback runs whenever any error occurs during scraping
         }
-        // this.state = new State();
         this.state = {
-            // existingUserFileDirectories: [],
             failedScrapingIterations: [],
             downloadedFiles: 0,
             currentlyRunning: 0,
@@ -76,32 +59,18 @@ class Scraper {
             repetitionCycles: 0,
         }
 
-      
-
         this.validateGlobalConfig(globalConfig);
-        deepSpread(this.config,globalConfig)
-        
-        
-        // debugger;
+        deepSpread(this.config, globalConfig)
+
         this.config.errorCodesToSkip = [404, 403, 400];
 
         this.qyu = new Qyu({ concurrency: this.config.concurrency })//Creates an instance of the task-qyu for the requests.
         this.requestSpacer = Promise.resolve();
-        // debugger;
+
         if (this.config.usePuppeteer) {
             throw new Error('usePuppeteer is deprecated since version 5. If you need it, downgrade to version 4.2.2')
-            // debugger;
-            const puppeteerConfig = this.config.puppeteerConfig;
-            // debugger
-            // const { args,headless } = puppeteerConfig;
-            this.puppeteerSimple = new PuppeteerSimple({ ...puppeteerConfig})
-            this.isBrowserReady = this.puppeteerSimple.createBrowser();
         }
 
-
-
-
-        // this.pathQueue = new PathQueue();
         this.referenceToRoot = null;
 
     }
@@ -118,11 +87,6 @@ class Scraper {
         await this.isBrowserReady;
     }
 
-    getPuppeteerSimpleInstance() {
-        return this.puppeteerSimple;
-    }
-
-
 
     validateGlobalConfig(conf) {
         if (!conf || typeof conf !== 'object')
@@ -130,8 +94,6 @@ class Scraper {
         if (!conf.baseSiteUrl || !conf.startUrl)
             throw 'Please provide both baseSiteUrl and startUrl';
     }
-
-
 
 
 
@@ -145,9 +107,7 @@ class Scraper {
             throw 'Scraper.scrape() expects a Root object as an argument!';
 
         this.referenceToRoot = rootObject;
-        // debugger;
-        // rootObject.injectScraper(this)
-        // debugger;
+
         rootObject.injectScraper(this)
 
         if (this.config.usePuppeteer) {
@@ -162,7 +122,6 @@ class Scraper {
         } else {
             this.log('All done, no final errors');
         }
-        // this.outPutErrors();
         if (this.config.logPath) {
             try {
                 await this.createLogs();
@@ -170,24 +129,7 @@ class Scraper {
                 this.log('Error creating logs', error)
             }
         }
-        // this.log('global.counter of alternative src ',global.counter)
         this.log(`overall files:  ${this.state.downloadedFiles}`)
-
-        if (this.config.usePuppeteer) {
-            // setTimeout(()=>{
-            if (!this.config.puppeteerDebugMode) {
-                try {
-                  await this.puppeteerSimple.close()  
-                } catch (error) {
-                    this.log('Error shutting down puppeteer',error)
-                }
-                
-            }
-
-            // },1000)
-
-        }
-
 
     }
 
@@ -196,7 +138,6 @@ class Scraper {
      * @return {boolean}
      */
     areThereRepeatableErrors() {
-        // debugger;
         return this.state.failedScrapingIterations.length > 0;
     }
 
@@ -207,7 +148,7 @@ class Scraper {
      */
     reportFailedScrapingAction(errorString) {
         this.state.failedScrapingIterations.push(errorString);
-        if(this.config.onError) this.config.onError(errorString);
+        if (this.config.onError) this.config.onError(errorString);
     }
 
 
@@ -218,12 +159,9 @@ class Scraper {
      * @return {Promise<void>}  
      */
     saveFile(data, fileName) {
-        // verifyDirectoryExists(this.config.logPath);
         return new Promise(async (resolve, reject) => {
             await verifyDirectoryExists(this.config.logPath);
 
-            // this.log('saving file')
-            // debugger;
             fs.writeFile(path.join(this.config.logPath, `${fileName}.json`), JSON.stringify(data), (error) => {
                 if (error) {
                     reject(error)
@@ -231,7 +169,6 @@ class Scraper {
                     this.log(`Log file ${fileName} saved`);
                     resolve();
                 }
-
             });
 
         })
@@ -242,14 +179,13 @@ class Scraper {
      * @return {Promise<void>}
      */
     async createLogs() {
-        // debugger;
+
         for (let operation of this.state.registeredOperations) {
             const fileName = operation.constructor.name === 'Root' ? 'log' : operation.config.name;
             const data = operation.getData();
             await this.createLog({ fileName, data })
         }
         await this.createLog({ fileName: 'finalErrors', data: this.state.failedScrapingIterations })
-        // await this.createLog({ fileName: 'allErrors', data: this.referenceToRoot.getErrors() })
     }
 
 
@@ -275,7 +211,7 @@ class Scraper {
 
 
 module.exports = Scraper;
-// debugger;
+
 
 
 

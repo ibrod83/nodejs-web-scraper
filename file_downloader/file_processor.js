@@ -4,20 +4,17 @@ const fs = require('fs');
 
 class FileProcessor {
     constructor(config) {
-        // console.log(config)
-        // debugger;
+
         this.originalFileName = config.fileName;        
         this.fileExtension = path.extname(this.originalFileName);
         this.fileNameWithoutExtension = config.fileName.split('.').slice(0, -1).join('.')
         this.basePath = config.path[config.path.length - 1] === '/' ? config.path : config.path + '/';
-        // debugger;
         this.initialFileNameExists = this.doesFileExist(this.basePath+this.originalFileName)
 
-        // console.log(this);
+ 
     }
 
-    getAvailableFileName() {
-        // debugger;
+    getAvailableFileName() {   
         return this.createNewFileName(this.originalFileName);
     }
 
@@ -34,7 +31,7 @@ class FileProcessor {
      
 
         if (!this.doesFileExist(this.basePath+fileName)) {
-            // console.log('new file name', newFileName)
+ 
             return fileName;
         }
 
@@ -45,12 +42,12 @@ class FileProcessor {
 
     }
     doesFileExist(path) {
-        // debugger;
+
         if (fs.existsSync(path)) {
-            // console.log(`file ${fileName} already exists!`);
+  
             return true;
         }
-        // console.log(`file ${fileName} is being created for the first time`);
+    
         return false;
 
     }

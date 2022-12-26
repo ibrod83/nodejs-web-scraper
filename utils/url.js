@@ -6,10 +6,9 @@
  * @return {string} newUrl
  */
 function getAbsoluteUrl(base, relative) {//Handles the absolute URL.
-    // debugger;
+
     const newUrl = new URL(relative, base).toString();
     return newUrl;
-
 }
 
 /**

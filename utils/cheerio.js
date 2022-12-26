@@ -4,10 +4,10 @@
  * @param {Cheerio} $ 
  * @param {string} baseSiteUrl 
  */
-function getBaseUrlFromBaseTag($,baseSiteUrl) {
+function getBaseUrlFromBaseTag($, baseSiteUrl) {
     let baseMetaTag = $('base');
 
-    // debugger;
+
     if (baseMetaTag.length == 0 || baseMetaTag.length > 1) {
         baseMetaTag = null;
     }
@@ -34,8 +34,8 @@ function getBaseUrlFromBaseTag($,baseSiteUrl) {
  * @param {object} [config] 
  * @param {Array | number} [config.slice] 
  */
-function createNodeList($,querySelector,config={}) {//Gets a cheerio object and creates a nodelist.      
-    const {slice}=config;
+function createNodeList($, querySelector, config = {}) {//Gets a cheerio object and creates a nodelist.      
+    const { slice } = config;
     const nodeList = slice ? $(querySelector).slice(typeof slice === 'number' ? slice : slice[0], slice[1]) : $(querySelector);
 
     return nodeList;
@@ -50,9 +50,9 @@ function createNodeList($,querySelector,config={}) {//Gets a cheerio object and 
  * @param {Array | number} [config.slice] 
  * @param {Function} [config.condition] 
  */
-async function createElementList($,querySelector,config={}) {
-    const {condition,slice} = config
-    const nodeList = Array.from(createNodeList($,querySelector,{slice}));
+async function createElementList($, querySelector, config = {}) {
+    const { condition, slice } = config
+    const nodeList = Array.from(createNodeList($, querySelector, { slice }));
     const elementList = [];
     for (let node of nodeList) {
         const nodeFromCheerio = $(node);
@@ -78,8 +78,8 @@ async function createElementList($,querySelector,config={}) {
  * @param {boolean} [config.shouldTrim] 
  * @param {string} [config.contentType] 
  */
-function getNodeContent(elem,config={}) {
-    const {contentType,shouldTrim} =  config;
+function getNodeContent(elem, config = {}) {
+    const { contentType, shouldTrim } = config;
     const getText = () => shouldTrim ? elem.text().trim() : elem.text();//Will trim the string, if "shouldTrim" is true.
     switch (contentType) {
         case 'text':
@@ -87,13 +87,12 @@ function getNodeContent(elem,config={}) {
         case 'html':
             return elem.html();
         default:
-            return getText();;
-
+            return getText();
     }
 }
 
 
-module.exports ={
+module.exports = {
     getBaseUrlFromBaseTag,
     createNodeList,
     createElementList,

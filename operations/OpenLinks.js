@@ -1,15 +1,10 @@
 const HttpOperation = require('./HttpOperation');
 const CompositeInjectMixin = require('./mixins/CompositeInjectMixin');
 const CompositeScrapeMixin = require('./mixins/CompositeScrapeMixin');
-// const Operation = require('./Operation')//For jsdoc
 var cheerio = require('cheerio')
-// var cheerioAdv = require('cheerio-advanced-selectors');
-// cheerio = cheerioAdv.wrap(cheerio);
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio');
 const { getAbsoluteUrl } = require('../utils/url');
 const PageHelper = require('./helpers/PageHelper');
-// const SPA_PageHelper = require('./helpers/SPA_PageHelper');
-// const { CustomResponse } = require('../request/request');//For jsdoc
 const { mapPromisesWithLimitation } = require('../utils/concurrency');
 
 
@@ -42,10 +37,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     constructor(querySelector, config) {
 
         super(config);
-        // this.pageHelper = new PageHelper(this);
         this.pageHelper = null;
-        // this.compositeHelper = new CompositeHelper(this);
-        // this.virtualOperations = []
         this.operations = [];//References to child operation objects.
         this.querySelector = querySelector;
 
@@ -63,16 +55,11 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
      * @param {Operation} Operation
      */
     addOperation(Operation) {
-        // this._addOperation(Operation);
         this.operations.push(Operation)
     }
 
     initPageHelper() {
-        if (!this.scraper.config.usePuppeteer) {
-            this.pageHelper = new PageHelper(this)
-        } else {
-            this.pageHelper = new SPA_PageHelper(this);
-        }
+        this.pageHelper = new PageHelper(this)
     }
 
 
@@ -90,7 +77,7 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
     async scrape({ url, html }) {
         if (!this.pageHelper)
             this.initPageHelper();
-        // debugger;
+
         const refs = await this.createLinkList(html, url)
 
         const hasOpenLinksOperation = this.operations.filter(child => child.constructor.name === 'OpenLinks').length > 0;//Checks if the current page operation has any other page operations in it. If so, will force concurrency limitation.
@@ -98,12 +85,12 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
         if (hasOpenLinksOperation) {
             forceConcurrencyLimit = 3;
         }
-        // debugger;
+
         const shouldPaginate = this.config.pagination ? true : false;
         const iterations = [];
 
         await mapPromisesWithLimitation(refs, async (href) => {
-            // debugger;
+
             const data = await this.pageHelper.processOneIteration(
                 this.transformHref(href),
                 shouldPaginate
@@ -124,9 +111,9 @@ class OpenLinks extends HttpOperation {//This operation is responsible for colle
 
 
     async createLinkList(html, url) {
-        // debugger;
+
         var $ = cheerio.load(html);
-        // debugger;
+
         const elementList = await createElementList($, this.querySelector, {
             condition: this.config.condition,
             slice: this.config.slice

@@ -5,12 +5,12 @@ var mime = require('mime-types')
 
 module.exports = function getFileNameFromResponse(url, headers) {
     const cleanUrl = removeQueryString(url)
-    // console.log('filenamecontentdisposition',fileNameFromContentDisposition)
+    
     const fileNameFromContentDisposition = getFileNameFromContentDisposition(headers['content-disposition'] || headers['Content-Disposition']);
 
     if (fileNameFromContentDisposition) return fileNameFromContentDisposition;
 
-    // debugger;
+    
     //Second option
     if (path.extname(cleanUrl)) {//First check if the url even has an extension
         const fileNameFromUrl = deduceFileNameFromUrl(cleanUrl);
@@ -30,7 +30,7 @@ module.exports = function getFileNameFromResponse(url, headers) {
 
 
 function getFileNameFromContentDisposition(contentDisposition) {
-    // debugger;
+    
     if (!contentDisposition || !contentDisposition.includes('filename=')) {
         return "";
     }
@@ -46,7 +46,6 @@ function getFileNameFromContentDisposition(contentDisposition) {
 
 function getFileNameFromContentType(contentType,url) {
 
-    // console.log(contentType)
     let extension = mime.extension(contentType)
    
     const fileNameWithoutExtension = removeExtension(path.basename(url));
@@ -59,7 +58,7 @@ function removeQueryString(url) {
 }
 
 function removeExtension(str) {
-    // debugger;
+    
     const arr = str.split('.');
     if (arr.length == 1) {
         return str;
@@ -74,7 +73,7 @@ function removeExtension(str) {
  * @return {string} fileName
  */
 function deduceFileNameFromUrl(url) {
-    // debugger;
+    
     const baseName = sanitize(path.basename(url));
     return baseName;
 

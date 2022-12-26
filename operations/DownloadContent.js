@@ -1,14 +1,10 @@
 const HttpOperation = require('./HttpOperation');
 var cheerio = require('cheerio')
-// var cheerioAdv = require('cheerio-advanced-selectors');
-// cheerio = cheerioAdv.wrap(cheerio);
 const fs = require('fs');
 const { promisify } = require('util');
 const writeFile = promisify(fs.writeFile)
 const Downloader = require('../file_downloader')
-// const Downloader = require('nodejs-file-downloader')
 const FileProcessor = require('../file_downloader/file_processor');
-// const FileProcessor = require('nodejs-file-downloader/FileProcessor.js');
 const crypto = require('crypto')
 const { verifyDirectoryExists } = require('../utils/files')
 const { getBaseUrlFromBaseTag, createElementList } = require('../utils/cheerio')
@@ -34,12 +30,10 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {Function} [config.getException = null] Listens to every exception. Receives the Error object. 
      */
     constructor(querySelector, config = {}) {
-        // debugger;
         super(config);
 
-        
+
         this.querySelector = querySelector;
-        // this.overridableProps = ['filePath', 'fileFlag', 'imageResponseType'];
         this.overridableProps = ['filePath'];
         for (let prop in config) {
             if (this.overridableProps.includes(prop))
@@ -71,7 +65,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
       * @param {{url:string,html:string}} params 
      * @return {Promise<{type:string,name:string,data:[]}>}
      */
-    async scrape({html,url}) {
+    async scrape({ html, url }) {
         // debugger;
         if (!this.directoryVerified) {
             await verifyDirectoryExists(this.config.filePath || this.scraper.config.filePath);
@@ -88,8 +82,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
         if (this.config.getElementList) {
             await this.config.getElementList(elementList);
         }
-        // debugger;config.
-        const fileRefs = this.getFileRefs(url,elementList,baseUrlFromBaseTag)
+        const fileRefs = this.getFileRefs(url, elementList, baseUrlFromBaseTag)
 
 
         await mapPromisesWithLimitation(fileRefs, (ref) => {
@@ -110,7 +103,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
      * @param {string} baseUrlFromBaseTag 
      * @return {string[]} fileRefs
      */
-    getFileRefs(url,elementList,baseUrlFromBaseTag){
+    getFileRefs(url, elementList, baseUrlFromBaseTag) {
         const fileRefs = []
         elementList.forEach((element) => {
 
@@ -132,7 +125,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 }
             }
             const absoluteUrl = getAbsoluteUrl(baseUrlFromBaseTag || url, src);
-            fileRefs.push(absoluteUrl);            
+            fileRefs.push(absoluteUrl);
 
         })
 
@@ -171,10 +164,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var base64Data = split[1]
             let fileName = crypto.createHash('md5').update(base64Data).digest("hex")
 
-            const fileProcessor = new FileProcessor({fileName: `${fileName}.${extension}`, path: this.config.filePath || this.scraper.config.filePath });
+            const fileProcessor = new FileProcessor({ fileName: `${fileName}.${extension}`, path: this.config.filePath || this.scraper.config.filePath });
             if (this.scraper.config.cloneFiles) {
-                // debugger;
-                // fileName = await fileProcessor.getAvailableFileName();
                 fileName = fileProcessor.getAvailableFileName();
             } else {
                 fileName = fileName + '.' + extension;
@@ -183,7 +174,6 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             await writeFile(`${this.config.filePath || this.scraper.config.filePath}/${fileName}`, base64Data, 'base64');
             this.scraper.state.downloadedFiles++
 
-            // this.scraper.log('images:', this.scraper.state.downloadedFiles)
 
         }
 
@@ -198,7 +188,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
             var promiseFactory = this.saveDataUrlPromiseFactory(url);
         } else {
 
-            
+
             const options = {
                 url,
                 directory: this.config.filePath || this.scraper.config.filePath,
@@ -206,10 +196,8 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 shouldBufferResponse: this.config.contentType === 'image' ? true : false,
                 auth: this.scraper.config.auth,
                 timeout: this.scraper.config.timeout,
-                // timeout: 150,
                 headers: this.scraper.config.headers,
                 proxy: this.scraper.config.proxy,
-                // useSynchronousMode:true
 
             }
 

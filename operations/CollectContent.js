@@ -1,16 +1,12 @@
 const Operation = require('./Operation')
 var cheerio = require('cheerio');
-// var cheerioAdv = require('cheerio-advanced-selectors')
-// cheerio = cheerioAdv.wrap(cheerio)
-// const fs = require('fs')
 const { createElementList, getNodeContent } = require('../utils/cheerio')
-// const { CustomResponse } = require('../request/request')
 
 class CollectContent extends Operation {
 
     /**
      *
-     * @param {string} querySelector cheerio-advanced-selectors selector
+     * @param {string} querySelector 
      * @param {Object} [config]
      * @param {string} [config.name = 'Default CollectContent name']
      * @param {string} [config.contentType = 'text']
@@ -24,7 +20,6 @@ class CollectContent extends Operation {
     constructor(querySelector, config) {
         super(config);
         this.querySelector = querySelector;
-        // this.validateOperationArguments();
         if (typeof this.config.shouldTrim !== 'undefined') {//Checks if the user passed a "shouldTrim" property.
             this.config.shouldTrim = this.config.shouldTrim;
         } else {
@@ -46,25 +41,14 @@ class CollectContent extends Operation {
     * @return {Promise<{type:string,name:string,data:[]}>}
     */
     async scrape({ html, url }) {
-        // this.scraper.log('colelcting content',url)
-        // debugger;
-        // if(this.config.name === 'videoLabel')
-        // debugger;
-        // const arr = url.split('/');
-        // const fileName = arr[arr.length-1]
-        // fs.writeFile(`${this.scraper.config.logPath}/${fileName}.html`,html,()=>{})
 
         const parentAddress = url
 
 
         this.config.contentType = this.config.contentType || 'text';
-        // !responseObjectFromParent && this.scraper.log('Empty response from content operation', responseObjectFromParent)
-        // debugger;
+
         var $ = cheerio.load(html);
         const elementList = await createElementList($, this.querySelector, { condition: this.config.condition, slice: this.config.slice });
-
-        // if(this.config.name === 'videoLabel')
-        // this.scraper.log(url,' Number of video elements: ',elementList.length)
 
         if (this.config.getElementList) {
             await this.config.getElementList(elementList, parentAddress);
@@ -84,7 +68,6 @@ class CollectContent extends Operation {
         }
 
         if (this.config.getAllItems) {
-            // await this.config.afterScrape(currentWrapper);
             await this.config.getAllItems(iterations, parentAddress);
         }
 

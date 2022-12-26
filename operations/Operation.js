@@ -1,14 +1,12 @@
 
-// const Scraper = require('../Scraper');//For jsdoc
 
 /**
- * Base class for all operations(not including limitedSpa).
+ * Base class for all operations
  * Every Operation must implement its own scrape() method.
  */
 class Operation {//Base class for all operations.
 
     constructor(objectConfig) {
-
 
         this.config = {}
         if (objectConfig) {
@@ -20,15 +18,11 @@ class Operation {//Base class for all operations.
         if(!this.config.name)
             this.config.name = `Default ${this.constructor.name} name`
 
-        // this.querySelector = querySelector;
-        // this.config.name = this.getOperationName(this.config.name);
         this.scraper = null; //Scraper instance is passed later on.
         this.data = []; //Holds all data collected by this operation, in the form of possibly multiple "ScrapingWrappers".       
         this.errors = [];//Holds the overall communication errors, encountered by the operation.
 
-    }
-
-    
+    }    
 
 
     /**
@@ -40,11 +34,9 @@ class Operation {//Base class for all operations.
 
         this.scraper = ScraperInstance;
 
-        this.handleNewOperationCreation(this)
-        // debugger;
+        this.handleNewOperationCreation(this)        
 
         this.validateOperationArguments();//Implemented by all Operation objects
-
     }
 
 
@@ -63,11 +55,8 @@ class Operation {//Base class for all operations.
      *     
      */
     handleFailedScrapingIteration(errorString) {
-        // handleFailedScrapingIteration(error) {
         this.scraper.log(errorString);
-        // scrapingAction.setError(errorString, errorCode)
         this.scraper.reportFailedScrapingAction(errorString);
-
     }
 
 
@@ -79,17 +68,13 @@ class Operation {//Base class for all operations.
     }
 
 
-
     /**
      * Get the entire data collected by this operation
      * @return {Array}
      */
-    getData() {
-        // debugger;
+    getData() {        
         return this.data;
     }
-
-
 
 
     /**
@@ -99,10 +84,7 @@ class Operation {//Base class for all operations.
         return this.errors;
     }
 
-
 }
-
-
 
 
 module.exports = Operation;
