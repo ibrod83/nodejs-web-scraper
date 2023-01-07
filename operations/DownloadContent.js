@@ -198,7 +198,7 @@ class DownloadContent extends HttpOperation {//Responsible for downloading files
                 timeout: this.scraper.config.timeout,
                 headers: this.scraper.config.headers,
                 proxy: this.scraper.config.proxy,
-
+                agent: this.scraper.config.agent
             }
 
 

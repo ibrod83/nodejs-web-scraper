@@ -60,7 +60,12 @@ class Scraper {
         }
 
         this.validateGlobalConfig(globalConfig);
-        deepSpread(this.config, globalConfig)
+
+        deepSpread(this.config,globalConfig)
+        
+        if (globalConfig.agent) {
+            this.config.agent = globalConfig.agent;
+        }        
 
         this.config.errorCodesToSkip = [404, 403, 400];
 
