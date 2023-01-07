@@ -3,7 +3,7 @@ const { Qyu } = require('qyu');
 const fs = require('fs');
 const path = require('path');
 const { verifyDirectoryExists } = require('./utils/files')
-const { deepSpread } = require('./utils/objects')
+const { deepSpread } = require('./utils/objects');
 
 /**
  * @callback errorCallback
@@ -27,6 +27,7 @@ class Scraper {
      * @param {Object} [globalConfig.auth = null] 
      * @param {Object} [globalConfig.headers = {}] 
      * @param {string} [globalConfig.proxy = null] 
+     * @param {Agent} [globalConfig.agent = null] 
      * @param {Function} [globalConfig.onError = null]
      */
 
@@ -62,7 +63,7 @@ class Scraper {
         this.validateGlobalConfig(globalConfig);
 
         deepSpread(this.config,globalConfig)
-        
+
         if (globalConfig.agent) {
             this.config.agent = globalConfig.agent;
         }        
