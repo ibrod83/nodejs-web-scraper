@@ -89,7 +89,7 @@ declare module 'nodejs-web-scraper' {
         getPageHtml?: Function;
         // Listens to every exception. Receives the Error object.
         getException?: (error: Error) => Promise<any>;
-    }
+    } & HttpOperationConfig;
 
     // Fetches the initial page, and starts the scraping process.
     export declare class Root extends HttpOperation {
@@ -102,9 +102,60 @@ declare module 'nodejs-web-scraper' {
         // Will get the errors from all registered operations.
         getErrors(): string[];
         validateOperationArguments(): void;
+
+        // Mixins
         injectScraper: (ScraperInstance: Scraper) => void;
         // Scrapes the child operations of this OpenLinks object.
-        scrapeChildren: (childOperations: any, { url, html }) => Promise<any[]>;
+        scrapeChildren: (childOperations: any, { url: any, html: any }) => Promise<any[]>;
+    }
+
+    export type ElementList = any;
+
+    export type OpenLinksConfig = {
+        name?: string = 'Default OpenLinks name';
+        // Look at the pagination API for more details.
+        pagination?: any;
+        slice?: number[];
+        // Receives a Cheerio node.  Use this hook to decide if this node should be included in the scraping. Return true or false
+        condition?: (nodeFromCheerio) => boolean;
+        // Receives an elementList array
+        getElementList?: (elementList: ElementList[]) => unknown;
+        getPageData?: () => unknown;
+        // Receives a dictionary of children, and an address argument
+        getPageObject?: (children, address) => unknown;
+        // Receives an axiosResponse object
+        getPageResponse?: (axiosResponse: any) => unknown;
+        // Receives htmlString and pageAddress
+        getPageHtml?: (html: string, pageAddress: any) => unknown;
+        getException?: (error: Error) => unknown;
+        // Callback that receives the href before it is opened.
+        transformHref?: (href: string) => string;
+    }
+
+    export declare class OpenLinks extends HttpOperation {
+        pageHelper?: PageHelper;
+        operations: Operation[];
+        querySelector: keyof HTMLElementTagNameMap;
+        transformHref?: (href: string) => string;
+        /**
+         * @param {keyof HTMLElementTagNameMap} querySelector - cheerio-advanced-selectors selector
+         * @param {OpenLinksConfig} config - OpenLinksConfig
+         */
+        constructor(querySelector: keyof HTMLElementTagNameMap, config: OpenLinksConfig): OpenLinks
+        addOperation(Operation: Operation): void;
+        initPageHelper(): void;
+        validateOperationArguments(): void;
+        async scrape(scrapeParams: { url: string, html: string }): Promise<{
+            type: string;
+            name: string;
+            data: any[];
+        }>
+        async createLinkList(html: string, url: string): Promise<any[]>;
+
+        // Mixins
+        injectScraper: (ScraperInstance: Scraper) => void;
+        // Scrapes the child operations of this OpenLinks object.
+        scrapeChildren: (childOperations: any, { url: any, html: any }) => Promise<any[]>;
     }
 
     /**
